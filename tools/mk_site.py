@@ -229,6 +229,11 @@ rep('<div class="go">', '<div class="matchup" id="mu" aria-live="polite"></div>\
 rep("function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]); }",
     "function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]);\n  const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class=\"a\">${n(0)}</span><span class=\"vs\">VS</span><span class=\"b\">${n(1)}</span>`; }")
 
+
+# ---- 11. 足もとのルール説明（計算式）は公開しない ----
+s = re.sub(r'\n    <span>ルール：[^\n]*</span>', '', s, count=1)
+assert 'ルール：' not in s
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
