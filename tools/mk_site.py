@@ -203,6 +203,14 @@ renderRec();
 (async()=>{ try{""")
 rep("  renderPick(0); renderPick(1); updateFight(); })();", "  renderPick(0); renderPick(1); updateFight(); loadThrone(); })();")
 
+
+# ---- 9. スマホ：入力欄に触れたときの自動拡大と、横方向のぐらつきを防ぐ ----
+rep('</style>\n</head>', """html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{overflow-x:clip;max-width:100%}
+input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
+</style>
+</head>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
