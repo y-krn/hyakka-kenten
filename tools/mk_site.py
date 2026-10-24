@@ -43,7 +43,7 @@ s = s[:j] + "  return out; }" + s[j + len("  return out; });"):]
 # 登録：記事レコードを番号に割り当て、技の候補まで作る
 rep("const HOLD=DATA.HOLD||{};", "const HOLD={};")
 rep("const QIX={}; F.forEach((f,i)=>QIX[f[2]]=i);", """const QIX={};
-function register(rec){ const t=rec.f[0]; if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
+function register(rec){ const t=rec.f[1]; /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
   F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }""")

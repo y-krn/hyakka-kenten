@@ -1,6 +1,6 @@
 # 全記事版：各区画の big_v2.json を、公開用の小さなファイル群に分ける
 # python3 build_full.py <gen_dir> <out_dir> [NB]
-#   out/a/<n>.json : 記事名のハッシュで NB 個に振り分けた {記事名: レコード}
+#   out/a/<n>.json.gz : 記事名（Wikipediaの正式な記事名。表示名ではない）のハッシュで NB 個に振り分けた {記事名: レコード}
 #   out/meta.json  : 件数・時点・振り分け数・おまかせ用の人気記事
 import json, sys, math, os, glob, collections, gzip
 G, OUT = sys.argv[1], sys.argv[2]; NB = int(sys.argv[3]) if len(sys.argv) > 3 else 4096
@@ -46,9 +46,9 @@ for sd in sorted(glob.glob(os.path.join(G, '*', 'big_v2.json'))):
         if d['PERSON'][o]: r['p'] = 1
         rv = RVG.get(f[2]) if RVG is not None else rvq.get(o)
         if rv: r['rv'] = rv
-        B[fnv(f[0]) % NB][f[0]] = json.dumps(r, ensure_ascii=False, separators=(',', ':')); n += 1   # メモリ節約のため文字列で持つ
+        B[fnv(f[1]) % NB][f[1]] = json.dumps(r, ensure_ascii=False, separators=(',', ':')); n += 1   # メモリ節約のため文字列で持つ
         pv = next((e[5] for e in d['EXT'][so] if e[0] == '_m'), 0)
-        if so not in d['HOLD']: POP.append((pv, f[0]))
+        if so not in d['HOLD']: POP.append((pv, f[1]))
     print(os.path.basename(os.path.dirname(sd)), len(d['F']), flush=True)
 tot = 0; totz = 0
 for k in range(NB):
