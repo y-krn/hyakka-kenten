@@ -1,0 +1,16 @@
+{
+  "name": "hyakka-kenten-api",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "wrangler": "^4.152.0"
+  },
+  "private": true
+}

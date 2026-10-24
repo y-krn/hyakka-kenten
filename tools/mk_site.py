@@ -1,6 +1,6 @@
 # 試作の page.html から、公開用（記事データを必要なときだけ読む版）の index.html を作る
 # python3 mk_site.py <page.html> <out/index.html>
-import sys, re
+import sys, re, os
 src, dst = sys.argv[1], sys.argv[2]
 s = open(src, encoding='utf-8').read()
 def rep(a, b, cnt=1):
@@ -135,8 +135,99 @@ rep('<title>百科拳典</title>\n<meta name="claude:viewport-fit-sides" content
 rep('</style>\n', '</style>\n</head>\n<body>\n', 1)
 s = s.rstrip() + '\n</body>\n</html>\n'
 
+
+# ---- 8. 王座戦：いまの王者に挑み、勝てば王座を奪う（勝敗はサーバーが計算し直して決める） ----
+API = os.environ.get('HK_API', '')
+rep('.card{background:var(--paper);border:1px solid var(--line);border-radius:6px}',
+""".card{background:var(--paper);border:1px solid var(--line);border-radius:6px}
+#throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--hl)}
+#throne .crown{font-size:12px;letter-spacing:.12em;color:var(--muted)}
+#throne .champ{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,5vw,30px);line-height:1.2;overflow-wrap:anywhere}
+#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}
+#throne .meta{font-size:13px;color:var(--muted)}
+#throne .meta b{color:var(--ink)}
+#throne form{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+#throne input{flex:1 1 200px;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+#throne input.nm{flex:0 1 150px}
+#throne .msg{font-size:14px;min-height:1.4em}
+#throne .msg.win{font-weight:700;color:var(--ok)}
+#throne .msg.err{color:var(--b)}
+#throne details{border-top:1px solid var(--line);padding-top:8px}
+#throne summary{cursor:pointer;font-size:13px;color:var(--muted)}
+#throne ol{margin:8px 0 0;padding-left:1.4em;font-size:13px;display:flex;flex-direction:column;gap:4px}
+#throne ol .who{color:var(--muted)}
+#throne .r-win{color:var(--ok);font-weight:700}
+""")
+rep('  <section id="setup" class="card"', """  <section id="throne" class="card" hidden aria-live="polite"></section>
+
+  <section id="setup" class="card\"""")
+rep("renderRec();\n(async()=>{ try{", """/* ---------- 王座戦 ---------- */
+const API='""" + API + """';
+let THRONE=null;
+const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(_){ return ''; } };
+const RES={win:'<span class="r-win">王座奪取</span>',lose:'防衛',draw:'引き分け（防衛）',late:'ひと足遅れ'};
+function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; return; } THRONE=d; const c=d.champ; el.hidden=false;
+  let nm=''; try{ nm=localStorage.getItem('hk-name')||''; }catch(_){}
+  el.innerHTML=`<div class="crown">王座戦 ／ 第${d.reignNo}代王者</div>
+  <div class="champ">${esc(c.display)}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}" target="_blank" rel="noopener">記事 ↗</a></div>
+  <div class="meta">防衛 <b>${c.defenses}</b>回 ／ 王座を取った人：<b>${esc(c.holder)}</b> ／ ${esc(dt(c.started_at))}から在位</div>
+  <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、負けた記事での再挑戦はできません。</div>
+  <form id="chf"><input id="chT" list="chL" placeholder="挑戦する記事名" autocomplete="off" aria-label="挑戦する記事名"><datalist id="chL"></datalist>
+    <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn">挑戦する</button></form>
+  <div class="msg" id="chM">${msg||''}</div>
+  <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li>${esc(x.display)} <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
+  <details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}${x.ended_at?'':'・在位中'}）</span></li>`).join('')}</ol></details>
+  <details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+esc(x.ended_by)+'に敗れる':'在位中'}）</span></li>`).join('')}</ol></details>`;
+  const inp=$('#chT'), dl=$('#chL'); let tm=null, sq=0;
+  inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;
+    try{ const j=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=10&search='+encodeURIComponent(v)).then(r=>r.json()); if(my!==sq) return;
+      dl.innerHTML=(j[1]||[]).map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });
+  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }
+async function loadThrone(msg){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ) renderThrone(d,msg); }catch(_){} }
+async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').value.trim(), m=$('#chM'), btn=$('#chf button');
+  if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }
+  try{ localStorage.setItem('hk-name',name); }catch(_){}
+  btn.disabled=true; m.className='msg'; m.textContent='「'+t+'」で挑戦しています…';
+  let d; try{ const r=await fetch(API+'/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t,name})}); d=await r.json(); }
+  catch(_){ btn.disabled=false; m.className='msg err'; m.textContent='送れませんでした。通信状態を確かめてください。'; return; }
+  btn.disabled=false;
+  if(d.error){ m.className='msg err'; m.textContent=d.error; return; }
+  const msg=d.result==='win'?`<span class="msg win">${esc(d.challenger.display)}が${esc(d.champ.display)}を倒し、新王者になりました！（${esc(d.how||'')}）</span>`:
+    d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が王者を倒していました。新しい王者に挑み直してください。`:
+    d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
+  // 対戦の中身をリングで見せる（同じ計算なので、サーバーと同じ結果になる）
+  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ sel=[a,b]; streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); startBattle(); } }catch(_){}
+  await loadThrone(msg); }
+
+renderRec();
+(async()=>{ try{""")
+rep("  renderPick(0); renderPick(1); updateFight(); })();", "  renderPick(0); renderPick(1); updateFight(); loadThrone(); })();")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
 left = [w for w in ['DATA.', 'NAMES', 'recompute(', 'renderReview', 'dbRef', 'window.claude', 'isAdmin', "list=\"names\""] if w in s]
 print('ok', len(s), 'leftover:', left)
+
+# ---- サーバー（王座戦の判定）用：ページと同じ戦闘エンジンを ES モジュールとして書き出す ----
+js = s[s.index('<script>') + 8:s.rindex('</script>')]
+a = js[:js.index('/* ---------- 記録（この端末だけ）')]
+b = js[js.index('/* ---------- 保留・通報・確認'):js.index('function setCount()')]
+a = a.replace("const $=s=>document.querySelector(s);", "")
+eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/';\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'") + b + r"""
+/* ---------- サーバー用：1記事だけを取り出して登録する（全体を解析しないので軽い） ---------- */
+const TXT={};
+function pickRec(txt,t){ const key=JSON.stringify(t)+':{'; let i=txt.indexOf(key); if(i<0) return null; i+=key.length-1; let d=0,inS=false;
+  for(let j=i;j<txt.length;j++){ const c=txt.charCodeAt(j); if(inS){ if(c===92){ j++; continue; } if(c===34) inS=false; continue; }
+    if(c===34) inS=true; else if(c===123) d++; else if(c===125){ d--; if(!d) return JSON.parse(txt.slice(i,j+1)); } } return null; }
+async function loadOne(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
+  if(!TXT[k]){ const r=await fetch(DATA_BASE+'a/'+k+'.json.gz?v='+VER); if(!r.ok) throw new Error('data '+r.status);
+    TXT[k]=await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); }
+  const rec=pickRec(TXT[k],t); return rec?register(rec):-1; }
+function setup(o){ if(o.base) DATA_BASE=o.base; if(o.nb) NB=o.nb; if(o.ver&&o.ver!==VER){ VER=o.ver; for(const k in TXT) delete TXT[k]; } if(o.excl) EXCL=new Set(o.excl); }
+function verdict(ai,bi){ const an=analyze(ai,bi); const r=an.r; return {w:r.w===null?null:F[r.w][1], kind:r.kind, how:r.how||(r.kind==='KO'?r.tick+'カウントでKO勝ち':r.kind==='判定'?'判定勝ち':r.kind), type:an.type||null}; }
+function info(i){ const f=F[i]; return {title:f[1], name:f[0], q:f[2], stats:f[3], hold:!!HOLD[i], blocked:BLOCK.has(i)}; }
+export {setup, loadOne, verdict, info};
+"""
+open(os.path.join(os.path.dirname(dst), 'engine.mjs'), 'w', encoding='utf-8').write(eng)
+print('engine', len(eng))

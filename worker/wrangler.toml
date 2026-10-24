@@ -1,0 +1,12 @@
+name = "hyakka-kenten-api"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+
+[vars]
+DATA_BASE = "https://y-krn.github.io/hyakka-kenten/data/"
+ALLOWED_ORIGINS = "https://y-krn.github.io,http://localhost:8765"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hyakka-kenten"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
