@@ -211,6 +211,24 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 </style>
 </head>""")
 
+
+# ---- 10. 対戦カード：技の一覧は畳んでおき、誰と誰の対戦かを先に見せる ----
+rep("""<div class="empty">技の候補（相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す）</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul>`; }""",
+"""<details class="mvs"${WIDE()?' open':''}><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
+  <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
+const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };""")
+rep('.fname a{font-size:12px;color:var(--muted)}', """.fname a{font-size:12px;color:var(--muted)}
+.mvs{border-top:1px solid var(--line);padding-top:6px}
+.mvs summary{cursor:pointer;font-size:13px;color:var(--muted);list-style-position:inside}
+.mvs .mvp{font-size:12px}
+.mvs[open] .mvp{display:none}
+.mvs .empty{margin:6px 0}
+.matchup{font-family:var(--f-display);font-weight:400;font-size:18px;line-height:1.35;text-align:center;overflow-wrap:anywhere}
+.matchup .a{color:var(--a)} .matchup .b{color:var(--b)} .matchup .vs{color:var(--muted);font-size:14px;margin:0 .5em}""")
+rep('<div class="go">', '<div class="matchup" id="mu" aria-live="polite"></div>\n    <div class="go">')
+rep("function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]); }",
+    "function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]);\n  const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class=\"a\">${n(0)}</span><span class=\"vs\">VS</span><span class=\"b\">${n(1)}</span>`; }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

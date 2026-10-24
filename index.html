@@ -74,6 +74,13 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 .fname{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .fname strong{font-size:19px;overflow-wrap:anywhere}
 .fname a{font-size:12px;color:var(--muted)}
+.mvs{border-top:1px solid var(--line);padding-top:6px}
+.mvs summary{cursor:pointer;font-size:13px;color:var(--muted);list-style-position:inside}
+.mvs .mvp{font-size:12px}
+.mvs[open] .mvp{display:none}
+.mvs .empty{margin:6px 0}
+.matchup{font-family:var(--f-display);font-weight:400;font-size:18px;line-height:1.35;text-align:center;overflow-wrap:anywhere}
+.matchup .a{color:var(--a)} .matchup .b{color:var(--b)} .matchup .vs{color:var(--muted);font-size:14px;margin:0 .5em}
 .chip{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;border:1px solid var(--warn);color:var(--warn);white-space:nowrap}
 .stats{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;font-size:12px;align-items:center;font-variant-numeric:tabular-nums}
 .stats .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
@@ -173,6 +180,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
       <div class="card pick B" id="pickB"></div>
     </div>
     <datalist id="names"></datalist>
+    <div class="matchup" id="mu" aria-live="polite"></div>
     <div class="go">
       <button type="button" class="btn" id="omakase">おまかせで組む</button>
       <button type="button" class="btn big" id="fight">対戦開始</button>
@@ -690,7 +698,9 @@ function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
   ${f[5]==='配慮'?`<div><span class="chip">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}
   <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>
-  <div class="empty">技の候補（相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す）</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul>`; }
+  <details class="mvs"${WIDE()?' open':''}><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
+  <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
+const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
   el.innerHTML=`<div class="row"><input id="in${side}" list="names${side}" placeholder="記事名を入力（例：富士山）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><datalist id="names${side}"></datalist><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
   ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
@@ -706,7 +716,8 @@ function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=se
     sel[side]=k; streak={idx:null,n:0}; renderPick(side); updateFight(); });
   el.querySelector('[data-rnd]').onclick=async()=>{ sel[side]=await rnd([sel[1-side]]); streak={idx:null,n:0}; renderPick(side); updateFight(); };
 }
-function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]); }
+function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]);
+  const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class="a">${n(0)}</span><span class="vs">VS</span><span class="b">${n(1)}</span>`; }
 $('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
 $('#fight').onclick=()=>startBattle();
 
