@@ -782,7 +782,7 @@ function showResult(){
 
 /* 初期表示：見本の対戦カード */
 /* ---------- 王座戦 ---------- */
-const API='';
+const API='https://hyakka-kenten-api.y-krn.workers.dev';
 let THRONE=null;
 const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(_){ return ''; } };
 const RES={win:'<span class="r-win">王座奪取</span>',lose:'防衛',draw:'引き分け（防衛）',late:'ひと足遅れ'};
