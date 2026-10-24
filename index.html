@@ -40,6 +40,10 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 .card{background:var(--paper);border:1px solid var(--line);border-radius:6px}
 #throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--hl);background:color-mix(in srgb,var(--hl) 9%,var(--paper))}
 #setup{border-top:4px solid var(--line)}
+.ringhead{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.06em;padding:4px 0 6px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.ringhead.th{color:var(--ink);background:color-mix(in srgb,var(--hl) 35%,var(--paper));border:none;border-radius:4px;padding:6px 10px}
+.thmode .result{box-shadow:0 0 0 4px var(--hl) inset}
+.thmode .result .win{color:var(--hl)}
 .sechead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .sechead h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.3}
 .sechead span{font-size:12px;color:var(--muted)}
@@ -726,13 +730,16 @@ $('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]
 $('#fight').onclick=()=>startBattle();
 
 /* ---------- 対戦 ---------- */
-let timer=null, current=null;
-function startBattle(){
+let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
+function ringHead(m){ if(!m) return '<div class="ringhead">自由対戦</div>';
+  return `<div class="ringhead th">王座戦 ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
+function startBattle(pair){
   clearInterval(timer);
-  const [ai,bi]=sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return; const an=analyze(ai,bi); current={ai,bi,an};
+  const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return; const an=analyze(ai,bi); current={ai,bi,an,mode:MODE}; MODE=null;
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  (current.mode?$('#throne'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
-  <div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（バーは取られた本数）':''}</div>
+  ${ringHead(current.mode)}<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（バーは取られた本数）':''}</div>
   <div class="scoreboard" id="sb">
     <div class="sb A"><span class="nm">${esc(F[ai][0])}</span><span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span></div>
     <div class="tick" id="tk">0</div>
@@ -757,7 +764,9 @@ function showResult(){
   if(!current||current.shown) return; current.shown=true;
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
   rec.battles++; if(upset) rec.upsets++;
-  if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};
+  const M=current.mode;
+  if(M) streak={idx:null,n:0};
+  else if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};
   saveRec(); renderRec();
   const nm=i=>i===null?'引き分け':F[i][0];
   const lines=dec.map(d=>d.who===-1?`因縁の初撃1.5倍がなければ、${esc(nm(d.alt))}${d.alt===null?'':'の勝ち'}だった`:
@@ -765,10 +774,12 @@ function showResult(){
     `${esc(F[d.who][0])}の【${esc(d.move)}】がなければ、${esc(nm(d.alt))}${d.alt===null?'':'の勝ち'}だった`);
   const lastHit=[...r.log].reverse().find(x=>x.side>=0&&x.d>0); const lm=lastHit?(lastHit.s.match(/【(.+?)】/)||[])[1]:null;
   const key=dec.find(d=>d.who===w);
-  const title=w===null?'引き分け':`${F[w][0]}の勝ち`;
+  let title=w===null?'引き分け':`${F[w][0]}の勝ち`;
+  if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; }
   const how=r.how||(r.kind==='KO'?`${r.tick}カウントでKO勝ち`:r.kind==='判定'?'判定勝ち':'相打ち');
-  const share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
+  let share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
     `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'能力値では負けていた番狂わせ。':''}`;
+  if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?`第${M.no+1}代王者に。`:x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`:''); }
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));
   const gloss=[...seen.values()];
   const wHP=w===null?'':(w===ai?r.hp[0]:r.hp[1]);
@@ -778,18 +789,22 @@ function showResult(){
     <div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${esc(nm(an.baseW))}が勝つ組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div><div class="sub">決め手（外して再試合すると結果が変わるもの）</div><ul>${lines.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     <div class="share"><output id="share">${esc(share)}</output><button type="button" class="btn small" id="copy">コピー</button></div>
-    <div class="next">
+    <div class="next">${M?`
+      <button type="button" class="btn big" id="thr">${M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
+      <button type="button" class="btn" id="tofree">自由対戦へ</button>`:`
       ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
       <button type="button" class="btn" id="again">別の組み合わせ</button>
-      <button type="button" class="btn" id="back">選び直す</button>
+      <button type="button" class="btn" id="back">選び直す</button>`}
     </div>
   </div>
   ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
   <div class="report" style="margin-top:10px"><span>この対戦の内容が不適切だと思ったら知らせる：</span><button type="button" data-rep="a">${esc(F[ai][0])}の記事</button><button type="button" data-rep="b">${esc(F[bi][0])}の記事</button><button type="button" data-rep="text">対戦の文面</button><span id="repmsg" aria-live="polite"></span></div>`;
   $('#copy').onclick=async e=>{ const t=$('#share').textContent; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
-  $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
-  $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
+  if(M){ $('#thr').onclick=()=>{ $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
+    $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
+  if($('#again')) $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
+  if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
   document.querySelectorAll('[data-rep]').forEach(btn=>btn.onclick=()=>{ const kind=btn.dataset.rep;
     const tgt=kind==='a'?F[ai][0]:kind==='b'?F[bi][0]:F[ai][0]+' 対 '+F[bi][0];
     const title=(kind==='text'?'【文面】':'【記事】')+tgt;
@@ -835,7 +850,7 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
     d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が王者を倒していました。新しい王者に挑み直してください。`:
     d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
   // 対戦の中身をリングで見せる（同じ計算なので、サーバーと同じ結果になる）
-  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ sel=[a,b]; streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); startBattle(); } }catch(_){}
+  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:THRONE?THRONE.reignNo:1}; startBattle([a,b]); } }catch(_){}
   await loadThrone(msg); }
 
 renderRec();

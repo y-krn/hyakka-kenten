@@ -247,6 +247,53 @@ rep('#throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top
 .sechead h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.3}
 .sechead span{font-size:12px;color:var(--muted)}""")
 
+
+# ---- 13. 王座戦の試合は、自由対戦と見た目・置き場所・結果の札を分ける ----
+rep("let timer=null, current=null;", """let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
+function ringHead(m){ if(!m) return '<div class="ringhead">自由対戦</div>';
+  return `<div class="ringhead th">王座戦 ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }""")
+rep("const an=analyze(ai,bi); current={ai,bi,an};", """const an=analyze(ai,bi); current={ai,bi,an,mode:MODE}; MODE=null;""")
+rep("const {r}=an; const ring=$('#ring'); ring.hidden=false;", """const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  (current.mode?$('#throne'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);""")
+rep("""  ring.innerHTML=`
+  <div class="mtype">""", """  ring.innerHTML=`
+  ${ringHead(current.mode)}<div class="mtype">""")
+rep("""  if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};""",
+"""  const M=current.mode;
+  if(M) streak={idx:null,n:0};
+  else if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};""")
+rep("""  const title=w===null?'引き分け':`${F[w][0]}の勝ち`;""",
+"""  let title=w===null?'引き分け':`${F[w][0]}の勝ち`;
+  if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; }""")
+rep("""  const share=w===null?`【百科拳典】""", """  let share=w===null?`【百科拳典】""")
+rep("""  const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));""",
+"""  if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?`第${M.no+1}代王者に。`:x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`:''); }
+  const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));""")
+rep("""    <div class="next">
+      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
+      <button type="button" class="btn" id="again">別の組み合わせ</button>
+      <button type="button" class="btn" id="back">選び直す</button>
+    </div>""", """    <div class="next">${M?`
+      <button type="button" class="btn big" id="thr">${M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
+      <button type="button" class="btn" id="tofree">自由対戦へ</button>`:`
+      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
+      <button type="button" class="btn" id="again">別の組み合わせ</button>
+      <button type="button" class="btn" id="back">選び直す</button>`}
+    </div>""")
+rep("""  $('#again').onclick=async()=>{""", """  if(M){ $('#thr').onclick=()=>{ $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
+    $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
+  if($('#again')) $('#again').onclick=async()=>{""")
+rep("""  $('#back').onclick=()=>{ $('#setup').scrollIntoView""", """  if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView""")
+# 挑戦したときは王座戦の試合として再生する
+rep("if(a>=0&&b>=0){ sel=[a,b]; streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); startBattle(); }",
+    "if(a>=0&&b>=0){ MODE={res:d,no:THRONE?THRONE.reignNo:1}; startBattle([a,b]); }")   # 自由対戦のカードは書き換えない
+rep("function startBattle(){\n  clearInterval(timer);\n  const [ai,bi]=sel;", "function startBattle(pair){\n  clearInterval(timer);\n  const [ai,bi]=pair||sel;")
+rep('#setup{border-top:4px solid var(--line)}', """#setup{border-top:4px solid var(--line)}
+.ringhead{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.06em;padding:4px 0 6px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.ringhead.th{color:var(--ink);background:color-mix(in srgb,var(--hl) 35%,var(--paper));border:none;border-radius:4px;padding:6px 10px}
+.thmode .result{box-shadow:0 0 0 4px var(--hl) inset}
+.thmode .result .win{color:var(--hl)}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
