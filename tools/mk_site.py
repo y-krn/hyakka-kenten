@@ -320,6 +320,10 @@ rep("""  sel=[await loadTitle('東京タワー'),await loadTitle('エッフェ�
   if(sel[0]<0||sel[1]<0||BLOCK.has(sel[0])||BLOCK.has(sel[1])){ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); }""",
 """  sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);""")
 
+
+# ---- 17. Google Search Console の所有権確認 ----
+rep('<meta name="twitter:card" content="summary">\n', '<meta name="twitter:card" content="summary">\n<meta name="google-site-verification" content="3es2dab9K6v41F4ald_9FXt0Djnh8pU9qI8MPVjV5f0" />\n')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
