@@ -314,6 +314,12 @@ rep("const note=el.querySelector('.empty');", "const note=el.querySelector('.pms
 rep("querySelector('.empty'); if(n) n.textContent='いまの王者", "querySelector('.pmsg'); if(n) n.textContent='いまの王者")
 rep('.matchup{', '.pmsg{font-size:13px;color:var(--b)}\n.pmsg:empty{display:none}\n.matchup{')
 
+
+# ---- 16. 自由対戦の初期表示は、毎回ランダムな組み合わせにする ----
+rep("""  sel=[await loadTitle('東京タワー'),await loadTitle('エッフェル塔')];
+  if(sel[0]<0||sel[1]<0||BLOCK.has(sel[0])||BLOCK.has(sel[1])){ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); }""",
+"""  sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
