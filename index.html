@@ -169,12 +169,12 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 
 <script>
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
-const F=[], RV={}; let N=0, NB=4096, POPULAR=[], EXCL=new Set();
+const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
 const fnv=t=>{ let h=0x811c9dc5; for(let k=0;k<t.length;k++){ h^=t.charCodeAt(k); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; };
 const BUCKET={};   // 読み込んだ振り分けファイル {番号: {記事名: レコード}}
 const TIX={};      // 記事名 → 番号
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
-async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch('data/a/'+k+'.json.gz').then(async r=>{ if(!r.ok) throw new Error(r.status);
+async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch('data/a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
     const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
 async function loadTitle(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t];
   const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }
@@ -763,8 +763,8 @@ function showResult(){
 /* 初期表示：見本の対戦カード */
 renderRec();
 (async()=>{ try{
-  const [m,ex]=await Promise.all([fetch('data/meta.json').then(r=>r.json()), fetch('data/exclude.json').then(r=>r.ok?r.json():[]).catch(()=>[])]);
-  N=m.n-(m.hold||0); NB=m.nb; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount();
+  const [m,ex]=await Promise.all([fetch('data/meta.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()), fetch('data/exclude.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[])]);
+  N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount();
   sel=[await loadTitle('東京タワー'),await loadTitle('エッフェル塔')];
   if(sel[0]<0||sel[1]<0||BLOCK.has(sel[0])||BLOCK.has(sel[1])){ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); }
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }

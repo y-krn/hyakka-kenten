@@ -56,5 +56,6 @@ for k in range(NB):
     raw = s.encode(); tot += len(raw)
     gz = gzip.compress(raw, 9, mtime=0); open(os.path.join(OUT, 'a', f'{k}.json.gz'), 'wb').write(gz); totz += len(gz)   # GitHub Pagesの容量に収めるため圧縮して置く
 POP.sort(reverse=True)
-json.dump({'n': n, 'hold': nhold, 'asof': asof, 'nb': NB, 'popular': [t for _, t in POP[:3000]]}, open(os.path.join(OUT, 'meta.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
+import time
+json.dump({'n': n, 'hold': nhold, 'asof': asof, 'build': time.strftime('%Y%m%d%H%M'), 'nb': NB, 'popular': [t for _, t in POP[:3000]]}, open(os.path.join(OUT, 'meta.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
 print('articles', n, 'hold', nhold, 'bytes', tot, 'gz', totz, 'avg/file', tot // NB, totz // NB)
