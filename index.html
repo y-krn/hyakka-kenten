@@ -87,6 +87,8 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 .mvs .mvp{font-size:12px}
 .mvs[open] .mvp{display:none}
 .mvs .empty{margin:6px 0}
+.pmsg{font-size:13px;color:var(--b)}
+.pmsg:empty{display:none}
 .matchup{font-family:var(--f-display);font-weight:400;font-size:18px;line-height:1.35;text-align:center;overflow-wrap:anywhere}
 .matchup .a{color:var(--a)} .matchup .b{color:var(--b)} .matchup .vs{color:var(--muted);font-size:14px;margin:0 .5em}
 .chip{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;border:1px solid var(--warn);color:var(--warn);white-space:nowrap}
@@ -700,7 +702,7 @@ let sel=[null,null]; let streak={idx:null,n:0};
 async function rnd(ex){ for(let k=0;k<12;k++){ let t;
     if(Math.random()<0.5&&POPULAR.length) t=POPULAR[Math.floor(Math.random()*POPULAR.length)];
     else { const b=await bucket(Math.floor(Math.random()*NB)); const ks=Object.keys(b); if(!ks.length) continue; t=ks[Math.floor(Math.random()*ks.length)]; }
-    const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)) return i; }
+    const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)) return i; }
   return ex.includes(0)?1:0; }
 function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
@@ -711,16 +713,18 @@ function fighterCard(i){ const f=F[i];
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
   el.innerHTML=`<div class="row"><input id="in${side}" list="names${side}" placeholder="記事名を入力（例：富士山）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><datalist id="names${side}"></datalist><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
+  <div class="pmsg" aria-live="polite"></div>
   ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
   const inp=el.querySelector('input'), dl=el.querySelector('datalist'); let tm=null, seq=0;
   inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;
     try{ const r=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=10&search='+encodeURIComponent(v)); const j=await r.json(); if(my!==seq) return;
       dl.innerHTML=(j[1]||[]).map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });
-  inp.addEventListener('change',async e=>{ const v=e.target.value.trim(); if(!v) return; const note=el.querySelector('.empty');
+  inp.addEventListener('change',async e=>{ const v=e.target.value.trim(); if(!v) return; const note=el.querySelector('.pmsg');
     if(note) note.textContent='「'+v+'」を探しています…';
     let k=-1; try{ k=await loadTitle(v); }catch(_){ if(note) note.textContent='読み込めませんでした。通信状態を確かめて、もう一度入れてください。'; return; }
     if(k<0){ e.target.value=''; e.target.placeholder='「'+v+'」は収録していません'; if(note) note.textContent='「'+v+'」は収録していません。記事名が正確か確かめてください。一覧・曖昧さ回避のページや、事件・事故・災害など扱わない題材は入っていません。'; return; }
     if(BLOCK.has(k)){ e.target.value=''; e.target.placeholder='「'+v+'」は確認中のため選べません'; if(note) note.textContent='「'+v+'」は内容を確認中のため、いまは選べません。'; return; }
+    if(isChamp(k)){ e.target.value=''; e.target.placeholder='「'+v+'」はいまの王者です'; if(note) note.textContent='「'+v+'」はいまの王者なので、自由対戦には出せません。戦わせたいときは、上の王座戦から挑んでください。'; return; }
     sel[side]=k; streak={idx:null,n:0}; renderPick(side); updateFight(); });
   el.querySelector('[data-rnd]').onclick=async()=>{ sel[side]=await rnd([sel[1-side]]); streak={idx:null,n:0}; renderPick(side); updateFight(); };
 }
@@ -735,7 +739,8 @@ function ringHead(m){ if(!m) return '<div class="ringhead">自由対戦</div>';
   return `<div class="ringhead th">王座戦 ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
-  const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return; const an=analyze(ai,bi); current={ai,bi,an,mode:MODE}; MODE=null;
+  const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;
+  if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; } const an=analyze(ai,bi); current={ai,bi,an,mode:MODE}; MODE=null;
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
   (current.mode?$('#throne'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
@@ -817,6 +822,8 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API='https://hyakka-kenten-api.y-krn.workers.dev';
 let THRONE=null;
+const isChamp=i=>!!(THRONE&&i!==null&&i>=0&&F[i]&&F[i][1]===THRONE.champ.title);
+async function fixChamp(){ for(const s of [0,1]){ if(isChamp(sel[s])){ sel[s]=await rnd([sel[1-s]]); renderPick(s); const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者は自由対戦に出せないので、入れ替えました'; } } updateFight(); }
 const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(_){ return ''; } };
 const RES={win:'<span class="r-win">王座奪取</span>',lose:'防衛',draw:'引き分け（防衛）',late:'ひと足遅れ'};
 function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; return; } THRONE=d; const c=d.champ; el.hidden=false;
@@ -837,7 +844,7 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
     try{ const j=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=10&search='+encodeURIComponent(v)).then(r=>r.json()); if(my!==sq) return;
       dl.innerHTML=(j[1]||[]).map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });
   $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }
-async function loadThrone(msg){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ) renderThrone(d,msg); }catch(_){} }
+async function loadThrone(msg){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ renderThrone(d,msg); fixChamp(); } }catch(_){} }
 async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').value.trim(), m=$('#chM'), btn=$('#chf button');
   if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }
   try{ localStorage.setItem('hk-name',name); }catch(_){}

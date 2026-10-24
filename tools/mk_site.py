@@ -294,6 +294,26 @@ rep('#setup{border-top:4px solid var(--line)}', """#setup{border-top:4px solid v
 .thmode .result{box-shadow:0 0 0 4px var(--hl) inset}
 .thmode .result .win{color:var(--hl)}""")
 
+
+# ---- 14. 自由対戦では、いまの王者を選べないようにする（王者との勝負は王座戦だけ） ----
+rep("let THRONE=null;", """let THRONE=null;
+const isChamp=i=>!!(THRONE&&i!==null&&i>=0&&F[i]&&F[i][1]===THRONE.champ.title);
+async function fixChamp(){ for(const s of [0,1]){ if(isChamp(sel[s])){ sel[s]=await rnd([sel[1-s]]); renderPick(s); const n=$(s===0?'#pickA':'#pickB').querySelector('.empty'); if(n) n.textContent='いまの王者は自由対戦に出せないので、入れ替えました'; } } updateFight(); }""")
+rep("const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)) return i; }",
+    "const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)) return i; }")
+rep("if(note) note.textContent='「'+v+'」は内容を確認中のため、いまは選べません。'; return; }",
+    "if(note) note.textContent='「'+v+'」は内容を確認中のため、いまは選べません。'; return; }\n    if(isChamp(k)){ e.target.value=''; e.target.placeholder='「'+v+'」はいまの王者です'; if(note) note.textContent='「'+v+'」はいまの王者なので、自由対戦には出せません。戦わせたいときは、上の王座戦から挑んでください。'; return; }")
+rep("const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;",
+    "const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;\n  if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; }")
+rep("if(d&&d.champ) renderThrone(d,msg);", "if(d&&d.champ){ renderThrone(d,msg); fixChamp(); }")
+
+
+# ---- 15. 記事選びのお知らせは、技一覧（畳まれている）ではなく入力欄のすぐ下に出す ----
+rep('data-rnd="${side}">ランダム</button></div>', 'data-rnd="${side}">ランダム</button></div>\n  <div class="pmsg" aria-live="polite"></div>')
+rep("const note=el.querySelector('.empty');", "const note=el.querySelector('.pmsg');")
+rep("querySelector('.empty'); if(n) n.textContent='いまの王者", "querySelector('.pmsg'); if(n) n.textContent='いまの王者")
+rep('.matchup{', '.pmsg{font-size:13px;color:var(--b)}\n.pmsg:empty{display:none}\n.matchup{')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
