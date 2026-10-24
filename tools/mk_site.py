@@ -234,6 +234,19 @@ rep("function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null
 s = re.sub(r'\n    <span>ルール：[^\n]*</span>', '', s, count=1)
 assert 'ルール：' not in s
 
+
+# ---- 12. 「王座戦」と「自由対戦」を見出しで分ける ----
+rep('<section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">',
+    '<section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">\n    <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる。結果は記録に残りません</span></div>')
+rep('<div class="crown">王座戦 ／ 第${d.reignNo}代王者</div>',
+    '<div class="sechead"><h2>王座戦</h2><span>いまの王者に挑み、勝てば王座を奪う</span></div>\n  <div class="crown">第${d.reignNo}代王者</div>')
+rep('#throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--hl)}',
+    """#throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--hl);background:color-mix(in srgb,var(--hl) 9%,var(--paper))}
+#setup{border-top:4px solid var(--line)}
+.sechead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.sechead h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.3}
+.sechead span{font-size:12px;color:var(--muted)}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

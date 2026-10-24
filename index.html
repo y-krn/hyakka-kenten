@@ -38,7 +38,11 @@ header{display:flex;flex-direction:column;gap:6px}
 h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);line-height:1.15;margin:0}
 .lede{margin:0;max-width:62ch;color:var(--muted)}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:6px}
-#throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--hl)}
+#throne{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--hl);background:color-mix(in srgb,var(--hl) 9%,var(--paper))}
+#setup{border-top:4px solid var(--line)}
+.sechead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.sechead h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.3}
+.sechead span{font-size:12px;color:var(--muted)}
 #throne .crown{font-size:12px;letter-spacing:.12em;color:var(--muted)}
 #throne .champ{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,5vw,30px);line-height:1.2;overflow-wrap:anywhere}
 #throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}
@@ -174,6 +178,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
   <section id="throne" class="card" hidden aria-live="polite"></section>
 
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
+    <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる。結果は記録に残りません</span></div>
     <div class="setup">
       <div class="card pick A" id="pickA"></div>
       <div class="vsmark">VS</div>
@@ -801,7 +806,8 @@ const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+
 const RES={win:'<span class="r-win">王座奪取</span>',lose:'防衛',draw:'引き分け（防衛）',late:'ひと足遅れ'};
 function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; return; } THRONE=d; const c=d.champ; el.hidden=false;
   let nm=''; try{ nm=localStorage.getItem('hk-name')||''; }catch(_){}
-  el.innerHTML=`<div class="crown">王座戦 ／ 第${d.reignNo}代王者</div>
+  el.innerHTML=`<div class="sechead"><h2>王座戦</h2><span>いまの王者に挑み、勝てば王座を奪う</span></div>
+  <div class="crown">第${d.reignNo}代王者</div>
   <div class="champ">${esc(c.display)}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="meta">防衛 <b>${c.defenses}</b>回 ／ 王座を取った人：<b>${esc(c.holder)}</b> ／ ${esc(dt(c.started_at))}から在位</div>
   <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、負けた記事での再挑戦はできません。</div>
