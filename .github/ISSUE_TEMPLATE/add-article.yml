@@ -1,0 +1,22 @@
+name: 記事の追加リクエスト
+description: 百科拳典に入っていない記事を足してほしいとき
+title: "【追加】"
+labels: ["追加リクエスト"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        日本語版Wikipediaの記事名を、1行に1つずつ書いてください（1回に20件まで）。
+        管理者が確認して「追加OK」のラベルを付けると、自動で取り込んで結果をここに書き込みます。
+        - 一覧・曖昧さ回避のページや、事件・事故・災害など扱わない題材は追加できません
+        - できたばかりの記事は、Wikidataの項目が付くまで（数日〜数週間）追加できないことがあります
+  - type: textarea
+    id: titles
+    attributes:
+      label: 記事名
+      description: 1行に1つ。Wikipediaの記事名をそのまま（転送ページの名前でもかまいません）
+      placeholder: |
+        東京スカイツリー
+        葛飾北斎
+    validations:
+      required: true

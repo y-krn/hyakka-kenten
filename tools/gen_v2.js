@@ -147,7 +147,7 @@ function baseMoves(k){ const q=k.a.q, c=k.e.c, isP=ids(c,'P31').includes('Q5'), 
  return {M,yo}; }
 
 // MAP（ページ側の技一覧）を page.html から読む
-const PAGE=fs.readFileSync(path.join(__dirname,'..','proto','page.html'),'utf8');
+const PAGE=fs.readFileSync([process.env.PAGE_SRC,path.join(__dirname,'page_src.html'),path.join(__dirname,'..','proto','page.html')].find(f=>f&&fs.existsSync(f)),'utf8');
 const MAPKEYS={}; for(const m of PAGE.matchAll(/^ (P\d+):\['([A-Z])'/gm)) MAPKEYS[m[1]]=m[2];
 const LIVING_SKIP=['P22','P25','P40','P3373','P19','P69','P108','P1066','P802','P26','P451','P2048','P2067'];
 

@@ -1,0 +1,87 @@
+# 記事を指定して追加する
+#  - Issue（記事の追加リクエスト）に、管理者が「追加OK」ラベルを付けると動く
+#  - 手動でも実行できる（Actions → 記事の追加 → Run workflow で記事名を入れる）
+name: 記事の追加
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      titles:
+        description: 記事名（1行に1つ、または「|」区切り）
+        required: true
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: add-articles
+  cancel-in-progress: false
+jobs:
+  # Issueが作られたら、使うラベルを用意して受付のコメントを返す
+  welcome:
+    if: github.event_name == 'issues' && github.event.action == 'opened' && startsWith(github.event.issue.title, '【追加】')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          gh label create "追加リクエスト" --color 0E8A16 --description "記事の追加リクエスト" 2>/dev/null || true
+          gh label create "追加OK" --color FBCA04 --description "管理者が確認し、追加してよいもの" 2>/dev/null || true
+          gh label create "report" --color D93F0B --description "対戦内容の報告" 2>/dev/null || true
+          gh issue edit ${{ github.event.issue.number }} --add-label "追加リクエスト"
+          gh issue comment ${{ github.event.issue.number }} --body "受け付けました。管理者が確認して「追加OK」のラベルを付けると、自動で取り込んで結果をここに書き込みます。"
+  add:
+    if: github.event_name == 'workflow_dispatch' || (github.event.action == 'labeled' && github.event.label.name == '追加OK')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 記事名を取り出す
+        env:
+          BODY: ${{ github.event.issue.body }}
+          INPUT: ${{ github.event.inputs.titles }}
+        run: |
+          python3 - <<'PY'
+          import os, re, json
+          src = os.environ.get('INPUT') or ''
+          if not src:
+              b = os.environ.get('BODY') or ''
+              m = re.search(r'###\s*記事名\s*\n(.*?)(\n###|\Z)', b, re.S)
+              src = m.group(1) if m else b
+          ts = [t.strip().strip('・-*').strip() for t in re.split(r'[\n|]', src)]
+          ts = [t for t in ts if t and t != '_No response_' and len(t) <= 200][:20]
+          json.dump(ts, open('/tmp/titles.json', 'w'), ensure_ascii=False)
+          print(ts)
+          PY
+      - name: WikipediaとWikidataから集める
+        run: node tools/add/fetch_one.js /tmp/w @/tmp/titles.json
+      - name: 能力値を作って書き足す
+        run: |
+          python3 tools/extract_all.py /tmp/w/arts.jsonl /tmp/w/meta.jsonl < /tmp/w/cirrus.jsonl
+          python3 tools/add/add_prep.py /tmp/w .
+      - name: 公開する
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
+          git commit -m "記事を追加（$(python3 -c "import json;r=json.load(open('/tmp/w/report.json'));print(sum(1 for v in r.values() if v[0].endswith('追加')))")件）${{ github.event.issue.number && format(' #{0}', github.event.issue.number) || '' }}"
+          git pull --rebase -q && git push
+      - name: 結果をIssueに書く
+        if: github.event_name == 'issues'
+        run: |
+          python3 - <<'PY' > /tmp/comment.md
+          import json
+          r = json.load(open('/tmp/w/report.json'))
+          print('取り込みの結果です。反映まで数分かかります。\n')
+          print('| 記事名 | 結果 | 詳しく |\n|---|---|---|')
+          for k, (a, b) in r.items(): print(f'| {k} | {a} | {b} |')
+          PY
+          gh issue comment ${{ github.event.issue.number }} --body-file /tmp/comment.md
+          gh issue close ${{ github.event.issue.number }}

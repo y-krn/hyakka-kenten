@@ -40,6 +40,13 @@ curl -X POST https://<APIのURL>/api/admin/hide -H "Authorization: Bearer <ADMIN
 # 王者の名前は {"reign": 王者のID}
 ```
 
+## 記事を追加してほしいとき
+
+[Issueの「記事の追加リクエスト」](../../issues/new?template=add-article.yml)から記事名を送ってください。管理者が確認して「追加OK」のラベルを付けると、GitHub Actionsが自動で取り込み、結果をIssueに書き込みます。
+
+- 一覧・曖昧さ回避のページや、扱わない題材は追加できません
+- できたばかりの記事は、Wikidataの項目が付くまで追加できないことがあります
+
 ## データの出典とライセンス
 
 - **Wikidata**（CC0）：数値・関係などの事実
