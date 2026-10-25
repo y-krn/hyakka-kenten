@@ -373,6 +373,12 @@ rep('<meta name="twitter:card" content="summary">\n', """<meta name="twitter:car
 <meta name="theme-color" content="#0e288c">
 """)
 
+
+# ---- 20. 共有ボタンが使える端末（スマホ）ではコピーボタンを出さない。パソコンなど共有できない端末だけに残す ----
+rep('<output id="share">${esc(share)}</output><button type="button" class="btn small" id="copy">コピー</button>',
+    '<output id="share">${esc(share)}</output>${navigator.share?\'\':\'<button type="button" class="btn small" id="copy">コピー</button>\'}')
+rep("  $('#copy').onclick=async e=>", "  if($('#copy')) $('#copy').onclick=async e=>")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

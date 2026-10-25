@@ -805,7 +805,7 @@ function showResult(){
     <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>
     <div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${esc(nm(an.baseW))}が勝つ組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div><div class="sub">決め手（外して再試合すると結果が変わるもの）</div><ul>${lines.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
-    <div class="share"><output id="share">${esc(share)}</output><button type="button" class="btn small" id="copy">コピー</button></div>
+    <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${M?`
       <button type="button" class="btn big" id="thr">${M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
@@ -818,7 +818,7 @@ function showResult(){
   ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
   <div class="report" style="margin-top:10px"><span>この対戦の内容が不適切だと思ったら知らせる：</span><button type="button" data-rep="a">${esc(F[ai][0])}の記事</button><button type="button" data-rep="b">${esc(F[bi][0])}の記事</button><button type="button" data-rep="text">対戦の文面</button><span id="repmsg" aria-live="polite"></span></div>`;
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
-  $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
+  if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if(M){ $('#thr').onclick=()=>{ $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
