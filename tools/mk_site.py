@@ -439,7 +439,7 @@ rep("""  const lines=dec.map(d=>d.who===-1?`因縁の初撃1.5倍がなければ
   const byWho=i=>dec.filter(d=>d.who===i&&d.who!==d.alt);
   const lines=[];
   for(const i of (w===null?[ai,bi]:[w,l])){ const k=byWho(i); if(k.length) lines.push(`<b>${i===w?'決め手':'惜しかった'}</b>：${esc(F[i][0])}の${mv(k)}`); }
-  for(const i of [ai,bi]){ const k=dec.filter(d=>d.who===i&&d.who===d.alt); if(k.length) lines.push(`<b>裏目</b>：${esc(F[i][0])}の${mv(k)}（使わなければ勝っていた）`); }
+  for(const i of [ai,bi]){ const k=dec.filter(d=>d.who===i&&d.who===d.alt); if(k.length) lines.push(`<b>自滅</b>：${esc(F[i][0])}の${mv(k)}（使わなければ勝っていた）`); }
   if(dec.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5倍がなければ、結果は違っていた');""")
 rep("""lines.length?`<div><div class="sub">決め手（外して再試合すると結果が変わるもの）</div><ul>${lines.map(x=>`<li>${x}</li>`).join('')}</ul></div>`""",
     """lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`""")
