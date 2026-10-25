@@ -140,6 +140,8 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .result .sub{font-size:13px;opacity:.85}
 .result ul{margin:0;padding-left:1.2em;font-size:14px}
 .tagU{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--hl);color:var(--hl-ink);vertical-align:middle;margin-left:6px;font-family:var(--f-body)}
+.share2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.share2 .url{font-size:12px;color:inherit;opacity:.8}
 .share{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
 .share output{flex:1;min-width:0;background:var(--paper);color:var(--ink);padding:8px 10px;border-radius:4px;font-size:13px;overflow-wrap:anywhere;user-select:all}
 .result .btn{border-color:var(--bg);color:var(--bg)}
@@ -737,11 +739,11 @@ $('#fight').onclick=()=>startBattle();
 /* ---------- 対戦 ---------- */
 let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
 function ringHead(m){ if(!m) return '<div class="ringhead">自由対戦</div>';
-  return `<div class="ringhead th">王座戦 ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
+  return `<div class="ringhead th">${m.replay?'王座戦の記録（'+esc(dt(m.res.at))+'）':'王座戦'} ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
   const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;
-  if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; } const an=analyze(ai,bi); current={ai,bi,an,mode:MODE}; MODE=null;
+  if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; } const an=analyze(ai,bi); current={ai,bi,an,mode:MODE}; MODE=null; try{ history.replaceState(null,'',battleURL()); }catch(_){}
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
   (current.mode?$('#throne'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
@@ -786,6 +788,7 @@ function showResult(){
   let share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
     `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'能力値では負けていた番狂わせ。':''}`;
   if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?`第${M.no+1}代王者に。`:x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`:''); }
+  const SHAREURL=battleURL();
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));
   const gloss=[...seen.values()];
   const wHP=w===null?'':(w===ai?r.hp[0]:r.hp[1]);
@@ -795,6 +798,7 @@ function showResult(){
     <div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${esc(nm(an.baseW))}が勝つ組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div><div class="sub">決め手（外して再試合すると結果が変わるもの）</div><ul>${lines.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     <div class="share"><output id="share">${esc(share)}</output><button type="button" class="btn small" id="copy">コピー</button></div>
+    <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${M?`
       <button type="button" class="btn big" id="thr">${M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
       <button type="button" class="btn" id="tofree">自由対戦へ</button>`:`
@@ -805,7 +809,8 @@ function showResult(){
   </div>
   ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
   <div class="report" style="margin-top:10px"><span>この対戦の内容が不適切だと思ったら知らせる：</span><button type="button" data-rep="a">${esc(F[ai][0])}の記事</button><button type="button" data-rep="b">${esc(F[bi][0])}の記事</button><button type="button" data-rep="text">対戦の文面</button><span id="repmsg" aria-live="polite"></span></div>`;
-  $('#copy').onclick=async e=>{ const t=$('#share').textContent; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
+  if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
+  $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if(M){ $('#thr').onclick=()=>{ $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
@@ -823,6 +828,27 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API='https://hyakka-kenten-api.y-krn.workers.dev';
 let THRONE=null;
+function battleURL(){ const base=location.origin+location.pathname; if(!current) return base;
+  if(current.mode&&current.mode.res&&current.mode.res.id) return base+'?c='+current.mode.res.id;
+  return base+'?a='+encodeURIComponent(F[current.ai][1])+'&b='+encodeURIComponent(F[current.bi][1]); }
+// 共有URLから開いたとき：その試合を再生する。うまくいかなければ false
+async function openShared(){ const q=new URLSearchParams(location.search);
+  if(q.get('c')&&API){ try{ await loadThrone(); const x=await fetch(API+'/api/challenge/'+encodeURIComponent(q.get('c'))).then(r=>r.json()); if(x.error) return false;
+      const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return false;
+      sel[0]=await rnd([a,b]); sel[1]=await rnd([a,b,sel[0]]); renderPick(0); renderPick(1); updateFight();
+      MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); return true; }catch(_){ return false; } }
+  const ta=q.get('a'), tb=q.get('b'); if(!ta||!tb) return false;
+  await loadThrone();
+  const ids=[await loadTitle(ta).catch(()=>-1), await loadTitle(tb).catch(()=>-1)]; const why=[];
+  for(const s of [0,1]){ const i=ids[s], t=[ta,tb][s];
+    if(i<0) why[s]='「'+t+'」は収録していないので、別の記事にしました';
+    else if(BLOCK.has(i)) why[s]='「'+t+'」は確認中なので、別の記事にしました';
+    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので自由対戦に出せません。別の記事にしました';
+    else sel[s]=i; }
+  for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);
+  renderPick(0); renderPick(1); updateFight();
+  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }
+  if(!why[0]&&!why[1]) startBattle(); return true; }
 const isChamp=i=>!!(THRONE&&i!==null&&i>=0&&F[i]&&F[i][1]===THRONE.champ.title);
 async function fixChamp(){ for(const s of [0,1]){ if(isChamp(sel[s])){ sel[s]=await rnd([sel[1-s]]); renderPick(s); const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者は自由対戦に出せないので、入れ替えました'; } } updateFight(); }
 const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(_){ return ''; } };
@@ -858,14 +884,14 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
     d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が王者を倒していました。新しい王者に挑み直してください。`:
     d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
   // 対戦の中身をリングで見せる（同じ計算なので、サーバーと同じ結果になる）
-  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:THRONE?THRONE.reignNo:1}; startBattle([a,b]); } }catch(_){}
+  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; startBattle([a,b]); } }catch(_){}
   await loadThrone(msg); }
 
 renderRec();
 (async()=>{ try{
   const [m,ex]=await Promise.all([fetch('data/meta.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()), fetch('data/exclude.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[])]);
   N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount();
-  sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);
+  if(await openShared()) return; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();
 </script>

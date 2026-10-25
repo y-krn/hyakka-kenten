@@ -324,6 +324,42 @@ rep("""  sel=[await loadTitle('東京タワー'),await loadTitle('エッフェ�
 # ---- 17. Google Search Console の所有権確認 ----
 rep('<meta name="twitter:card" content="summary">\n', '<meta name="twitter:card" content="summary">\n<meta name="google-site-verification" content="3es2dab9K6v41F4ald_9FXt0Djnh8pU9qI8MPVjV5f0" />\n')
 
+
+# ---- 18. 対戦URLで共有：?a=記事&b=記事（自由対戦）／?c=挑戦の番号（王座戦の記録） ----
+rep("current={ai,bi,an,mode:MODE}; MODE=null;", "current={ai,bi,an,mode:MODE}; MODE=null; try{ history.replaceState(null,'',battleURL()); }catch(_){}")
+rep("  const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));", "  const SHAREURL=battleURL();\n  const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));")
+rep('<div class="share"><output id="share">${esc(share)}</output><button type="button" class="btn small" id="copy">コピー</button></div>',
+    """<div class="share"><output id="share">${esc(share)}</output><button type="button" class="btn small" id="copy">コピー</button></div>
+    <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""")
+rep("const t=$('#share').textContent;", "const t=$('#share').textContent+'\\n'+SHAREURL;")
+rep("  $('#copy').onclick=async", "  if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };\n  $('#copy').onclick=async")
+rep('.share{display:flex', '.share2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}\n.share2 .url{font-size:12px;color:inherit;opacity:.8}\n.share{display:flex')
+rep('return `<div class="ringhead th">王座戦 ／ 第${m.no}代王者', 'return `<div class="ringhead th">${m.replay?\'王座戦の記録（\'+esc(dt(m.res.at))+\'）\':\'王座戦\'} ／ 第${m.no}代王者')
+rep("MODE={res:d,no:THRONE?THRONE.reignNo:1}", "MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}")
+rep("let THRONE=null;", """let THRONE=null;
+function battleURL(){ const base=location.origin+location.pathname; if(!current) return base;
+  if(current.mode&&current.mode.res&&current.mode.res.id) return base+'?c='+current.mode.res.id;
+  return base+'?a='+encodeURIComponent(F[current.ai][1])+'&b='+encodeURIComponent(F[current.bi][1]); }
+// 共有URLから開いたとき：その試合を再生する。うまくいかなければ false
+async function openShared(){ const q=new URLSearchParams(location.search);
+  if(q.get('c')&&API){ try{ await loadThrone(); const x=await fetch(API+'/api/challenge/'+encodeURIComponent(q.get('c'))).then(r=>r.json()); if(x.error) return false;
+      const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return false;
+      sel[0]=await rnd([a,b]); sel[1]=await rnd([a,b,sel[0]]); renderPick(0); renderPick(1); updateFight();
+      MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); return true; }catch(_){ return false; } }
+  const ta=q.get('a'), tb=q.get('b'); if(!ta||!tb) return false;
+  await loadThrone();
+  const ids=[await loadTitle(ta).catch(()=>-1), await loadTitle(tb).catch(()=>-1)]; const why=[];
+  for(const s of [0,1]){ const i=ids[s], t=[ta,tb][s];
+    if(i<0) why[s]='「'+t+'」は収録していないので、別の記事にしました';
+    else if(BLOCK.has(i)) why[s]='「'+t+'」は確認中なので、別の記事にしました';
+    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので自由対戦に出せません。別の記事にしました';
+    else sel[s]=i; }
+  for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);
+  renderPick(0); renderPick(1); updateFight();
+  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }
+  if(!why[0]&&!why[1]) startBattle(); return true; }""")
+rep("  sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);", "  if(await openShared()) return; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

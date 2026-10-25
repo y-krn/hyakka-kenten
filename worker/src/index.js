@@ -105,7 +105,16 @@ async function challenge(env, req) {
   } else {
     await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
   }
-  return json(env, req, { result, newChamp: !!newReign, champ: { title: c.title, display: c.display, defenses: c.defenses + (result === 'win' || result === 'late' ? 0 : 1) }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
+  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { title: c.title, display: c.display, defenses: c.defenses + (result === 'win' || result === 'late' ? 0 : 1) }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
+}
+
+// 1つの挑戦の記録（共有URL ?c=番号 で、その試合を再生するため）
+async function getChallenge(env, req, id) {
+  const x = await env.DB.prepare('SELECT c.id, c.reign_id, c.title, c.display, c.name, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(id).first();
+  if (!x) return json(env, req, { error: 'その挑戦の記録はありません' }, 404);
+  const d = await env.DB.prepare("SELECT COUNT(*) AS n FROM challenges WHERE reign_id = ? AND id <= ? AND result IN ('lose','draw')").bind(x.reign_id, x.id).first();
+  return json(env, req, { id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, name: x.name,
+    champ: { title: x.ctitle, display: x.cdisplay, defenses: d.n }, challenger: { title: x.title, display: x.display } });
 }
 
 async function hide(env, req) {
@@ -124,6 +133,7 @@ export default {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);
+      const m = u.pathname.match(/^\/api\/challenge\/(\d{1,9})$/); if (m && req.method === 'GET') return await getChallenge(env, req, +m[1]);
       return json(env, req, { error: 'not found' }, 404);
     } catch (e) {
       return json(env, req, { error: 'サーバーでエラーが起きました', detail: String(e && e.message || e).slice(0, 200) }, 500);
