@@ -519,7 +519,7 @@ rep("function showSugg(inp,ul,list){ ul.innerHTML=", """const TOUCH=(()=>{ try{ 
 function fitSugg(inp,ul){ if(ul.hidden) return; const vv=window.visualViewport; const r=inp.getBoundingClientRect();
   const bottom=vv?vv.offsetTop+vv.height:innerHeight; ul.style.maxHeight=Math.max(140,Math.floor(bottom-r.bottom-16))+'px'; }
 function liftInput(inp){ if(!TOUCH) return; setTimeout(()=>{ const r=inp.getBoundingClientRect(); const top=window.visualViewport?window.visualViewport.offsetTop:0; if(r.top-top>70) window.scrollBy({top:r.top-top-12,behavior:'smooth'}); },350); }
-if(window.visualViewport){ const re=()=>document.querySelectorAll('.sg').forEach(ul=>{ const i=ul.parentNode.querySelector('input'); if(i) fitSugg(i,ul); }); visualViewport.addEventListener('resize',re); visualViewport.addEventListener('scroll',re); }
+if(typeof window!=='undefined'&&window.visualViewport){ const re=()=>document.querySelectorAll('.sg').forEach(ul=>{ const i=ul.parentNode.querySelector('input'); if(i) fitSugg(i,ul); }); visualViewport.addEventListener('resize',re); visualViewport.addEventListener('scroll',re); }
 function showSugg(inp,ul,list){ ul.innerHTML=""")
 rep("ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1;", "ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1; fitSugg(inp,ul);")
 rep("  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()) ul.hidden=false; });",
@@ -528,6 +528,24 @@ rep("  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.valu
 
 rep("const inp=el.querySelector('input'), dl=el.querySelector('.sg');", "const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));")
 rep("const inp=$('#chT'), dl=$('#sgT');", "const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp));")
+
+
+# ---- 27. 王座戦：挑む相手（王者）を送って取り違えを防ぐ／王座戦欄を30秒ごと・タブに戻ったときに更新（入力中の内容は残す） ----
+rep("body:JSON.stringify({title:t,name})", "body:JSON.stringify({title:t,name,reign:THRONE&&THRONE.champ?THRONE.champ.id:0})")
+rep("  if(d.error){ m.className='msg err'; m.textContent=d.error; return; }",
+    "  if(d.error&&d.changed){ await loadThrone(null,true); const m2=$('#chM'); m2.className='msg err'; m2.textContent=d.error; return; }\n  if(d.error){ m.className='msg err'; m.textContent=d.error; return; }")
+rep("async function loadThrone(msg){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ renderThrone(d,msg); fixChamp(); } }catch(_){} }",
+"""// keep=true なら、入力中の記事名・名前・カーソル位置を残したまま描き直す
+function renderKeep(d,msg){ const t=$('#chT'), n=$('#chN'); const prev={t:t?t.value:'',n:n?n.value:'',f:document.activeElement&&document.activeElement.id};
+  renderThrone(d,msg); const t2=$('#chT'), n2=$('#chN'); if(t2){ t2.value=prev.t; t2.dispatchEvent(new Event('change')); } if(n2&&prev.n) n2.value=prev.n;
+  if(prev.f==='chT'&&t2) t2.focus({preventScroll:true}); else if(prev.f==='chN'&&n2) n2.focus({preventScroll:true}); }
+async function loadThrone(msg,keep){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ keep?renderKeep(d,msg):renderThrone(d,msg); fixChamp(); } }catch(_){} }
+// 王者が変わっていたら、王座戦欄を新しくする（30秒ごと・タブに戻ったとき）
+async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(!d||!d.champ) return;
+  const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
+  const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
+  renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました':($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
+setInterval(refreshThrone,30000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshThrone(); });""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')

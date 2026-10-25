@@ -258,7 +258,7 @@ const TOUCH=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_
 function fitSugg(inp,ul){ if(ul.hidden) return; const vv=window.visualViewport; const r=inp.getBoundingClientRect();
   const bottom=vv?vv.offsetTop+vv.height:innerHeight; ul.style.maxHeight=Math.max(140,Math.floor(bottom-r.bottom-16))+'px'; }
 function liftInput(inp){ if(!TOUCH) return; setTimeout(()=>{ const r=inp.getBoundingClientRect(); const top=window.visualViewport?window.visualViewport.offsetTop:0; if(r.top-top>70) window.scrollBy({top:r.top-top-12,behavior:'smooth'}); },350); }
-if(window.visualViewport){ const re=()=>document.querySelectorAll('.sg').forEach(ul=>{ const i=ul.parentNode.querySelector('input'); if(i) fitSugg(i,ul); }); visualViewport.addEventListener('resize',re); visualViewport.addEventListener('scroll',re); }
+if(typeof window!=='undefined'&&window.visualViewport){ const re=()=>document.querySelectorAll('.sg').forEach(ul=>{ const i=ul.parentNode.querySelector('input'); if(i) fitSugg(i,ul); }); visualViewport.addEventListener('resize',re); visualViewport.addEventListener('scroll',re); }
 function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" data-i="${i}">${esc(t)}</li>`).join(''); ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1; fitSugg(inp,ul);
   if(inp._sg) return; inp._sg=1;
   const pick=t=>{ inp.value=t; ul.hidden=true; inp.dispatchEvent(new Event('change')); };
@@ -930,15 +930,26 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();
       showSugg(inp,dl,list); }catch(_){} },250); });
   $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }
-async function loadThrone(msg){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ renderThrone(d,msg); fixChamp(); } }catch(_){} }
+// keep=true なら、入力中の記事名・名前・カーソル位置を残したまま描き直す
+function renderKeep(d,msg){ const t=$('#chT'), n=$('#chN'); const prev={t:t?t.value:'',n:n?n.value:'',f:document.activeElement&&document.activeElement.id};
+  renderThrone(d,msg); const t2=$('#chT'), n2=$('#chN'); if(t2){ t2.value=prev.t; t2.dispatchEvent(new Event('change')); } if(n2&&prev.n) n2.value=prev.n;
+  if(prev.f==='chT'&&t2) t2.focus({preventScroll:true}); else if(prev.f==='chN'&&n2) n2.focus({preventScroll:true}); }
+async function loadThrone(msg,keep){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ keep?renderKeep(d,msg):renderThrone(d,msg); fixChamp(); } }catch(_){} }
+// 王者が変わっていたら、王座戦欄を新しくする（30秒ごと・タブに戻ったとき）
+async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(!d||!d.champ) return;
+  const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
+  const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
+  renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました':($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
+setInterval(refreshThrone,30000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshThrone(); });
 async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').value.trim(), m=$('#chM'), btn=$('#chf button');
   if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }
   if(!CHOPT.has(t)){ m.className='msg err'; m.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }
   try{ localStorage.setItem('hk-name',name); }catch(_){}
   btn.disabled=true; m.className='msg'; m.textContent='「'+t+'」で挑戦しています…';
-  let d; try{ const r=await fetch(API+'/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t,name})}); d=await r.json(); }
+  let d; try{ const r=await fetch(API+'/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t,name,reign:THRONE&&THRONE.champ?THRONE.champ.id:0})}); d=await r.json(); }
   catch(_){ btn.disabled=false; m.className='msg err'; m.textContent='送れませんでした。通信状態を確かめてください。'; return; }
   btn.disabled=false;
+  if(d.error&&d.changed){ await loadThrone(null,true); const m2=$('#chM'); m2.className='msg err'; m2.textContent=d.error; return; }
   if(d.error){ m.className='msg err'; m.textContent=d.error; return; }
   const msg=d.result==='win'?`<span class="msg win">${esc(d.challenger.display)}が${esc(d.champ.display)}を倒し、新王者になりました！（${esc(d.how||'')}）</span>`:
     d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が王者を倒していました。新しい王者に挑み直してください。`:

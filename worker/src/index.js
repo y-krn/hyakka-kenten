@@ -78,6 +78,9 @@ async function challenge(env, req) {
 
   await meta(env);
   const c = await current(env);
+  // 挑戦者が「どの王者に挑むつもりか」を送ってきた場合、すでに入れ替わっていたら勝負せずに知らせる（記録もしない）
+  const want = parseInt(body.reign, 10);
+  if (want && want !== c.id) return json(env, req, { error: '王者が「' + c.display + '」に変わりました。もう一度「挑戦する」を押すと、' + c.display + 'に挑みます。', changed: true, champ: { id: c.id, title: c.title, display: c.display, defenses: c.defenses } }, 409);
   const bi = await E.loadOne(title);
   if (bi < 0) return json(env, req, { error: '「' + title + '」は収録していません' }, 404);
   const B = E.info(bi);
@@ -101,11 +104,14 @@ async function challenge(env, req) {
     if (up.meta.changes) {
       await env.DB.prepare('INSERT INTO reigns (title, display, holder, started_at, defenses) VALUES (?,?,?,?,0)').bind(B.title, B.name, nm.name, t).run();
       newReign = true;
-    } else { result = 'late'; }   // ほぼ同時に別の人が王者を倒していた
+    } else {   // ほぼ同時に別の人が王者を倒していた：記録も「ひと足遅れ」に直す
+      result = 'late'; await env.DB.prepare("UPDATE challenges SET result = 'late' WHERE id = ?").bind(ins.meta.last_row_id).run();
+    }
   } else {
     await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
   }
-  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { title: c.title, display: c.display, defenses: c.defenses + (result === 'win' || result === 'late' ? 0 : 1) }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
+  const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
+  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
 }
 
 // 1つの挑戦の記録（共有URL ?c=番号 で、その試合を再生するため）

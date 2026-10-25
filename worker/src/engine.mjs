@@ -6,6 +6,45 @@ const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
 const fnv=t=>{ let h=0x811c9dc5; for(let k=0;k<t.length;k++){ h^=t.charCodeAt(k); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; };
 const BUCKET={};   // 読み込んだ振り分けファイル {番号: {記事名: レコード}}
 const TIX={};      // 記事名 → 番号
+const TIDX={};     // 記事名だけの索引（data/t/）：候補を収録記事に絞るため
+async function tindex(k){ if(!TIDX[k]) TIDX[k]=fetch('data/t/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
+    return new Set(JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text())); }).catch(()=>{ delete TIDX[k]; return new Set(); }); return TIDX[k]; }
+async function inData(t){ return (await tindex(fnv(t)%NB)).has(t); }
+// 入力に合う候補：Wikipediaの検索候補（読み・転送ページにも強い）から、収録している記事だけを残す
+// 部分一致：記事名を2文字ずつに切った索引（data/g/）から、いちばん絞り込める2文字の一覧を取り、全体を含むものだけ残す
+const GIDX={};
+async function gindex(k){ if(!GIDX[k]) GIDX[k]=fetch('data/g/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
+    return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(()=>{ delete GIDX[k]; return {}; }); return GIDX[k]; }
+const normQ=s=>s.normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));   // ひらがなはカタカナにそろえる
+async function partial(v){ const n=normQ(v); if(n.length<2) return [];
+  let gs=[...new Set(Array.from({length:n.length-1},(_,i)=>n.slice(i,i+2)))];
+  if(gs.length>6){ const st=(gs.length-1)/5; gs=[0,1,2,3,4,5].map(i=>gs[Math.round(i*st)]); }
+  const lists=await Promise.all(gs.map(async g=>(await gindex(fnv(g)%NB))[g]||[0,[]]));
+  lists.sort((a,b)=>a[0]-b[0]); if(!lists[0][0]) return [];
+  return lists[0][1].filter(t=>normQ(t).includes(n)); }
+// Wikipediaの前方一致（転送ページの名前にも強い）と、自前の部分一致を合わせる。完全一致→部分一致（よく読まれている順）→Wikipediaだけが拾えたもの
+async function suggest(v,exclude){
+  const pre=fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=15&search='+encodeURIComponent(v)).then(r=>r.json()).then(async j=>{ const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]); }).catch(()=>[]);
+  const [a,b]=await Promise.all([pre,partial(v).catch(()=>[])]); const n=normQ(v);
+  const all=[...new Set([...b.filter(t=>normQ(t)===n),...a.filter(t=>normQ(t)===n),...b,...a])];   // 完全一致のあとは、よく読まれている順
+  return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }
+// 候補リスト：ブラウザごとの絞り込みに左右されないよう自前で出す（タップ・↑↓・Enterで選べる）
+const TOUCH=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+function fitSugg(inp,ul){ if(ul.hidden) return; const vv=window.visualViewport; const r=inp.getBoundingClientRect();
+  const bottom=vv?vv.offsetTop+vv.height:innerHeight; ul.style.maxHeight=Math.max(140,Math.floor(bottom-r.bottom-16))+'px'; }
+function liftInput(inp){ if(!TOUCH) return; setTimeout(()=>{ const r=inp.getBoundingClientRect(); const top=window.visualViewport?window.visualViewport.offsetTop:0; if(r.top-top>70) window.scrollBy({top:r.top-top-12,behavior:'smooth'}); },350); }
+if(typeof window!=='undefined'&&window.visualViewport){ const re=()=>document.querySelectorAll('.sg').forEach(ul=>{ const i=ul.parentNode.querySelector('input'); if(i) fitSugg(i,ul); }); visualViewport.addEventListener('resize',re); visualViewport.addEventListener('scroll',re); }
+function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" data-i="${i}">${esc(t)}</li>`).join(''); ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1; fitSugg(inp,ul);
+  if(inp._sg) return; inp._sg=1;
+  const pick=t=>{ inp.value=t; ul.hidden=true; inp.dispatchEvent(new Event('change')); };
+  ul.addEventListener('mousedown',e=>{ const li=e.target.closest('li'); if(!li) return; e.preventDefault(); pick(ul._list[+li.dataset.i]); });
+  inp.addEventListener('blur',()=>setTimeout(()=>{ ul.hidden=true; },150));
+  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()){ ul.hidden=false; fitSugg(inp,ul); } });
+  inp.addEventListener('keydown',e=>{ if(ul.hidden||!ul._list||!ul._list.length) return; const L=ul.querySelectorAll('li');
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); ul._on=(ul._on+(e.key==='ArrowDown'?1:-1)+L.length)%L.length; L.forEach((x,i)=>x.classList.toggle('on',i===ul._on)); L[ul._on].scrollIntoView({block:'nearest'}); }
+    else if(e.key==='Enter'&&ul._on>=0){ e.preventDefault(); pick(ul._list[ul._on]); }
+    else if(e.key==='Escape'){ ul.hidden=true; } }); }
+const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
 async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch(DATA_BASE+'a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
     const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
