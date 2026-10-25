@@ -1,0 +1,13 @@
+{
+  "name": "百科拳典（ひゃっかけんてん）",
+  "short_name": "百科拳典",
+  "description": "Wikipediaの記事が、事実だけで殴り合う。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f1",
+  "theme_color": "#0e288c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

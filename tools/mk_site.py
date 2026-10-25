@@ -360,6 +360,19 @@ async function openShared(){ const q=new URLSearchParams(location.search);
   if(!why[0]&&!why[1]) startBattle(); return true; }""")
 rep("  sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);", "  if(await openShared()) return; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);")
 
+
+# ---- 19. ファビコン・ホーム画面のアイコン・共有カードの画像 ----
+rep('<meta name="twitter:card" content="summary">\n', """<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://y-krn.github.io/hyakka-kenten/og.png">
+<meta property="og:url" content="https://y-krn.github.io/hyakka-kenten/">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e288c">
+""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
