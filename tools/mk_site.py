@@ -379,6 +379,26 @@ rep('<output id="share">${esc(share)}</output><button type="button" class="btn s
     '<output id="share">${esc(share)}</output>${navigator.share?\'\':\'<button type="button" class="btn small" id="copy">コピー</button>\'}')
 rep("  $('#copy').onclick=async e=>", "  if($('#copy')) $('#copy').onclick=async e=>")
 
+
+# ---- 21. 「言語版の数」は使わない（日本の記事が不利になり、不公平感が強いため） ----
+n0 = len(s)
+s = re.sub(r"\n    out\.push\(\['MULTI','多言語包囲'[^\n]*", '', s, count=1)
+s = re.sub(r"\n  _sl:\{lab:'言語版の数'[^\n]*", '', s, count=1)
+assert len(s) < n0 and '多言語包囲' not in s.split('const MID=')[0].split('function extMoves')[1][:3000] if 'function extMoves' in s else True
+rep("const v=k==='_sl'?m.sl:", "if(k==='_sl') return null; const v=")
+rep("['_sl','言語版の数','多くの言語で書かれているほう'],", "")
+
+
+# 瞬殺のきっかけは、言語版の数の代わりに「1年間の閲覧数」で1200倍以上の差（どちらも日本語版の数字なので公平）
+rep("R.filter(x=>PHYS.includes(x.k)||x.k==='_sl').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_sl'?40:1e4))",
+    "R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4))", 2)
+rep("""      if(gap.k==='_sl'){
+        log.push(sys(P(['{L}、礼儀正しく日本語で名乗る。','{L}、深く一礼して名乗りを上げる。日本語で。'],o)));
+        log.push(sys(P(['{W}、{n}の言語で一斉に名乗り返す。{L}は最初の3言語までは聞き取れた。','{W}の名乗りが{n}の言語に翻訳されて会場に響く。{L}の名乗りは、日本語版にしか載っていない。','{W}、{n}言語分の名乗りを同時に上げる。通訳が足りず、会場は混乱した。'],o)));""",
+"""      if(gap.k==='_pv'){
+        log.push(sys(P(['{L}、名乗りを上げる。客席の反応は控えめだった。','{L}、深く一礼して入場する。拍手は、まばらだった。','{L}、入場。会場の何人かが、記事名を検索し始めた。'],o)));
+        log.push(sys(P(['{W}が入場すると、{vw}読まれてきた視線が一斉に{L}へ向いた。','{W}は名乗る必要がない。{vw}読まれているので、全員もう知っている。','{L}の記事は{vl}、{W}は{vw}。読まれた回数の差が、そのまま圧になった。'],o)));""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

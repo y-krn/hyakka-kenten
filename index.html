@@ -330,7 +330,6 @@ function extMoves(i){ const out=[];
     const line=tpl.replace(/\{F\}/g,shown.join('・')).replace(/\{n\}/g,fmt(n));
     out.push([kind,name,disp.join('と'),card,+T.toFixed(2),code==='S'||code==='H'?1:0,line,code==='S'?names:undefined]); }
   const m=META[i]; if(m){
-    out.push(['MULTI','多言語包囲','言語版'+m.sl,'Wikipediaの言語版：'+m.sl,+cntT(m.sl,[5,20,60,120,200]).toFixed(2),0,'{A}の【{N}】！ 世界'+m.sl+'言語版のWikipediaが一斉に{B}を取り囲み、{H}連撃。','meta']);
     out.push(['STRIKE','長文で殴る','約'+jn(m.ch)+'文字','日本語版の記事：約'+jn(m.ch)+'文字',cntT(m.ch,[3000,10000,30000,60000,100000]),0,'{A}の【{N}】！ 約'+jn(m.ch)+'文字の記事本文を丸ごと{B}に叩きつける。','meta']);
     out.push(['BIND','リンク網','被リンク'+m.lh+(m.lhp?'以上':''),'この記事へのリンク：'+m.lh+'本'+(m.lhp?'以上':''),cntT(m.lh,[20,60,150,300,500]),0,pickT(['{A}の【{N}】！ '+m.lh+'本'+(m.lhp?'以上':'')+'の被リンクで{B}を縛り上げる。{B}の動きが鈍った。','{A}の【{N}】！ 自分を指す'+m.lh+'本'+(m.lhp?'以上':'')+'のリンクを投げ縄にして{B}を捕まえる。{B}の動きが鈍った。'],String(i)),'meta']);
     out.push(['MULTI','注目の視線','年間'+jn(m.pv)+'回','1年間の閲覧数：'+jn(m.pv)+'回',cntT(m.pv,[1e4,5e4,2e5,6e5,2e6]),0,'{A}の【{N}】！ 年間'+jn(m.pv)+'回読まれた視線が{B}に突き刺さり、{H}連撃。','meta']); }
@@ -363,14 +362,13 @@ function makePool(i){ const f=F[i]; const out=[...f[7]]; const have=new Set(out.
   for(const m of plainMoves(i)){ const k=out.findIndex(x=>x[1]===m[1]); if(k>=0){ out[k]=[...out[k]]; out[k][2]=out[k][3]=m[2]; } else { out.push(m); have.add(m[1]); } }
   for(const m of extMoves(i)){ if(have.has(m[1])) continue; out.push(m); have.add(m[1]); }
   return out; }
-const dimv=(i,k)=>{ if(k.startsWith('w')){ const w=WP[i]; if(!w) return null; const v=k==='wca'?w[0]:k==='wse'?w[4]:k==='wim'?w[3]:(w[2]?null:w[1]); return v>0?v:null; } if(k.startsWith('_')){ const m=META[i]; if(!m) return null; const v=k==='_sl'?m.sl:k==='_ch'?m.ch:k==='_pv'?m.pv:(m.lhp?null:m.lh); return v>0?v:null; } if(k.startsWith('P')){ const v=CNT[i][k]; return v>0?v:null; } const q=QT[i]; if(!q) return null; if(k==='h'){ const v=q.h!==undefined?q.h:(q.l===undefined?q.e:undefined); return v>0?v:null; } const v=q[k]; return v>0?v:null; };
+const dimv=(i,k)=>{ if(k.startsWith('w')){ const w=WP[i]; if(!w) return null; const v=k==='wca'?w[0]:k==='wse'?w[4]:k==='wim'?w[3]:(w[2]?null:w[1]); return v>0?v:null; } if(k.startsWith('_')){ const m=META[i]; if(!m) return null; if(k==='_sl') return null; const v=k==='_ch'?m.ch:k==='_pv'?m.pv:(m.lhp?null:m.lh); return v>0?v:null; } if(k.startsWith('P')){ const v=CNT[i][k]; return v>0?v:null; } const q=QT[i]; if(!q) return null; if(k==='h'){ const v=q.h!==undefined?q.h:(q.l===undefined?q.e:undefined); return v>0?v:null; } const v=q[k]; return v>0?v:null; };
 const DIMS={h:{lab:'高さ',plain:['急降下','標高落とし'],kind:'STRIKE',name:'見下ろし',line:'{A}の【{N}】！ {B}の{R}の高さから見下ろし、そのまま踏みつける。'},
   m:{lab:'重さ',plain:['のしかかり'],kind:'STRIKE',name:'重量差',line:'{A}の【{N}】！ {B}の{R}の重さでのしかかる。'},
   a:{lab:'面積',plain:['領土拡大'],kind:'SLOW',name:'面積マウント',line:'{A}の【{N}】！ {B}を{C}個並べられる広さに{B}が迷い込む。行動が遅れたところを殴る。'},
   p:{lab:'人口',plain:['人海戦術'],kind:'MULTI',name:'数の暴力',line:'{A}の【{N}】！ {B}の{R}の人数で押し寄せ、{H}連撃。'},
   l:{lab:'長さ',plain:['全長包囲'],kind:'BIND',name:'長さ比べ',line:'{A}の【{N}】！ {B}の{R}の長さでぐるぐる巻きにする。{B}の動きが鈍った。'},
   s:{lab:'速さ',plain:['全力疾走'],kind:'HASTE',name:'置き去り',line:'{A}の【{N}】！ {B}の{R}の速さで駆け抜けながら体当たり。勢いで次の行動が早まる。'},
-  _sl:{lab:'言語版の数',plain:['多言語包囲'],kind:'STRIKE',name:'知名度マウント',line:'{A}の【{N}】！ {B}の{R}の言語で語られている知名度で圧倒する。',meta:1},
   _ch:{lab:'記事の文字数',plain:['長文で殴る'],kind:'STRIKE',name:'文字数マウント',line:'{A}の【{N}】！ {B}の{R}の文字数を誇る記事の重みでのしかかる。',meta:1},
   _lh:{lab:'被リンク数',plain:['リンク網'],kind:'BIND',name:'人脈マウント',line:'{A}の【{N}】！ {B}の{R}の被リンクで張り巡らせた網で縛る。{B}の動きが鈍った。',meta:1},
   _pv:{lab:'閲覧数',plain:['注目の視線'],kind:'MULTI',name:'閲覧数マウント',line:'{A}の【{N}】！ {B}の{R}読まれている人気で押し寄せ、{H}連撃。',meta:1},
@@ -513,7 +511,7 @@ function matchType(ai,bi,an){ const r=an.r;
   if(r.riv) return 'innen';
   const cs=CL[ai], cb=CL[bi], R=rounds(ai,bi), nPhys=R.filter(x=>PHYS.includes(x.k)).length, nReal=R.filter(x=>!METAD.includes(x.k)).length;
   const same=cs&&cb&&cs[0]===cb[0];
-  const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_sl').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_sl'?40:1e4)).sort((x,y)=>y.r-x.r)[0];
+  const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
   if(gap) return 'shunsatsu';
   if(R.length>=3&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';
   if(r.w!==null&&r.kind==='KO'){ const w=r.w===ai?0:1; if(r.hp[w]/r.max[w]>=0.6) return 'shunsatsu'; }
@@ -601,14 +599,14 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     an.r={...r,log}; return an; }
 
   /* ---------- 瞬殺 ---------- */
-  if(type==='shunsatsu'){ const R=rounds(ai,bi); const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_sl').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_sl'?40:1e4)).sort((x,y)=>y.r-x.r)[0];
+  if(type==='shunsatsu'){ const R=rounds(ai,bi); const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
     if(gap){ const w=gap.a>gap.b?ai:bi, W=F[w][0], L=w===ai?B:A, hp=[r.max[0],r.max[1]]; hp[w===ai?1:0]=0;
       const rt=gap.r>=1e8?jn(gap.r)+'倍':ratioTxt(gap.r), vw=fmtR(gap.k,Math.max(gap.a,gap.b)), vl=fmtR(gap.k,Math.min(gap.a,gap.b)), lab=RLAB[gap.k];
       const o={W,L,vw,vl,lab,rt,n:Math.max(gap.a,gap.b),m:Math.min(gap.a,gap.b)};
       const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];
-      if(gap.k==='_sl'){
-        log.push(sys(P(['{L}、礼儀正しく日本語で名乗る。','{L}、深く一礼して名乗りを上げる。日本語で。'],o)));
-        log.push(sys(P(['{W}、{n}の言語で一斉に名乗り返す。{L}は最初の3言語までは聞き取れた。','{W}の名乗りが{n}の言語に翻訳されて会場に響く。{L}の名乗りは、日本語版にしか載っていない。','{W}、{n}言語分の名乗りを同時に上げる。通訳が足りず、会場は混乱した。'],o)));
+      if(gap.k==='_pv'){
+        log.push(sys(P(['{L}、名乗りを上げる。客席の反応は控えめだった。','{L}、深く一礼して入場する。拍手は、まばらだった。','{L}、入場。会場の何人かが、記事名を検索し始めた。'],o)));
+        log.push(sys(P(['{W}が入場すると、{vw}読まれてきた視線が一斉に{L}へ向いた。','{W}は名乗る必要がない。{vw}読まれているので、全員もう知っている。','{L}の記事は{vl}、{W}は{vw}。読まれた回数の差が、そのまま圧になった。'],o)));
       } else {
         log.push(sys(P(['{L}、構える。{W}は特に構えない。{lab}{vw}。それ自体が{W}の構えだ。','{L}、間合いを測る。{W}の{lab}は{vw}。間合いという概念が成立しない。','{L}、{W}を見上げる。見上げても、まだ{lab}{vw}の全体は見えない。'],o)));
         log.push(sys(P(['{L}は{W}の{lab}を測ろうとした。{vl}用の物差しでは、目盛りが足りなかった。','{L}の{lab}は{vl}。{W}の{lab}は{vw}。以上である。','{L}、渾身の一撃を放つ。{W}は気づかなかった。'],o)));
@@ -658,7 +656,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     midKai(moves.slice(0,4),K0,ai,bi).forEach(m=>log.push(m));
     const last=r.log[r.log.length-1]; const o={A,B,n:normal.length};
     if(normal.length>=2) log.push({...last,side:-1,d:0,s:P(['（{A}、地道に殴る。{B}、地道に殴り返す。これが{n}回続いた。観客の一部が帰り始める）','（以後、技のない殴り合いが{n}回続く。実況席では弁当が配られた）','（{n}回の殴り合い。どちらも相手の記事を読んでいないことが明らかになっていく）'],o)});
-    if(r.kind==='判定'){ const C=[['_ch','記事の文字数','文字数の多いほう'],['_sl','言語版の数','多くの言語で書かれているほう'],['m0','名前の音の数','名前が長いほう']];
+    if(r.kind==='判定'){ const C=[['_ch','記事の文字数','文字数の多いほう'],['m0','名前の音の数','名前が長いほう']];
       const c=C[hash(K0)%C.length]; const va=c[0]==='m0'?F[ai][4]:dimv(ai,c[0]), vb=c[0]==='m0'?F[bi][4]:dimv(bi,c[0]);
       log.push({...last,side:-1,d:0,s:'15カウント終了。両者、まだ立っている。'});
       log.push({...last,side:-1,d:0,s:P(['審判団、協議に入る。……協議は長引いている。','審判団、協議に入る。一人が「もう引き分けでいいのでは」と言い、却下された。'])});
