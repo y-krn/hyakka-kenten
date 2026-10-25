@@ -155,6 +155,10 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .sg{position:absolute;left:0;right:0;top:100%;z-index:30;margin:2px 0 0;padding:4px 0;list-style:none;background:var(--paper);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.15);max-height:min(60vh,360px);overflow:auto}
 .sg li{padding:9px 12px;cursor:pointer;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
 .sg li:hover,.sg li.on{background:var(--a-soft)}
+.reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}
+.reads span{opacity:.75;margin-right:2px}
+.reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}
+.reads a:hover{background:rgba(255,255,255,.12)}
 .share2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .share2 .url{font-size:12px;color:inherit;opacity:.8}
 .share{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
@@ -264,6 +268,7 @@ function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" 
   const pick=t=>{ inp.value=t; ul.hidden=true; inp.dispatchEvent(new Event('change')); };
   ul.addEventListener('mousedown',e=>{ const li=e.target.closest('li'); if(!li) return; e.preventDefault(); pick(ul._list[+li.dataset.i]); });
   inp.addEventListener('blur',()=>setTimeout(()=>{ ul.hidden=true; },150));
+  inp.addEventListener('change',()=>{ if(ul._list&&ul._list.includes(inp.value.trim())) ul.hidden=true; });
   inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()){ ul.hidden=false; fitSugg(inp,ul); } });
   inp.addEventListener('keydown',e=>{ if(ul.hidden||!ul._list||!ul._list.length) return; const L=ul.querySelectorAll('li');
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); ul._on=(ul._on+(e.key==='ArrowDown'?1:-1)+L.length)%L.length; L.forEach((x,i)=>x.classList.toggle('on',i===ul._on)); L[ul._on].scrollIntoView({block:'nearest'}); }
@@ -854,6 +859,7 @@ function showResult(){
     <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>
     <div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${an.baseW===null?'引き分けの':esc(nm(an.baseW))+'が勝つ'}組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
+    <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${M?`

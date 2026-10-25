@@ -487,6 +487,7 @@ function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" 
   const pick=t=>{ inp.value=t; ul.hidden=true; inp.dispatchEvent(new Event('change')); };
   ul.addEventListener('mousedown',e=>{ const li=e.target.closest('li'); if(!li) return; e.preventDefault(); pick(ul._list[+li.dataset.i]); });
   inp.addEventListener('blur',()=>setTimeout(()=>{ ul.hidden=true; },150));
+  inp.addEventListener('change',()=>{ if(ul._list&&ul._list.includes(inp.value.trim())) ul.hidden=true; });
   inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()) ul.hidden=false; });
   inp.addEventListener('keydown',e=>{ if(ul.hidden||!ul._list||!ul._list.length) return; const L=ul.querySelectorAll('li');
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); ul._on=(ul._on+(e.key==='ArrowDown'?1:-1)+L.length)%L.length; L.forEach((x,i)=>x.classList.toggle('on',i===ul._on)); L[ul._on].scrollIntoView({block:'nearest'}); }
@@ -546,6 +547,16 @@ async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ 
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました':($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
 setInterval(refreshThrone,30000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshThrone(); });""")
+
+
+# ---- 28. 結果の札に、戦った2記事のWikipediaへのリンクを置く（王座戦・自由対戦の共通） ----
+rep('    <div class="share"><output id="share">', """    <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
+    <div class="share"><output id="share">""")
+rep('.share2{display:flex', """.reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}
+.reads span{opacity:.75;margin-right:2px}
+.reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}
+.reads a:hover{background:rgba(255,255,255,.12)}
+.share2{display:flex""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
