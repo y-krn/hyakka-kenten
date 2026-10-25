@@ -460,6 +460,59 @@ rep("  inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.tr
     "  const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };\n  inp.addEventListener('change',chk);\n  inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;")
 rep("if(my!==sq) return; CHOPT=new Set(list);", "if(my!==sq) return; CHOPT=new Set(list); chk();")
 
+
+# ---- 25. 記事名の検索を部分一致に。候補はブラウザ任せの datalist をやめ、自前の候補リストで出す ----
+rep("""async function suggest(v,exclude){ const j=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=20&search='+encodeURIComponent(v)).then(r=>r.json());
+  const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]&&!(exclude&&exclude(t))).slice(0,10); }""",
+"""// 部分一致：記事名を2文字ずつに切った索引（data/g/）から、いちばん絞り込める2文字の一覧を取り、全体を含むものだけ残す
+const GIDX={};
+async function gindex(k){ if(!GIDX[k]) GIDX[k]=fetch('data/g/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
+    return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(()=>{ delete GIDX[k]; return {}; }); return GIDX[k]; }
+const normQ=s=>s.normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));   // ひらがなはカタカナにそろえる
+async function partial(v){ const n=normQ(v); if(n.length<2) return [];
+  let gs=[...new Set(Array.from({length:n.length-1},(_,i)=>n.slice(i,i+2)))];
+  if(gs.length>6){ const st=(gs.length-1)/5; gs=[0,1,2,3,4,5].map(i=>gs[Math.round(i*st)]); }
+  const lists=await Promise.all(gs.map(async g=>(await gindex(fnv(g)%NB))[g]||[0,[]]));
+  lists.sort((a,b)=>a[0]-b[0]); if(!lists[0][0]) return [];
+  return lists[0][1].filter(t=>normQ(t).includes(n)); }
+// Wikipediaの前方一致（転送ページの名前にも強い）と、自前の部分一致を合わせる。完全一致→部分一致（よく読まれている順）→Wikipediaだけが拾えたもの
+async function suggest(v,exclude){
+  const pre=fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=15&search='+encodeURIComponent(v)).then(r=>r.json()).then(async j=>{ const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]); }).catch(()=>[]);
+  const [a,b]=await Promise.all([pre,partial(v).catch(()=>[])]); const n=normQ(v);
+  const all=[...new Set([...b.filter(t=>normQ(t)===n),...a.filter(t=>normQ(t)===n),...b,...a])];   // 完全一致のあとは、よく読まれている順
+  return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }
+// 候補リスト：ブラウザごとの絞り込みに左右されないよう自前で出す（タップ・↑↓・Enterで選べる）
+function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" data-i="${i}">${esc(t)}</li>`).join(''); ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1;
+  if(inp._sg) return; inp._sg=1;
+  const pick=t=>{ inp.value=t; ul.hidden=true; inp.dispatchEvent(new Event('change')); };
+  ul.addEventListener('mousedown',e=>{ const li=e.target.closest('li'); if(!li) return; e.preventDefault(); pick(ul._list[+li.dataset.i]); });
+  inp.addEventListener('blur',()=>setTimeout(()=>{ ul.hidden=true; },150));
+  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()) ul.hidden=false; });
+  inp.addEventListener('keydown',e=>{ if(ul.hidden||!ul._list||!ul._list.length) return; const L=ul.querySelectorAll('li');
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); ul._on=(ul._on+(e.key==='ArrowDown'?1:-1)+L.length)%L.length; L.forEach((x,i)=>x.classList.toggle('on',i===ul._on)); L[ul._on].scrollIntoView({block:'nearest'}); }
+    else if(e.key==='Enter'&&ul._on>=0){ e.preventDefault(); pick(ul._list[ul._on]); }
+    else if(e.key==='Escape'){ ul.hidden=true; } }); }""")
+rep('<input id="in${side}" list="names${side}" placeholder="記事名を入力（例：富士山）" value="${i===null?\'\':esc(F[i][0])}" aria-label="${side===0?\'青コーナー\':\'赤コーナー\'}の記事" autocomplete="off"><datalist id="names${side}"></datalist>',
+    '<span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?\'\':esc(F[i][0])}" aria-label="${side===0?\'青コーナー\':\'赤コーナー\'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span>')
+rep('<input id="chT" list="chL" placeholder="挑戦する記事名" autocomplete="off" aria-label="挑戦する記事名"><datalist id="chL"></datalist>',
+    '<span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>')
+rep("const inp=el.querySelector('input'), dl=el.querySelector('datalist');", "const inp=el.querySelector('input'), dl=el.querySelector('.sg');")
+rep("const inp=$('#chT'), dl=$('#chL');", "const inp=$('#chT'), dl=$('#sgT');")
+rep("""      dl.innerHTML=list.map(n=>`<option value="${esc(n)}"></option>`).join('');
+      const note=el.querySelector('.pmsg');""", """      showSugg(inp,dl,list);
+      const note=el.querySelector('.pmsg');""")
+rep("""      dl.innerHTML=list.map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });
+  $('#chf').onsubmit""", """      showSugg(inp,dl,list); }catch(_){} },250); });
+  $('#chf').onsubmit""")
+rep('    <datalist id="names"></datalist>\n', '')
+rep('.share2{display:flex', """.sgw{position:relative;flex:1;min-width:0;display:flex}
+.sgw input{flex:1;min-width:0}
+#throne .sgw{flex:1 1 200px}
+.sg{position:absolute;left:0;right:0;top:100%;z-index:30;margin:2px 0 0;padding:4px 0;list-style:none;background:var(--paper);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.15);max-height:min(60vh,360px);overflow:auto}
+.sg li{padding:9px 12px;cursor:pointer;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.sg li:hover,.sg li.on{background:var(--a-soft)}
+.share2{display:flex""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

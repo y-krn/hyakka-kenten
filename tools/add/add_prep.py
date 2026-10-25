@@ -146,6 +146,26 @@ for k in dirty:
     ts = sorted(t for t, r in BK[k].items() if 'hold' not in r)   # 候補の絞り込み用の記事名索引も更新
     os.makedirs(os.path.join(DATA, 't'), exist_ok=True)
     open(os.path.join(DATA, 't', f'{k}.json.gz'), 'wb').write(gzip.compress(json.dumps(ts, ensure_ascii=False, separators=(',', ':')).encode(), 9, mtime=0))
+# 部分一致の索引（data/g/）にも、追加した記事名を足す
+if added:
+    import unicodedata
+    def norm(x):
+        x = unicodedata.normalize('NFKC', x).lower(); return ''.join(chr(ord(c) + 0x60) if 'ぁ' <= c <= 'ゖ' else c for c in x)
+    GB = {}
+    for kk, v in report.items():
+        if v[0] != '追加': continue
+        t = titles.get(kk)
+        n = norm(t)
+        for g in {n[i:i + 2] for i in range(len(n) - 1)}:
+            k = fnv(g) % NB
+            if k not in GB:
+                p = os.path.join(DATA, 'g', f'{k}.json.gz'); GB[k] = json.loads(gzip.open(p, 'rt', encoding='utf-8').read()) if os.path.exists(p) else {}
+            e = GB[k].setdefault(g, [0, []])
+            if t not in e[1]:
+                e[0] += 1
+                if len(e[1]) < 500: e[1].append(t)
+    for k, d in GB.items():
+        open(os.path.join(DATA, 'g', f'{k}.json.gz'), 'wb').write(gzip.compress(json.dumps(d, ensure_ascii=False, separators=(',', ':')).encode(), 9, mtime=0))
 if added:
     meta['n'] = meta['n'] + added; meta['hold'] = meta.get('hold', 0) + sum(1 for v in report.values() if v[0] == '確認中として追加')
     meta['build'] = time.strftime('%Y%m%d%H%M')

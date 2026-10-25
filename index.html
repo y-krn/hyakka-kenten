@@ -149,6 +149,12 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .result ul{margin:0;padding-left:1.2em;font-size:14px}
 .tagU{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--hl);color:var(--hl-ink);vertical-align:middle;margin-left:6px;font-family:var(--f-body)}
 .keys{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.sgw{position:relative;flex:1;min-width:0;display:flex}
+.sgw input{flex:1;min-width:0}
+#throne .sgw{flex:1 1 200px}
+.sg{position:absolute;left:0;right:0;top:100%;z-index:30;margin:2px 0 0;padding:4px 0;list-style:none;background:var(--paper);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.15);max-height:min(60vh,360px);overflow:auto}
+.sg li{padding:9px 12px;cursor:pointer;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.sg li:hover,.sg li.on{background:var(--a-soft)}
 .share2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 .share2 .url{font-size:12px;color:inherit;opacity:.8}
 .share{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
@@ -202,7 +208,6 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
       <div class="vsmark">VS</div>
       <div class="card pick B" id="pickB"></div>
     </div>
-    <datalist id="names"></datalist>
     <div class="matchup" id="mu" aria-live="polite"></div>
     <div class="go">
       <button type="button" class="btn" id="omakase">おまかせで組む</button>
@@ -231,8 +236,34 @@ async function tindex(k){ if(!TIDX[k]) TIDX[k]=fetch('data/t/'+k+'.json.gz?v='+V
     return new Set(JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text())); }).catch(()=>{ delete TIDX[k]; return new Set(); }); return TIDX[k]; }
 async function inData(t){ return (await tindex(fnv(t)%NB)).has(t); }
 // 入力に合う候補：Wikipediaの検索候補（読み・転送ページにも強い）から、収録している記事だけを残す
-async function suggest(v,exclude){ const j=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=20&search='+encodeURIComponent(v)).then(r=>r.json());
-  const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]&&!(exclude&&exclude(t))).slice(0,10); }
+// 部分一致：記事名を2文字ずつに切った索引（data/g/）から、いちばん絞り込める2文字の一覧を取り、全体を含むものだけ残す
+const GIDX={};
+async function gindex(k){ if(!GIDX[k]) GIDX[k]=fetch('data/g/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
+    return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(()=>{ delete GIDX[k]; return {}; }); return GIDX[k]; }
+const normQ=s=>s.normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));   // ひらがなはカタカナにそろえる
+async function partial(v){ const n=normQ(v); if(n.length<2) return [];
+  let gs=[...new Set(Array.from({length:n.length-1},(_,i)=>n.slice(i,i+2)))];
+  if(gs.length>6){ const st=(gs.length-1)/5; gs=[0,1,2,3,4,5].map(i=>gs[Math.round(i*st)]); }
+  const lists=await Promise.all(gs.map(async g=>(await gindex(fnv(g)%NB))[g]||[0,[]]));
+  lists.sort((a,b)=>a[0]-b[0]); if(!lists[0][0]) return [];
+  return lists[0][1].filter(t=>normQ(t).includes(n)); }
+// Wikipediaの前方一致（転送ページの名前にも強い）と、自前の部分一致を合わせる。完全一致→部分一致（よく読まれている順）→Wikipediaだけが拾えたもの
+async function suggest(v,exclude){
+  const pre=fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=15&search='+encodeURIComponent(v)).then(r=>r.json()).then(async j=>{ const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]); }).catch(()=>[]);
+  const [a,b]=await Promise.all([pre,partial(v).catch(()=>[])]); const n=normQ(v);
+  const all=[...new Set([...b.filter(t=>normQ(t)===n),...a.filter(t=>normQ(t)===n),...b,...a])];   // 完全一致のあとは、よく読まれている順
+  return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }
+// 候補リスト：ブラウザごとの絞り込みに左右されないよう自前で出す（タップ・↑↓・Enterで選べる）
+function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" data-i="${i}">${esc(t)}</li>`).join(''); ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1;
+  if(inp._sg) return; inp._sg=1;
+  const pick=t=>{ inp.value=t; ul.hidden=true; inp.dispatchEvent(new Event('change')); };
+  ul.addEventListener('mousedown',e=>{ const li=e.target.closest('li'); if(!li) return; e.preventDefault(); pick(ul._list[+li.dataset.i]); });
+  inp.addEventListener('blur',()=>setTimeout(()=>{ ul.hidden=true; },150));
+  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()) ul.hidden=false; });
+  inp.addEventListener('keydown',e=>{ if(ul.hidden||!ul._list||!ul._list.length) return; const L=ul.querySelectorAll('li');
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); ul._on=(ul._on+(e.key==='ArrowDown'?1:-1)+L.length)%L.length; L.forEach((x,i)=>x.classList.toggle('on',i===ul._on)); L[ul._on].scrollIntoView({block:'nearest'}); }
+    else if(e.key==='Enter'&&ul._on>=0){ e.preventDefault(); pick(ul._list[ul._on]); }
+    else if(e.key==='Escape'){ ul.hidden=true; } }); }
 const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
 async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch('data/a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
@@ -730,13 +761,13 @@ function fighterCard(i){ const f=F[i];
   <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
-  el.innerHTML=`<div class="row"><input id="in${side}" list="names${side}" placeholder="記事名を入力（例：富士山）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><datalist id="names${side}"></datalist><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
+  el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
   <div class="pmsg" aria-live="polite"></div>
   ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
-  const inp=el.querySelector('input'), dl=el.querySelector('datalist'); let tm=null, seq=0, OPT=new Set();
+  const inp=el.querySelector('input'), dl=el.querySelector('.sg'); let tm=null, seq=0, OPT=new Set();
   inp.addEventListener('input',()=>{ updateFight(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==seq) return; OPT=new Set(list);
-      dl.innerHTML=list.map(n=>`<option value="${esc(n)}"></option>`).join('');
+      showSugg(inp,dl,list);
       const note=el.querySelector('.pmsg'); if(note){ if(!list.length) note.textContent='「'+v+'」に合う収録記事が見つかりません'; else if(/見つかりません$/.test(note.textContent)) note.textContent=''; } }catch(_){} },250); });
   inp.addEventListener('change',async e=>{ const v=e.target.value.trim(); if(!v) return; const note=el.querySelector('.pmsg');
     if(!OPT.has(v)){ if(note) note.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }
@@ -881,18 +912,18 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <div class="champ">${esc(c.display)}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="meta">防衛 <b>${c.defenses}</b>回 ／ 王座を取った人：<b>${esc(c.holder)}</b> ／ ${esc(dt(c.started_at))}から在位</div>
   <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、負けた記事での再挑戦はできません。</div>
-  <form id="chf"><input id="chT" list="chL" placeholder="挑戦する記事名" autocomplete="off" aria-label="挑戦する記事名"><datalist id="chL"></datalist>
+  <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li>${esc(x.display)} <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
   <details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}${x.ended_at?'':'・在位中'}）</span></li>`).join('')}</ol></details>
   <details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+esc(x.ended_by)+'に敗れる':'在位中'}）</span></li>`).join('')}</ol></details>`;
-  const inp=$('#chT'), dl=$('#chL'); let tm=null, sq=0;
+  const inp=$('#chT'), dl=$('#sgT'); let tm=null, sq=0;
   const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };
   inp.addEventListener('change',chk);
   inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();
-      dl.innerHTML=list.map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });
+      showSugg(inp,dl,list); }catch(_){} },250); });
   $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }
 async function loadThrone(msg){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ renderThrone(d,msg); fixChamp(); } }catch(_){} }
 async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').value.trim(), m=$('#chM'), btn=$('#chf button');
