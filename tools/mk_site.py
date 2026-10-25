@@ -513,6 +513,22 @@ rep('.share2{display:flex', """.sgw{position:relative;flex:1;min-width:0;display
 .sg li:hover,.sg li.on{background:var(--a-soft)}
 .share2{display:flex""")
 
+
+# ---- 26. スマホ：候補リストがキーボードに隠れないよう、入力欄を画面上部へ寄せ、リストの高さを見えている範囲に合わせる ----
+rep("function showSugg(inp,ul,list){ ul.innerHTML=", """const TOUCH=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+function fitSugg(inp,ul){ if(ul.hidden) return; const vv=window.visualViewport; const r=inp.getBoundingClientRect();
+  const bottom=vv?vv.offsetTop+vv.height:innerHeight; ul.style.maxHeight=Math.max(140,Math.floor(bottom-r.bottom-16))+'px'; }
+function liftInput(inp){ if(!TOUCH) return; setTimeout(()=>{ const r=inp.getBoundingClientRect(); const top=window.visualViewport?window.visualViewport.offsetTop:0; if(r.top-top>70) window.scrollBy({top:r.top-top-12,behavior:'smooth'}); },350); }
+if(window.visualViewport){ const re=()=>document.querySelectorAll('.sg').forEach(ul=>{ const i=ul.parentNode.querySelector('input'); if(i) fitSugg(i,ul); }); visualViewport.addEventListener('resize',re); visualViewport.addEventListener('scroll',re); }
+function showSugg(inp,ul,list){ ul.innerHTML=""")
+rep("ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1;", "ul.hidden=!list.length||document.activeElement!==inp; ul._list=list; ul._on=-1; fitSugg(inp,ul);")
+rep("  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()) ul.hidden=false; });",
+    "  inp.addEventListener('focus',()=>{ if(ul._list&&ul._list.length&&inp.value.trim()){ ul.hidden=false; fitSugg(inp,ul); } });")
+
+
+rep("const inp=el.querySelector('input'), dl=el.querySelector('.sg');", "const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));")
+rep("const inp=$('#chT'), dl=$('#sgT');", "const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp));")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
