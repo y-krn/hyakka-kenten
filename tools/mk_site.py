@@ -448,6 +448,18 @@ rep('.share2{display:flex', '.keys{display:flex;flex-direction:column;gap:2px;fo
 
 rep('能力値だけなら${esc(nm(an.baseW))}が勝つ組み合わせ', '能力値だけなら${an.baseW===null?\'引き分けの\':esc(nm(an.baseW))+\'が勝つ\'}組み合わせ')
 
+
+# ---- 24. 候補から選ぶまでは、対戦開始・挑戦のボタンを押せないようにする ----
+rep("function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]);",
+    """const pickOK=s=>{ const i=sel[s]; if(i===null) return false; const e=$('#in'+s); if(!e) return true; const v=e.value.trim(); return v===F[i][0]||v===F[i][1]; };   // 入力欄を書き換え中（選び直す途中）は未確定
+function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));""")
+rep("  inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;",
+    "  inp.addEventListener('input',()=>{ updateFight(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;")
+rep('<button type="submit" class="btn">挑戦する</button>', '<button type="submit" class="btn" disabled>挑戦する</button>')
+rep("  inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;",
+    "  const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };\n  inp.addEventListener('change',chk);\n  inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;")
+rep("if(my!==sq) return; CHOPT=new Set(list);", "if(my!==sq) return; CHOPT=new Set(list); chk();")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
