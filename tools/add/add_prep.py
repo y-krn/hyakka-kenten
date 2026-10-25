@@ -143,6 +143,9 @@ for o in range(len(d['F'])):
 for k in dirty:
     raw = json.dumps(BK[k], ensure_ascii=False, separators=(',', ':')).encode()
     open(os.path.join(DATA, 'a', f'{k}.json.gz'), 'wb').write(gzip.compress(raw, 9, mtime=0))
+    ts = sorted(t for t, r in BK[k].items() if 'hold' not in r)   # 候補の絞り込み用の記事名索引も更新
+    os.makedirs(os.path.join(DATA, 't'), exist_ok=True)
+    open(os.path.join(DATA, 't', f'{k}.json.gz'), 'wb').write(gzip.compress(json.dumps(ts, ensure_ascii=False, separators=(',', ':')).encode(), 9, mtime=0))
 if added:
     meta['n'] = meta['n'] + added; meta['hold'] = meta.get('hold', 0) + sum(1 for v in report.values() if v[0] == '確認中として追加')
     meta['build'] = time.strftime('%Y%m%d%H%M')

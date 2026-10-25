@@ -399,6 +399,55 @@ rep("""      if(gap.k==='_sl'){
         log.push(sys(P(['{L}、名乗りを上げる。客席の反応は控えめだった。','{L}、深く一礼して入場する。拍手は、まばらだった。','{L}、入場。会場の何人かが、記事名を検索し始めた。'],o)));
         log.push(sys(P(['{W}が入場すると、{vw}読まれてきた視線が一斉に{L}へ向いた。','{W}は名乗る必要がない。{vw}読まれているので、全員もう知っている。','{L}の記事は{vl}、{W}は{vw}。読まれた回数の差が、そのまま圧になった。'],o)));""")
 
+
+# ---- 22. 記事名は「候補から選ぶ」だけにする。候補はWikipediaの検索候補のうち、収録している記事だけ ----
+rep("const TIX={};      // 記事名 → 番号", """const TIX={};      // 記事名 → 番号
+const TIDX={};     // 記事名だけの索引（data/t/）：候補を収録記事に絞るため
+async function tindex(k){ if(!TIDX[k]) TIDX[k]=fetch('data/t/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
+    return new Set(JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text())); }).catch(()=>{ delete TIDX[k]; return new Set(); }); return TIDX[k]; }
+async function inData(t){ return (await tindex(fnv(t)%NB)).has(t); }
+// 入力に合う候補：Wikipediaの検索候補（読み・転送ページにも強い）から、収録している記事だけを残す
+async function suggest(v,exclude){ const j=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=20&search='+encodeURIComponent(v)).then(r=>r.json());
+  const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]&&!(exclude&&exclude(t))).slice(0,10); }
+const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;""")
+# 自由対戦の入力欄
+rep("""    try{ const r=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=10&search='+encodeURIComponent(v)); const j=await r.json(); if(my!==seq) return;
+      dl.innerHTML=(j[1]||[]).map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });""",
+"""    try{ const list=await suggest(v,t=>t===champTitle()); if(my!==seq) return; OPT=new Set(list);
+      dl.innerHTML=list.map(n=>`<option value="${esc(n)}"></option>`).join('');
+      const note=el.querySelector('.pmsg'); if(note){ if(!list.length) note.textContent='「'+v+'」に合う収録記事が見つかりません'; else if(/見つかりません$/.test(note.textContent)) note.textContent=''; } }catch(_){} },250); });""")
+rep("const inp=el.querySelector('input'), dl=el.querySelector('datalist'); let tm=null, seq=0;",
+    "const inp=el.querySelector('input'), dl=el.querySelector('datalist'); let tm=null, seq=0, OPT=new Set();")
+rep("""  inp.addEventListener('change',async e=>{ const v=e.target.value.trim(); if(!v) return; const note=el.querySelector('.pmsg');""",
+"""  inp.addEventListener('change',async e=>{ const v=e.target.value.trim(); if(!v) return; const note=el.querySelector('.pmsg');
+    if(!OPT.has(v)){ if(note) note.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }""")
+# 王座戦の入力欄
+rep("""    try{ const j=await fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=10&search='+encodeURIComponent(v)).then(r=>r.json()); if(my!==sq) return;
+      dl.innerHTML=(j[1]||[]).map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });""",
+"""    try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list);
+      dl.innerHTML=list.map(n=>`<option value="${esc(n)}"></option>`).join(''); }catch(_){} },250); });""")
+rep("let THRONE=null;", "let THRONE=null, CHOPT=new Set();")
+rep("""  if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }""",
+"""  if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }
+  if(!CHOPT.has(t)){ m.className='msg err'; m.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }""")
+
+# ---- 23. 決め手は短くまとめる：勝者の決め手／裏目に出た技／因縁、を各1行に ----
+rep("""  const lines=dec.map(d=>d.who===-1?`因縁の初撃1.5倍がなければ、${esc(nm(d.alt))}${d.alt===null?'':'の勝ち'}だった`:
+    d.who===d.alt?`${esc(F[d.who][0])}が【${esc(d.move)}】を使わなければ、${esc(F[d.who][0])}の勝ちだった（自滅）`:
+    `${esc(F[d.who][0])}の【${esc(d.move)}】がなければ、${esc(nm(d.alt))}${d.alt===null?'':'の勝ち'}だった`);""",
+"""  const mv=(arr)=>arr.slice(0,3).map(d=>'【'+esc(d.move)+'】').join('')+(arr.length>3?'ほか'+(arr.length-3)+'つ':'');
+  const byWho=i=>dec.filter(d=>d.who===i&&d.who!==d.alt);
+  const lines=[];
+  for(const i of (w===null?[ai,bi]:[w,l])){ const k=byWho(i); if(k.length) lines.push(`<b>${i===w?'決め手':'惜しかった'}</b>：${esc(F[i][0])}の${mv(k)}`); }
+  for(const i of [ai,bi]){ const k=dec.filter(d=>d.who===i&&d.who===d.alt); if(k.length) lines.push(`<b>裏目</b>：${esc(F[i][0])}の${mv(k)}（使わなければ勝っていた）`); }
+  if(dec.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5倍がなければ、結果は違っていた');""")
+rep("""lines.length?`<div><div class="sub">決め手（外して再試合すると結果が変わるもの）</div><ul>${lines.map(x=>`<li>${x}</li>`).join('')}</ul></div>`""",
+    """lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`""")
+rep('.share2{display:flex', '.keys{display:flex;flex-direction:column;gap:2px;font-size:14px}\n.share2{display:flex')
+
+
+rep('能力値だけなら${esc(nm(an.baseW))}が勝つ組み合わせ', '能力値だけなら${an.baseW===null?\'引き分けの\':esc(nm(an.baseW))+\'が勝つ\'}組み合わせ')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
