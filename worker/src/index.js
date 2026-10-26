@@ -57,9 +57,9 @@ async function current(env) {
 async function throne(env, req) {
   const c = await current(env);
   const [recent, best, hist] = await env.DB.batch([
-    env.DB.prepare('SELECT id, reign_id, display, title, name, result, how, at FROM challenges ORDER BY id DESC LIMIT 15'),
-    env.DB.prepare('SELECT id, display, title, holder, started_at, ended_at, defenses FROM reigns ORDER BY defenses DESC, id ASC LIMIT 10'),
-    env.DB.prepare('SELECT id, display, title, holder, started_at, ended_at, defenses, ended_by FROM reigns ORDER BY id DESC LIMIT 10'),
+    env.DB.prepare('SELECT c.id, c.reign_id, c.display, c.title, c.name, c.result, c.how, c.at, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id ORDER BY c.id DESC LIMIT 15'),
+    env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid FROM reigns ORDER BY defenses DESC, id ASC LIMIT 10"),
+    env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, ended_by, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid, (SELECT c.id FROM challenges c WHERE c.reign_id = reigns.id AND c.result = 'win' ORDER BY c.id LIMIT 1) AS lostcid FROM reigns ORDER BY id DESC LIMIT 10"),
   ]);
   const cnt = await env.DB.prepare('SELECT COUNT(*) AS n FROM reigns').first();
   return json(env, req, { champ: c, reignNo: cnt.n, recent: recent.results, best: best.results, history: hist.results });

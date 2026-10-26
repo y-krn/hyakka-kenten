@@ -72,6 +72,7 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 #throne ol{margin:8px 0 0;padding-left:1.4em;font-size:13px;display:flex;flex-direction:column;gap:4px}
 #throne ol .who{color:var(--muted)}
 #throne .r-win{color:var(--ok);font-weight:700}
+#throne a.rp{color:inherit;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
 
 .btn{all:unset;cursor:pointer;font-size:14px;font-weight:700;padding:8px 14px;border:1.5px solid var(--ink);border-radius:4px;text-align:center}
 .btn:hover{background:var(--ink);color:var(--bg)}
@@ -943,16 +944,20 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
   <div class="msg" id="chM">${msg||''}</div>
-  <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li>${esc(x.display)} <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
-  <details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}${x.ended_at?'':'・在位中'}）</span></li>`).join('')}</ol></details>
-  <details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+esc(x.ended_by)+'に敗れる':'在位中'}）</span></li>`).join('')}</ol></details>`;
+  <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
+  <details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li>${x.cid?`<a class="rp" href="?c=${x.cid}" data-c="${x.cid}"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}${x.ended_at?'':'・在位中'}）</span></li>`).join('')}</ol></details>
+  <details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li>${x.cid?`<a class="rp" href="?c=${x.cid}" data-c="${x.cid}"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+(x.lostcid?`<a class="rp" href="?c=${x.lostcid}" data-c="${x.lostcid}">${esc(x.ended_by)}に敗れる</a>`:esc(x.ended_by)+'に敗れる'):'在位中'}）</span></li>`).join('')}</ol></details>`;
   const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;
   const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };
   inp.addEventListener('change',chk);
   inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();
       showSugg(inp,dl,list); }catch(_){} },250); });
-  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }
+  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); };
+  el.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); replayChallenge(+a.dataset.c); }); }
+// 記録された挑戦を、その場で再生する
+async function replayChallenge(id){ try{ const x=await fetch(API+'/api/challenge/'+id).then(r=>r.json()); if(x.error) return;
+  const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return; MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); }catch(_){} }
 // keep=true なら、入力中の記事名・名前・カーソル位置を残したまま描き直す
 function renderKeep(d,msg){ const t=$('#chT'), n=$('#chN'); const prev={t:t?t.value:'',n:n?n.value:'',f:document.activeElement&&document.activeElement.id};
   renderThrone(d,msg); const t2=$('#chT'), n2=$('#chN'); if(t2){ t2.value=prev.t; t2.dispatchEvent(new Event('change')); } if(n2&&prev.n) n2.value=prev.n;

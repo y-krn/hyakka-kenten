@@ -594,6 +594,18 @@ rep('.tick{font-family:var(--f-display);font-size:13px;color:var(--muted);text-a
 @keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.scoreboard.done .tick{animation:none}}""")
 
+
+# ---- 31. 王座戦の一覧（最近の挑戦・最長防衛・歴代王者）から、その試合を再生できるように ----
+rep("<details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li>${esc(x.display)} <span class=\"who\">",
+    "<details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class=\"rp\" href=\"?c=${x.id}\" data-c=\"${x.id}\">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class=\"who\">")
+rep("<details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li><b>${esc(x.display)}</b>",
+    "<details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li>${x.cid?`<a class=\"rp\" href=\"?c=${x.cid}\" data-c=\"${x.cid}\"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`}")
+rep("<details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li><b>${esc(x.display)}</b> 防衛${x.defenses}回 <span class=\"who\">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+esc(x.ended_by)+'に敗れる':'在位中'}）</span></li>`).join('')}",
+    "<details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li>${x.cid?`<a class=\"rp\" href=\"?c=${x.cid}\" data-c=\"${x.cid}\"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class=\"who\">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+(x.lostcid?`<a class=\"rp\" href=\"?c=${x.lostcid}\" data-c=\"${x.lostcid}\">${esc(x.ended_by)}に敗れる</a>`:esc(x.ended_by)+'に敗れる'):'在位中'}）</span></li>`).join('')}")
+rep("  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }",
+    "  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); };\n  el.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); replayChallenge(+a.dataset.c); }); }\n// 記録された挑戦を、その場で再生する\nasync function replayChallenge(id){ try{ const x=await fetch(API+'/api/challenge/'+id).then(r=>r.json()); if(x.error) return;\n  const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return; MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); }catch(_){} }")
+rep('#throne .r-win{color:var(--ok);font-weight:700}', '#throne .r-win{color:var(--ok);font-weight:700}\n#throne a.rp{color:inherit;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
