@@ -122,6 +122,18 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 .sb.A .hpbar i{background:var(--a)} .sb.B .hpbar i{background:var(--b)}
 .sb .hpn{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sb .tick{font-family:var(--f-display);font-size:13px;color:var(--muted);text-align:center}
+.pips{display:flex;gap:4px;height:12px;align-items:center}
+.sb.B .pips{justify-content:flex-end}
+.pips i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);box-sizing:border-box}
+.sb.A .pips i.on{background:var(--a);border-color:var(--a)}
+.sb.B .pips i.on{background:var(--b);border-color:var(--b)}
+.scoreboard.done .tick{background:var(--hl);color:var(--hl-ink);border-radius:4px;padding:2px 8px;font-size:15px;animation:pop .35s ease-out}
+.sb.won .nm::after{content:" 勝ち";color:var(--hl-ink);background:var(--hl);border-radius:3px;padding:0 4px;margin-left:4px;font-size:11px;vertical-align:1px}
+.sb.B.won .nm::after{content:"";padding:0;margin:0}
+.sb.B.won .nm::before{content:"勝ち ";color:var(--hl-ink);background:var(--hl);border-radius:3px;padding:0 4px;margin-right:4px;font-size:11px;vertical-align:1px}
+.sb.lost{opacity:.45}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.scoreboard.done .tick{animation:none}}
 .plan{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
 .plan b{color:var(--ink)}
 .plan span{display:inline-block;margin:0 4px 2px 0;padding:0 7px;border:1px solid var(--line);border-radius:3px;color:var(--ink);background:var(--paper)}
@@ -806,11 +818,11 @@ function startBattle(pair){
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
   (current.mode?$('#throne'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
-  ${ringHead(current.mode)}<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（バーは取られた本数）':''}</div>
+  ${ringHead(current.mode)}<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>
   <div class="scoreboard" id="sb">
-    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span><span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span></div>
+    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span>`}</div>
     <div class="tick" id="tk">0</div>
-    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span><span class="hpbar"><i id="hpB" style="width:100%"></i></span><span class="hpn" id="hpnB">${r.max[1]} / ${r.max[1]}</span></div>
+    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span><span class="hpn" id="hpnB">${r.max[1]} / ${r.max[1]}</span>`}</div>
   </div>
   <div class="plan"><div><b>${esc(F[ai][0])}</b>の技：${pickMoves(ai,bi).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div><div><b>${esc(F[bi][0])}</b>の技：${pickMoves(bi,ai).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div></div>
   <div class="logbar"><h3>実況</h3><div style="display:flex;gap:6px"><button type="button" class="btn small" id="skip">最後まで表示</button></div></div>
@@ -821,7 +833,10 @@ function startBattle(pair){
   <div id="res"></div>`;
   ring.scrollIntoView({behavior:'smooth',block:'start'});
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
-  const setHP=idx=>{ const l=r.log[idx]; if(!l) return; $('#hpA').style.width=(l.hp[0]/r.max[0]*100)+'%'; $('#hpB').style.width=(l.hp[1]/r.max[1]*100)+'%'; $('#hpnA').textContent=l.hp[0]+' / '+r.max[0]; $('#hpnB').textContent=l.hp[1]+' / '+r.max[1]; $('#tk').textContent=l.t; };
+  const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
+    if(an.type==='kurabe'){ const w=[0,0]; for(let k=0;k<=idx;k++){ const x=r.log[k]; if(x&&x.side>=0&&!x.kai) w[x.side]++; }
+      ['A','B'].forEach((s,j)=>{ const ps=$('#pip'+s).children; for(let k=0;k<ps.length;k++) ps[k].classList.toggle('on',k<w[j]); $('#hpn'+s).textContent=w[j]+'本'; }); $('#tk').textContent=l.t; return; }
+    $('#hpA').style.width=(l.hp[0]/r.max[0]*100)+'%'; $('#hpB').style.width=(l.hp[1]/r.max[1]*100)+'%'; $('#hpnA').textContent=l.hp[0]+' / '+r.max[0]; $('#hpnB').textContent=l.hp[1]+' / '+r.max[1]; $('#tk').textContent=l.t; };
   const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   step(); timer=setInterval(step,reduce?350:1000);
@@ -829,6 +844,8 @@ function startBattle(pair){
 }
 function showResult(){
   if(!current||current.shown) return; current.shown=true;
+  { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
+      const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
   rec.battles++; if(upset) rec.upsets++;
   const M=current.mode;

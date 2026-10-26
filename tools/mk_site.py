@@ -562,6 +562,38 @@ rep('.share2{display:flex', """.reads{display:flex;flex-wrap:wrap;align-items:ce
 # ---- 29. アクセス解析（Cloudflare Web Analytics：Cookieを使わない） ----
 rep('</body>', '<!-- Cloudflare Web Analytics --><script type=\'module\' src=\'https://static.cloudflareinsights.com/beacon.min.js\' data-cf-beacon=\'{"token": "372a3169a34e4c9087b188f33b44e521"}\'></script><!-- End Cloudflare Web Analytics -->\n</body>')
 
+
+# ---- 30. 試合の終わりを分かりやすく：比べ合いは取った本数を●で表示／決着したら得点板に「決着」と勝者を出す ----
+rep('<span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span>',
+    '${an.type===\'kurabe\'?`<span class="pips" id="pipA">${\'<i></i>\'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span>`}')
+rep('<span class="hpbar"><i id="hpB" style="width:100%"></i></span><span class="hpn" id="hpnB">${r.max[1]} / ${r.max[1]}</span>',
+    '${an.type===\'kurabe\'?`<span class="pips" id="pipB">${\'<i></i>\'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span><span class="hpn" id="hpnB">${r.max[1]} / ${r.max[1]}</span>`}')
+rep("  const setHP=idx=>{ const l=r.log[idx]; if(!l) return; $('#hpA').style.width=",
+    """  const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
+    if(an.type==='kurabe'){ const w=[0,0]; for(let k=0;k<=idx;k++){ const x=r.log[k]; if(x&&x.side>=0&&!x.kai) w[x.side]++; }
+      ['A','B'].forEach((s,j)=>{ const ps=$('#pip'+s).children; for(let k=0;k<ps.length;k++) ps[k].classList.toggle('on',k<w[j]); $('#hpn'+s).textContent=w[j]+'本'; }); $('#tk').textContent=l.t; return; }
+    $('#hpA').style.width=""")
+rep("${an.type==='kurabe'?'（バーは取られた本数）':''}", "${an.type==='kurabe'?'（●は取った本数）':''}")
+rep("function showResult(){\n  if(!current||current.shown) return; current.shown=true;",
+    """function showResult(){
+  if(!current||current.shown) return; current.shown=true;
+  { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
+      const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }""")
+rep('.tick{font-family:var(--f-display);font-size:13px;color:var(--muted);text-align:center}',
+    """.tick{font-family:var(--f-display);font-size:13px;color:var(--muted);text-align:center}
+.pips{display:flex;gap:4px;height:12px;align-items:center}
+.sb.B .pips{justify-content:flex-end}
+.pips i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);box-sizing:border-box}
+.sb.A .pips i.on{background:var(--a);border-color:var(--a)}
+.sb.B .pips i.on{background:var(--b);border-color:var(--b)}
+.scoreboard.done .tick{background:var(--hl);color:var(--hl-ink);border-radius:4px;padding:2px 8px;font-size:15px;animation:pop .35s ease-out}
+.sb.won .nm::after{content:" 勝ち";color:var(--hl-ink);background:var(--hl);border-radius:3px;padding:0 4px;margin-left:4px;font-size:11px;vertical-align:1px}
+.sb.B.won .nm::after{content:"";padding:0;margin:0}
+.sb.B.won .nm::before{content:"勝ち ";color:var(--hl-ink);background:var(--hl);border-radius:3px;padding:0 4px;margin-right:4px;font-size:11px;vertical-align:1px}
+.sb.lost{opacity:.45}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.scoreboard.done .tick{animation:none}}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
