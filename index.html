@@ -909,6 +909,8 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API='https://hyakka-kenten-api.y-krn.workers.dev';
 let THRONE=null, CHOPT=new Set();
+// ブラウザごとの番号（個人を表すものではない乱数。挑戦回数の上限を、同じ回線の他人と分けて数えるためだけに使う）
+function clientId(){ try{ let c=localStorage.getItem('hk-cid'); if(!/^[a-z0-9]{16,40}$/.test(c||'')){ const a=new Uint8Array(12); crypto.getRandomValues(a); c=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); localStorage.setItem('hk-cid',c); } return c; }catch(_){ return ''; } }
 function battleURL(){ const base=location.origin+location.pathname; if(!current) return base;
   if(current.mode&&current.mode.res&&current.mode.res.id) return base+'?c='+current.mode.res.id;
   return base+'?a='+encodeURIComponent(F[current.ai][1])+'&b='+encodeURIComponent(F[current.bi][1]); }
@@ -974,7 +976,7 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
   if(!CHOPT.has(t)){ m.className='msg err'; m.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }
   try{ localStorage.setItem('hk-name',name); }catch(_){}
   btn.disabled=true; m.className='msg'; m.textContent='「'+t+'」で挑戦しています…';
-  let d; try{ const r=await fetch(API+'/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t,name,reign:THRONE&&THRONE.champ?THRONE.champ.id:0})}); d=await r.json(); }
+  let d; try{ const r=await fetch(API+'/api/challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t,name,reign:THRONE&&THRONE.champ?THRONE.champ.id:0,client:clientId()})}); d=await r.json(); }
   catch(_){ btn.disabled=false; m.className='msg err'; m.textContent='送れませんでした。通信状態を確かめてください。'; return; }
   btn.disabled=false;
   if(d.error&&d.changed){ await loadThrone(null,true); const m2=$('#chM'); m2.className='msg err'; m2.textContent=d.error; return; }

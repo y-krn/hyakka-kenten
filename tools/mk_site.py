@@ -606,6 +606,14 @@ rep("  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); }; }",
     "  $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); };\n  el.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); replayChallenge(+a.dataset.c); }); }\n// 記録された挑戦を、その場で再生する\nasync function replayChallenge(id){ try{ const x=await fetch(API+'/api/challenge/'+id).then(r=>r.json()); if(x.error) return;\n  const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return; MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); }catch(_){} }")
 rep('#throne .r-win{color:var(--ok);font-weight:700}', '#throne .r-win{color:var(--ok);font-weight:700}\n#throne a.rp{color:inherit;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}')
 
+
+# ---- 32. 王座戦の挑戦回数を「ブラウザごと」に数えるため、端末に乱数の番号を持たせて一緒に送る ----
+rep("body:JSON.stringify({title:t,name,reign:THRONE&&THRONE.champ?THRONE.champ.id:0})",
+    "body:JSON.stringify({title:t,name,reign:THRONE&&THRONE.champ?THRONE.champ.id:0,client:clientId()})")
+rep("let THRONE=null, CHOPT=new Set();", """let THRONE=null, CHOPT=new Set();
+// ブラウザごとの番号（個人を表すものではない乱数。挑戦回数の上限を、同じ回線の他人と分けて数えるためだけに使う）
+function clientId(){ try{ let c=localStorage.getItem('hk-cid'); if(!/^[a-z0-9]{16,40}$/.test(c||'')){ const a=new Uint8Array(12); crypto.getRandomValues(a); c=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); localStorage.setItem('hk-cid',c); } return c; }catch(_){ return ''; } }""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

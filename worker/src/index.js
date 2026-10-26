@@ -6,7 +6,8 @@ import * as E from './engine.mjs';
 
 const SEED = '東京タワー';                 // 王者がいないときの初代
 const MAX_NAME = 16;
-const LIMIT_10MIN = 10, LIMIT_DAY = 100;   // 1人あたりの挑戦回数
+const LIMIT_10MIN = 10, LIMIT_DAY = 100;   // ブラウザ1つあたりの挑戦回数
+const IP_10MIN = 60, IP_DAY = 500;         // 同じ回線（IPアドレス）全体の上限。携帯回線などは大勢で共有されるので緩めにする
 // 名前の禁止語（部分一致。表記ゆれを減らすため、比べる前に正規化する）
 const NG = ['死ね', 'しね', '殺す', 'ころす', 'きちがい', 'キチガイ', 'ガイジ', 'がいじ', '障害者', 'ちんこ', 'ちんぽ', 'まんこ', 'おまんこ', 'セックス', 'sex', 'fuck', 'shit', 'nigger', 'nigga', 'faggot', 'rape', 'レイプ', '強姦', '朝鮮人',  'シナ人', '支那', '部落', '在日', 'hitler', 'ヒトラー', 'http', 'www.', '.com', '.jp'];
 
@@ -71,10 +72,20 @@ async function challenge(env, req) {
   if (!title) return json(env, req, { error: '挑戦する記事名を入れてください' }, 400);
   const nm = cleanName(body.name); if (nm.error) return json(env, req, { error: nm.error }, 400);
   const ih = await ipHash(env, req);
-  const lim = await env.DB.prepare("SELECT SUM(CASE WHEN at > ? THEN 1 ELSE 0 END) AS m10, COUNT(*) AS d FROM challenges WHERE iphash = ? AND at > ?")
-    .bind(new Date(Date.now() - 600000).toISOString(), ih, new Date(Date.now() - 86400000).toISOString()).first();
-  if ((lim.m10 || 0) >= LIMIT_10MIN) return json(env, req, { error: '挑戦が続いています。10分ほど待ってから、また挑んでください。' }, 429);
-  if ((lim.d || 0) >= LIMIT_DAY) return json(env, req, { error: '今日の挑戦回数の上限に達しました。また明日どうぞ。' }, 429);
+  // ブラウザごとの番号（ページが端末に保存している乱数）。無い・形が違うときは回線単位の厳しい上限だけで数える
+  const cl = /^[a-z0-9]{16,40}$/.test(String(body.client || '')) ? await ipHash(env, { headers: { get: () => 'client:' + body.client } }) : null;
+  const t10 = new Date(Date.now() - 600000).toISOString(), t24 = new Date(Date.now() - 86400000).toISOString();
+  const cnt = async (col, v) => env.DB.prepare('SELECT SUM(CASE WHEN at > ? THEN 1 ELSE 0 END) AS m10, COUNT(*) AS d FROM challenges WHERE ' + col + ' = ? AND at > ?').bind(t10, v, t24).first();
+  const byIp = await cnt('iphash', ih);
+  if (cl) {
+    const byCl = await cnt('client', cl);
+    if ((byCl.m10 || 0) >= LIMIT_10MIN) return json(env, req, { error: '挑戦が続いています。10分ほど待ってから、また挑んでください。' }, 429);
+    if ((byCl.d || 0) >= LIMIT_DAY) return json(env, req, { error: '今日の挑戦回数の上限に達しました。また明日どうぞ。' }, 429);
+    if ((byIp.m10 || 0) >= IP_10MIN || (byIp.d || 0) >= IP_DAY) return json(env, req, { error: 'この回線からの挑戦が集中しています。しばらく待ってから挑んでください。' }, 429);
+  } else {
+    if ((byIp.m10 || 0) >= LIMIT_10MIN) return json(env, req, { error: '挑戦が続いています。10分ほど待ってから、また挑んでください。' }, 429);
+    if ((byIp.d || 0) >= LIMIT_DAY) return json(env, req, { error: '今日の挑戦回数の上限に達しました。また明日どうぞ。' }, 429);
+  }
 
   await meta(env);
   const c = await current(env);
@@ -95,8 +106,8 @@ async function challenge(env, req) {
   else v = E.verdict(ai, bi);
   result = v.w === B.title ? 'win' : v.w === null ? 'draw' : 'lose';
   const t = now();
-  const ins = await env.DB.prepare('INSERT OR IGNORE INTO challenges (reign_id, title, display, name, result, how, at, iphash) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(c.id, B.title, B.name, nm.name, result, v.how, t, ih).run();
+  const ins = await env.DB.prepare('INSERT OR IGNORE INTO challenges (reign_id, title, display, name, result, how, at, iphash, client) VALUES (?,?,?,?,?,?,?,?,?)')
+    .bind(c.id, B.title, B.name, nm.name, result, v.how, t, ih, cl).run();
   if (!ins.meta.changes) return json(env, req, { error: 'ちょうど同じ挑戦が受け付けられました。少し待ってから見直してください。' }, 409);
   let newReign = null;
   if (result === 'win') {

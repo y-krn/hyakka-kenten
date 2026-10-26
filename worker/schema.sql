@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS challenges (
   how TEXT,
   at TEXT NOT NULL,
   iphash TEXT NOT NULL,
+  client TEXT,                -- ブラウザごとの番号（を、さらにハッシュしたもの）
   UNIQUE(reign_id, title)
 );
 CREATE INDEX IF NOT EXISTS ch_ip ON challenges(iphash, at);
