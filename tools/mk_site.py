@@ -614,6 +614,19 @@ rep("let THRONE=null, CHOPT=new Set();", """let THRONE=null, CHOPT=new Set();
 // ブラウザごとの番号（個人を表すものではない乱数。挑戦回数の上限を、同じ回線の他人と分けて数えるためだけに使う）
 function clientId(){ try{ let c=localStorage.getItem('hk-cid'); if(!/^[a-z0-9]{16,40}$/.test(c||'')){ const a=new Uint8Array(12); crypto.getRandomValues(a); c=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); localStorage.setItem('hk-cid',c); } return c; }catch(_){ return ''; } }""")
 
+
+# ---- 33. 試合の型（比べ合いなど）も左右の並び順に左右されないように：常にQIDの小さい側を左として計算し、表示側に合わせて反転する ----
+rep("function analyze(ai,bi){", """function analyze(ai,bi){ if(lt(ai,bi)) return analyze0(ai,bi);
+  const an=analyze0(bi,ai), r=an.r;   // 並びを入れ替えて計算した結果を、左右反転して返す（勝者・決め手は記事の番号なので、そのまま）
+  return {...an, r:{...r, log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:l.hp?[l.hp[1],l.hp[0]]:l.hp})), hp:[r.hp[1],r.hp[0]], max:[r.max[1],r.max[0]]}}; }
+function analyze0(ai,bi){""")
+
+
+# 過去の記録を再生して、いまの計算と勝者が違うときは、そのことを書き添える（計算の修正前の記録）
+rep('    <div class="reads"><span>記事を読む</span>', """    ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
+      return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
+    <div class="reads"><span>記事を読む</span>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

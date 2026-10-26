@@ -313,7 +313,10 @@ function simC(ai,bi,opt={}){
   const r=simulate(bi,ai,opt);
   return {...r,log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:[l.hp[1],l.hp[0]]})),hp:[r.hp[1],r.hp[0]],max:[r.max[1],r.max[0]]};
 }
-function analyze(ai,bi){
+function analyze(ai,bi){ if(lt(ai,bi)) return analyze0(ai,bi);
+  const an=analyze0(bi,ai), r=an.r;   // 並びを入れ替えて計算した結果を、左右反転して返す（勝者・決め手は記事の番号なので、そのまま）
+  return {...an, r:{...r, log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:l.hp?[l.hp[1],l.hp[0]]:l.hp})), hp:[r.hp[1],r.hp[0]], max:[r.max[1],r.max[0]]}}; }
+function analyze0(ai,bi){
   const r=simC(ai,bi); const base=simC(ai,bi,{noMoves:true,noRiv:true});
   const dec=[];
   for(const i of [ai,bi]) for(const m of [...new Set(r.used[i])]){ const c=simC(ai,bi,{disable:{[i]:m}}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:i,move:m,alt:c.w}); }

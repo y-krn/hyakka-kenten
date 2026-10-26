@@ -555,7 +555,10 @@ function simC(ai,bi,opt={}){
   const r=simulate(bi,ai,opt);
   return {...r,log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:[l.hp[1],l.hp[0]]})),hp:[r.hp[1],r.hp[0]],max:[r.max[1],r.max[0]]};
 }
-function analyze(ai,bi){
+function analyze(ai,bi){ if(lt(ai,bi)) return analyze0(ai,bi);
+  const an=analyze0(bi,ai), r=an.r;   // 並びを入れ替えて計算した結果を、左右反転して返す（勝者・決め手は記事の番号なので、そのまま）
+  return {...an, r:{...r, log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:l.hp?[l.hp[1],l.hp[0]]:l.hp})), hp:[r.hp[1],r.hp[0]], max:[r.max[1],r.max[0]]}}; }
+function analyze0(ai,bi){
   const r=simC(ai,bi); const base=simC(ai,bi,{noMoves:true,noRiv:true});
   const dec=[];
   for(const i of [ai,bi]) for(const m of [...new Set(r.used[i])]){ const c=simC(ai,bi,{disable:{[i]:m}}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:i,move:m,alt:c.w}); }
@@ -877,6 +880,8 @@ function showResult(){
     <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>
     <div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${an.baseW===null?'引き分けの':esc(nm(an.baseW))+'が勝つ'}組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
+    ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
+      return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
