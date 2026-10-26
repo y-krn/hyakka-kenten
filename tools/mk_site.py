@@ -558,6 +558,10 @@ rep('.share2{display:flex', """.reads{display:flex;flex-wrap:wrap;align-items:ce
 .reads a:hover{background:rgba(255,255,255,.12)}
 .share2{display:flex""")
 
+
+# ---- 29. アクセス解析（Cloudflare Web Analytics：Cookieを使わない） ----
+rep('</body>', '<!-- Cloudflare Web Analytics --><script type=\'module\' src=\'https://static.cloudflareinsights.com/beacon.min.js\' data-cf-beacon=\'{"token": "372a3169a34e4c9087b188f33b44e521"}\'></script><!-- End Cloudflare Web Analytics -->\n</body>')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
