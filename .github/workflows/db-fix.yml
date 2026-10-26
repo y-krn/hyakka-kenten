@@ -1,0 +1,29 @@
+# 王座戦の記録を直す：worker/fixes/ に新しく加えた .sql を、本番のデータベースで1回だけ実行する
+name: 王座戦の記録の修正
+on:
+  push:
+    branches: [main]
+    paths: ['worker/fixes/*.sql']
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: sed -i "s/REPLACE_WITH_D1_DATABASE_ID/${{ vars.D1_DATABASE_ID }}/" wrangler.toml
+      - name: 新しく加わった修正ファイルを実行
+        run: |
+          for f in $(git diff --name-only --diff-filter=A ${{ github.event.before }} ${{ github.sha }} -- fixes/ | sed 's#^worker/##'); do
+            echo "== $f"; npx wrangler d1 execute hyakka-kenten --remote --file "$f"
+          done
