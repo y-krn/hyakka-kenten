@@ -56,6 +56,10 @@ curl -X POST https://<APIのURL>/api/admin/hide -H "Authorization: Bearer <ADMIN
 
 記事の本文は使っていません。各記事の内容は、それぞれのWikipediaの記事・Wikidataの項目を確かめてください。数値はWikidataに記録されているもので、実際の総数とは限りません。
 
+## アクセス解析
+
+訪問数などを知るために、Cloudflare Web Analytics を使っています。Cookieは使わず、個人を特定する情報も集めません。
+
 ## お断り
 
 百科拳典は個人が作った非公式のゲームです。Wikipedia・WikidataおよびWikimedia Foundationとは関係がなく、提携や承認も受けていません。WikipediaはWikimedia Foundationの登録商標です。
