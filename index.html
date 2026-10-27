@@ -866,7 +866,7 @@ function showResult(){
   const lastHit=[...r.log].reverse().find(x=>x.side>=0&&x.d>0); const lm=lastHit?(lastHit.s.match(/【(.+?)】/)||[])[1]:null;
   const key=dec.find(d=>d.who===w);
   let title=w===null?'引き分け':`${F[w][0]}の勝ち`;
-  if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; }
+  if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; if(M.replay) title='【記録】'+title; }
   const how=r.how||(r.kind==='KO'?`${r.tick}カウントでKO勝ち`:r.kind==='判定'?'判定勝ち':'相打ち');
   let share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
     `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'能力値では負けていた番狂わせ。':''}`;
@@ -886,7 +886,8 @@ function showResult(){
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${M?`
-      <button type="button" class="btn big" id="thr">${M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
+      ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
+      <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
       <button type="button" class="btn" id="tofree">自由対戦へ</button>`:`
       ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
       <button type="button" class="btn" id="again">別の組み合わせ</button>

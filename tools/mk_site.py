@@ -627,6 +627,12 @@ rep('    <div class="reads"><span>記事を読む</span>', """    ${(()=>{ if(!M
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
     <div class="reads"><span>記事を読む</span>""")
 
+# ---- 34. 過去の王座戦を再生したときは「記録」だと分かるようにし、ボタンはいまの王者への挑戦にする ----
+rep("x.champ.defenses}度目の防衛`; }", "x.champ.defenses}度目の防衛`; if(M.replay) title='【記録】'+title; }")
+rep("""<button type="button" class="btn big" id="thr">${M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>""",
+    """${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
+      <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
