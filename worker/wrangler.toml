@@ -1,10 +1,17 @@
 name = "hyakka-kenten-api"
 main = "src/index.js"
 compatibility_date = "2025-10-01"
+# ゲームの画面・記事データ・画像も、このWorkerから配る（デプロイ時に public/ へ集める）
+#   静的ファイルはWorkerを通さずに配る。Workerを通すのは、画面の入口（共有カードの書き換え）とAPIだけ
+assets = { directory = "./public", binding = "ASSETS", run_worker_first = ["/", "/index.html", "/api/*"] }
+routes = [
+  { pattern = "hyakkakenten.com", custom_domain = true },
+  { pattern = "www.hyakkakenten.com", custom_domain = true },
+]
 
 [vars]
-DATA_BASE = "https://y-krn.github.io/hyakka-kenten/data/"
-ALLOWED_ORIGINS = "https://y-krn.github.io,http://localhost:8765"
+DATA_BASE = "https://hyakkakenten.com/data/"
+ALLOWED_ORIGINS = "https://hyakkakenten.com,https://y-krn.github.io,http://localhost:8765"
 
 [[d1_databases]]
 binding = "DB"

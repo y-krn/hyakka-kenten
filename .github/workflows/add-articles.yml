@@ -13,6 +13,7 @@ on:
 permissions:
   contents: write
   issues: write
+  actions: write
 concurrency:
   group: add-articles
   cancel-in-progress: false
@@ -73,6 +74,7 @@ jobs:
           if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
           git commit -m "記事を追加（$(python3 -c "import json;r=json.load(open('/tmp/w/report.json'));print(sum(1 for v in r.values() if v[0].endswith('追加')))")件）${{ github.event.issue.number && format(' #{0}', github.event.issue.number) || '' }}"
           git pull --rebase -q && git push
+          gh workflow run deploy-api.yml   # bot の push では自動デプロイが動かないので、ここで呼ぶ
       - name: 結果をIssueに書く
         if: github.event_name == 'issues'
         run: |

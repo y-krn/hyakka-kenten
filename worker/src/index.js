@@ -2,6 +2,8 @@
 //   GET  /api/throne            … いまの王者・最近の挑戦・歴代王者・最長防衛
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
+//   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
+//   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
 import * as E from './engine.mjs';
 
 const SEED = '東京タワー';                 // 王者がいないときの初代
@@ -12,14 +14,18 @@ const IP_10MIN = 60, IP_DAY = 500;         // 同じ回線（IPアドレス）�
 const NG = ['死ね', 'しね', '殺す', 'ころす', 'きちがい', 'キチガイ', 'ガイジ', 'がいじ', '障害者', 'ちんこ', 'ちんぽ', 'まんこ', 'おまんこ', 'セックス', 'sex', 'fuck', 'shit', 'nigger', 'nigga', 'faggot', 'rape', 'レイプ', '強姦', '朝鮮人',  'シナ人', '支那', '部落', '在日', 'hitler', 'ヒトラー', 'http', 'www.', '.com', '.jp'];
 
 let META = null, METAAT = 0;
+// 記事データは、同じWorkerが配っている静的ファイルから直接読む（無ければ DATA_BASE のURLから）
+const ABASE = 'https://assets.local/data/';
+const dataBase = env => env.ASSETS ? ABASE : env.DATA_BASE;
+const dfetch = (env, u) => env.ASSETS ? env.ASSETS.fetch(u) : fetch(u);
 async function meta(env) {
   if (META && Date.now() - METAAT < 600000) return META;
   const [m, ex] = await Promise.all([
-    fetch(env.DATA_BASE + 'meta.json?t=' + Date.now()).then(r => r.json()),
-    fetch(env.DATA_BASE + 'exclude.json?t=' + Date.now()).then(r => r.ok ? r.json() : []).catch(() => []),
+    dfetch(env, dataBase(env) + 'meta.json?t=' + Date.now()).then(r => r.json()),
+    dfetch(env, dataBase(env) + 'exclude.json?t=' + Date.now()).then(r => r.ok ? r.json() : []).catch(() => []),
   ]);
   META = m; METAAT = Date.now();
-  E.setup({ base: env.DATA_BASE, nb: m.nb, ver: m.build || m.asof, excl: ex });
+  E.setup({ base: dataBase(env), fetch: u => dfetch(env, u), nb: m.nb, ver: m.build || m.asof, excl: ex });
   return m;
 }
 
@@ -142,10 +148,55 @@ async function hide(env, req) {
   return json(env, req, { ok: true });
 }
 
+// ---------- ゲームの画面：共有カード（OGP）を試合ごとに ----------
+const SITE = 'https://hyakkakenten.com';
+const RESULT_TXT = {
+  win: x => `${x.display}が王者${x.cdisplay}を倒し、新王者に。`,
+  late: x => `${x.display}が${x.cdisplay}に勝利。ただし王座はひと足先に別の記事へ。`,
+  lose: x => `王者${x.cdisplay}が${x.display}を退け、防衛。`,
+  draw: x => `${x.display}と王者${x.cdisplay}は引き分け。王者の防衛。`,
+};
+// 収録されている記事名か（作り話の記事名を共有カードに載せないため）。記事名だけの索引を見る
+function fnv(t) { let h = 0x811c9dc5; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h; }
+async function known(env, t) {
+  if (!t || t.length > 200) return false;
+  const m = await meta(env), r = await dfetch(env, dataBase(env) + 't/' + (fnv(t) % m.nb) + '.json.gz?v=' + (m.build || m.asof));
+  if (!r.ok) return false;
+  const list = JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text());
+  return list.includes(t);
+}
+async function cardFor(env, u) {
+  const q = u.searchParams, clip = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+  const c = q.get('c');
+  if (c && /^\d{1,9}$/.test(c)) {
+    const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
+    if (x) return { title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
+  }
+  const a = q.get('a'), b = q.get('b');
+  if (a && b && a !== b && (await Promise.all([known(env, a), known(env, b)])).every(Boolean)) return { title: `${clip(a, 40)} vs ${clip(b, 40)} ― 百科拳典`, desc: 'Wikipediaの記事どうしが、事実だけで殴り合う。勝ったのはどちらか。', url: SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) };
+  return null;
+}
+async function page(req, env, u) {
+  const res = await env.ASSETS.fetch(new Request(new URL('/', u), req));
+  let card = null; try { card = await cardFor(env, u); } catch (_) {}
+  if (!card || !res.ok) return res;
+  const set = v => ({ element(e) { e.setAttribute('content', v); } });
+  return new HTMLRewriter()
+    .on('title', { element(e) { e.setInnerContent(card.title); } })
+    .on('meta[property="og:title"]', set(card.title))
+    .on('meta[property="og:description"]', set(card.desc))
+    .on('meta[name="description"]', set(card.desc))
+    .on('meta[property="og:url"]', set(card.url))
+    .transform(res);
+}
+
 export default {
   async fetch(req, env) {
     const u = new URL(req.url);
+    if (u.hostname === 'www.hyakkakenten.com') return Response.redirect(SITE + u.pathname + u.search, 301);
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(env, req) });
+    if (env.ASSETS && (u.pathname === '/' || u.pathname === '/index.html') && (req.method === 'GET' || req.method === 'HEAD')) return page(req, env, u);
+    if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req);

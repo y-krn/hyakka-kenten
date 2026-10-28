@@ -2,6 +2,8 @@
 
 Wikipediaの記事が、事実だけで殴り合う。
 
+**遊ぶ：https://hyakkakenten.com/**
+
 日本語版Wikipediaの記事を2つ選ぶと、WikidataとWikipediaに載っている事実（高さ・人口・作品数・言語版の数など）だけで、真面目に戦います。
 
 ## 遊び方
@@ -65,3 +67,10 @@ curl -X POST https://<APIのURL>/api/admin/hide -H "Authorization: Bearer <ADMIN
 百科拳典は個人が作った非公式のゲームです。Wikipedia・WikidataおよびWikimedia Foundationとは関係がなく、提携や承認も受けていません。WikipediaはWikimedia Foundationの登録商標です。
 
 対戦はすべて、記録された事実をもとにした冗談です。記事の対象となっている人物・団体・物事をおとしめる意図はありません。
+
+## 公開のしくみ
+
+ゲームの画面・記事データ・王座戦APIは、すべて1つの Cloudflare Worker（`worker/`）から https://hyakkakenten.com に配っています。`main` に push すると GitHub Actions（サイトとAPIのデプロイ）が自動で反映します。
+
+- 画面は `tools/mk_site.py` で作る：`HK_API=same python3 tools/mk_site.py <元のページ> index.html`（`worker/src/engine.mjs` も一緒に書き出されるので、`worker/src/` にコピーする）
+- 共有URL（`?c=挑戦の番号` / `?a=記事&b=記事`）で開かれたときは、Workerが共有カード（OGP）の文字だけをその試合用に書き換える

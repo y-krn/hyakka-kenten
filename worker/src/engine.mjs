@@ -1,5 +1,5 @@
 /* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */
-let DATA_BASE='data/';
+let DATA_BASE='data/', FETCH=u=>fetch(u);
 
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
@@ -47,7 +47,7 @@ function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" 
     else if(e.key==='Escape'){ ul.hidden=true; } }); }
 const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
-async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch(DATA_BASE+'a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
+async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
     const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
 async function loadTitle(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t];
   const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }
@@ -527,10 +527,10 @@ function pickRec(txt,t){ const key=JSON.stringify(t)+':{'; let i=txt.indexOf(key
   for(let j=i;j<txt.length;j++){ const c=txt.charCodeAt(j); if(inS){ if(c===92){ j++; continue; } if(c===34) inS=false; continue; }
     if(c===34) inS=true; else if(c===123) d++; else if(c===125){ d--; if(!d) return JSON.parse(txt.slice(i,j+1)); } } return null; }
 async function loadOne(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
-  if(!TXT[k]){ const r=await fetch(DATA_BASE+'a/'+k+'.json.gz?v='+VER); if(!r.ok) throw new Error('data '+r.status);
+  if(!TXT[k]){ const r=await FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER); if(!r.ok) throw new Error('data '+r.status);
     TXT[k]=await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); }
   const rec=pickRec(TXT[k],t); return rec?register(rec):-1; }
-function setup(o){ if(o.base) DATA_BASE=o.base; if(o.nb) NB=o.nb; if(o.ver&&o.ver!==VER){ VER=o.ver; for(const k in TXT) delete TXT[k]; } if(o.excl) EXCL=new Set(o.excl); }
+function setup(o){ if(o.base) DATA_BASE=o.base; if(o.fetch) FETCH=o.fetch; if(o.nb) NB=o.nb; if(o.ver&&o.ver!==VER){ VER=o.ver; for(const k in TXT) delete TXT[k]; } if(o.excl) EXCL=new Set(o.excl); }
 function verdict(ai,bi){ const an=analyze(ai,bi); const r=an.r; return {w:r.w===null?null:F[r.w][1], kind:r.kind, how:r.how||(r.kind==='KO'?r.tick+'カウントでKO勝ち':r.kind==='判定'?'判定勝ち':r.kind), type:an.type||null}; }
 function info(i){ const f=F[i]; return {title:f[1], name:f[0], q:f[2], stats:f[3], hold:!!HOLD[i], blocked:BLOCK.has(i)}; }
 export {setup, loadOne, verdict, info};
