@@ -10,7 +10,8 @@ const AUTH = { Authorization: 'Bearer ' + process.env.ADMIN_TOKEN };
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const fnv = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h; };
-const pend = await fetch(SITE + '/api/og/pending', { headers: AUTH }).then(r => r.json());
+const pending = () => fetch(SITE + '/api/og/pending', { headers: AUTH }).then(r => r.json());
+let pend = await pending();
 if (!pend.items) { console.error('一覧を取れませんでした', pend); process.exit(1); }
 if (!pend.items.length) { console.log('作る画像はありません'); process.exit(0); }
 
@@ -25,14 +26,18 @@ async function stats(title) {   // 記事の能力値（HP・攻撃・防御・�
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : { channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
 await page.goto('file://' + path.join(HERE, 'card.html'));
-let done = 0;
-for (const m of pend.items.reverse()) {
+let done = 0, total = 0;
+for (let round = 0; round < 20 && pend.items && pend.items.length; round++, pend = await pending()) {   // 一覧は30件ずつ。なくなるまで繰り返す
+ total += pend.items.length; let ok = 0;
+ for (const m of pend.items.reverse()) {
   m.ch.st = await stats(m.ch.title); m.cp.st = await stats(m.cp.title);
   await page.evaluate(x => { delete document.body.dataset.ready; window.draw(x); }, m);
   await page.waitForSelector('body[data-ready]'); await page.waitForTimeout(150);
   const img = await page.screenshot({ type: 'jpeg', quality: 88 });
   const r = await fetch(SITE + '/api/og/' + m.id, { method: 'PUT', headers: { ...AUTH, 'Content-Type': 'image/jpeg' }, body: img });
-  console.log(m.id, m.ch.name, 'vs', m.cp.name, r.status, img.length + 'B'); if (r.ok) done++;
+  console.log(m.id, m.ch.name, 'vs', m.cp.name, r.status, img.length + 'B'); if (r.ok) { done++; ok++; }
+ }
+ if (!ok) break;   // 1枚も預けられなかったら、同じものを繰り返さない
 }
 await browser.close();
-console.log(`${done}/${pend.items.length} 枚を預けました`);
+console.log(`${done}/${total} 枚を預けました`);
