@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['worker/**', 'index.html', 'data/**', '*.png', '*.ico', 'manifest.webmanifest', '.github/workflows/deploy-api.yml']
+    paths: ['worker/**', 'index.html', 'data/**', '*.png', '*.ico', 'manifest.webmanifest', 'robots.txt', 'sitemap.xml', '.github/workflows/deploy-api.yml']
 concurrency:
   group: deploy
   cancel-in-progress: false
@@ -38,7 +38,7 @@ jobs:
       - name: 配るファイルを public/ に集める
         run: |
           mkdir -p public
-          cp ../index.html ../manifest.webmanifest ../*.png ../favicon.ico public/
+          cp ../index.html ../manifest.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
           cp -r ../data public/data
       - name: デプロイ
         run: npx wrangler deploy
