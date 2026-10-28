@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dela-gothic-one/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zen-kaku-gothic-new/700.css">
+<style>
+html,body{margin:0}
+.c{position:relative;width:1500px;height:500px;overflow:hidden;
+ background:radial-gradient(900px 520px at 62% 50%,#1a3bb8 0%,#0e288c 38%,#071233 82%);color:#f3f1e7;font-family:"Zen Kaku Gothic New",sans-serif}
+.rays{position:absolute;inset:-600px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(242,201,76,.08) 0 3deg,transparent 3deg 15deg);transform:translate(240px,0)}
+.facts{position:absolute;inset:0;font-family:"Dela Gothic One";color:rgba(169,179,214,.09);font-size:26px;line-height:1.9;white-space:nowrap;letter-spacing:.06em;transform:rotate(-8deg);top:-60px;left:-80px;-webkit-mask-image:radial-gradient(520px 230px at 66% 55%,transparent 0,transparent 55%,#000 100%)}
+.main{position:absolute;left:560px;right:60px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px}
+h1{margin:0;font-family:"Dela Gothic One";font-weight:400;font-size:150px;line-height:1;letter-spacing:.06em;
+ background:linear-gradient(180deg,#fff7d1 0%,#ffe58a 40%,#f2c94c 75%,#c8962a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 0 rgba(0,0,0,.4))}
+.yomi{font-size:20px;letter-spacing:.6em;color:#a9b3d6;margin-top:4px;padding-left:.6em}
+.tag{font-size:34px;font-weight:700;letter-spacing:.04em;margin-top:14px}
+.url{position:absolute;right:40px;bottom:28px;font-size:20px;letter-spacing:.12em;color:#f2c94c;opacity:.9}
+.vs{position:absolute;left:600px;top:40px;font-family:"Dela Gothic One";font-size:22px;color:rgba(242,201,76,.0)}
+</style></head><body><div class="c">
+<div class="rays"></div>
+<div class="facts" id="f"></div>
+<div class="main"><h1>百科拳典</h1><div class="yomi">ひゃっかけんてん</div><div class="tag">Wikipediaの記事が、事実だけで殴り合う。</div></div>
+<div class="url">hyakkakenten.com</div>
+</div>
+<script>
+const L=['東京タワー 333m','エッフェル塔 330m','富士山 3,776m','エベレスト 8,848m','太陽 衛星ラッシュ','名前で殴る','年功序列','人海戦術','1年間の閲覧数','記事の文字数','比べ合い','瞬殺','泥仕合','因縁の対決','後継召喚','親分召喚','判定勝ち','KO','王座戦'];
+let s='';for(let r=0;r<14;r++){let line='';for(let k=0;k<9;k++)line+=L[(r*5+k*3)%L.length]+'　vs　';s+='<div style="margin-left:'+(-(r*137)%400)+'px">'+line+'</div>';}
+document.getElementById('f').innerHTML=s;
+</script></body></html>
