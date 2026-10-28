@@ -635,6 +635,30 @@ rep("""<button type="button" class="btn big" id="thr">${M.res.result==='win'?'�
     """${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>""")
 
+# ---- 35. みんなの対戦数：自由対戦の数をブラウザでまとめて数え、ときどきサーバーに送る。フッタに全体の数を出す ----
+rep("rec.battles++; if(upset) rec.upsets++;", "rec.battles++; if(upset) rec.upsets++; if(!current.mode) addPlay();")
+rep("const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ keep?", "const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(d&&d.champ){ keep?")
+rep("const d=await fetch(API+'/api/throne').then(r=>r.json()); if(!d||!d.champ)", "const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(!d||!d.champ)")
+rep("let THRONE=null, CHOPT=new Set();", """let THRONE=null, CHOPT=new Set();
+// みんなの対戦数。自由対戦は1戦ごとに送らず、この端末で数えておいて、数分おきとページを離れるときにまとめて送る
+var ALL=null; const PEND_KEY='hk-plays';
+function pend(){ try{ return Math.max(0,parseInt(localStorage.getItem(PEND_KEY)||'0',10)||0); }catch(_){ return 0; } }
+function setPend(n){ try{ localStorage.setItem(PEND_KEY,String(Math.max(0,n))); }catch(_){} }
+function addPlay(){ setPend(pend()+1); if(ALL){ ALL.plays++; renderRec(); } }
+function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
+function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const body=JSON.stringify({n,client:clientId()}); let ok=false;
+  try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
+    else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
+  if(ok) setPend(pend()-n); }
+setInterval(()=>flushPlays(false),120000);
+addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPlays(true); });
+addEventListener('pagehide',()=>flushPlays(true));""")
+rep("function renderRec(){ $('#record').innerHTML=`<span><b>${rec.battles}</b>戦観戦</span>",
+    "function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class=\"all\">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span></div>`:'';\n  $('#record').innerHTML=A+`<div class=\"mine\"><span class=\"you\">あなた</span><span><b>${rec.battles}</b>戦観戦</span>")
+rep("<span>勝ち抜き最高 <b>${rec.best}</b>連勝</span>`; }", "<span>勝ち抜き最高 <b>${rec.best}</b>連勝</span></div>`; }")
+rep(".record{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}",
+    ".record{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}\n.record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}\n.record .all{font-size:14px;color:var(--ink)}\n.record .all b{font-size:24px}\n.record .you{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 8px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

@@ -187,7 +187,11 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .gloss dd{margin:0;font-family:var(--f-cite);font-size:14px;min-width:0}
 .gloss dd a{font-family:var(--f-body);font-size:12px;color:var(--muted);margin-left:6px}
 @media (max-width:480px){.gloss dl{grid-template-columns:1fr}.gloss dd{margin-bottom:6px}}
-.record{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.record{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
+.record .all{font-size:14px;color:var(--ink)}
+.record .all b{font-size:24px}
+.record .you{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 8px}
 .record b{font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--ink);margin-right:2px}
 .mtype{font-size:13px;color:var(--muted);margin-bottom:6px}.mtype b{color:var(--ink)}
 .report{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -759,7 +763,8 @@ const REC_KEY='wb-record-v1';
 let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
 const saveRec=()=>{ try{ localStorage.setItem(REC_KEY,JSON.stringify(rec)); }catch(_){} };
-function renderRec(){ $('#record').innerHTML=`<span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>勝ち抜き最高 <b>${rec.best}</b>連勝</span>`; }
+function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span></div>`:'';
+  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>勝ち抜き最高 <b>${rec.best}</b>連勝</span></div>`; }
 
 /* ---------- 保留・通報・確認（判定できない記事の扱い） ---------- */
 const HOLD={};            // 事件の疑いがあり、確認するまで対戦させない記事 {index: 理由}
@@ -851,7 +856,7 @@ function showResult(){
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
-  rec.battles++; if(upset) rec.upsets++;
+  rec.battles++; if(upset) rec.upsets++; if(!current.mode) addPlay();
   const M=current.mode;
   if(M) streak={idx:null,n:0};
   else if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};
@@ -915,6 +920,19 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API=(location.hostname.endsWith('github.io')?'https://hyakka-kenten-api.y-krn.workers.dev':location.origin);
 let THRONE=null, CHOPT=new Set();
+// みんなの対戦数。自由対戦は1戦ごとに送らず、この端末で数えておいて、数分おきとページを離れるときにまとめて送る
+var ALL=null; const PEND_KEY='hk-plays';
+function pend(){ try{ return Math.max(0,parseInt(localStorage.getItem(PEND_KEY)||'0',10)||0); }catch(_){ return 0; } }
+function setPend(n){ try{ localStorage.setItem(PEND_KEY,String(Math.max(0,n))); }catch(_){} }
+function addPlay(){ setPend(pend()+1); if(ALL){ ALL.plays++; renderRec(); } }
+function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
+function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const body=JSON.stringify({n,client:clientId()}); let ok=false;
+  try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
+    else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
+  if(ok) setPend(pend()-n); }
+setInterval(()=>flushPlays(false),120000);
+addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPlays(true); });
+addEventListener('pagehide',()=>flushPlays(true));
 // ブラウザごとの番号（個人を表すものではない乱数。挑戦回数の上限を、同じ回線の他人と分けて数えるためだけに使う）
 function clientId(){ try{ let c=localStorage.getItem('hk-cid'); if(!/^[a-z0-9]{16,40}$/.test(c||'')){ const a=new Uint8Array(12); crypto.getRandomValues(a); c=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); localStorage.setItem('hk-cid',c); } return c; }catch(_){ return ''; } }
 function battleURL(){ const base=location.origin+location.pathname; if(!current) return base;
@@ -970,9 +988,9 @@ async function replayChallenge(id){ try{ const x=await fetch(API+'/api/challenge
 function renderKeep(d,msg){ const t=$('#chT'), n=$('#chN'); const prev={t:t?t.value:'',n:n?n.value:'',f:document.activeElement&&document.activeElement.id};
   renderThrone(d,msg); const t2=$('#chT'), n2=$('#chN'); if(t2){ t2.value=prev.t; t2.dispatchEvent(new Event('change')); } if(n2&&prev.n) n2.value=prev.n;
   if(prev.f==='chT'&&t2) t2.focus({preventScroll:true}); else if(prev.f==='chN'&&n2) n2.focus({preventScroll:true}); }
-async function loadThrone(msg,keep){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(d&&d.champ){ keep?renderKeep(d,msg):renderThrone(d,msg); fixChamp(); } }catch(_){} }
+async function loadThrone(msg,keep){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(d&&d.champ){ keep?renderKeep(d,msg):renderThrone(d,msg); fixChamp(); } }catch(_){} }
 // 王者が変わっていたら、王座戦欄を新しくする（30秒ごと・タブに戻ったとき）
-async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); if(!d||!d.champ) return;
+async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(!d||!d.champ) return;
   const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました':($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }

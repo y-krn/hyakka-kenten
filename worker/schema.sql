@@ -25,3 +25,14 @@ CREATE TABLE IF NOT EXISTS challenges (
   UNIQUE(reign_id, title)
 );
 CREATE INDEX IF NOT EXISTS ch_ip ON challenges(iphash, at);
+-- みんなの対戦数（自由対戦はブラウザでまとめて数えて、ときどき送ってもらう）
+CREATE TABLE IF NOT EXISTS stats (k TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS plays (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  n INTEGER NOT NULL,          -- まとめて送られてきた対戦数
+  at TEXT NOT NULL,
+  iphash TEXT NOT NULL,
+  client TEXT
+);
+CREATE INDEX IF NOT EXISTS plays_client ON plays(client, at);
+CREATE INDEX IF NOT EXISTS plays_ip ON plays(iphash, at);

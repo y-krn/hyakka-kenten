@@ -1,6 +1,7 @@
 // 百科拳典 王座戦API（Cloudflare Workers + D1）
 //   GET  /api/throne            … いまの王者・最近の挑戦・歴代王者・最長防衛
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
+//   POST /api/plays             … {n, client} 自由対戦の対戦数（ブラウザでまとめて数えたもの）を足す
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
 //   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
 //   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
@@ -68,8 +69,12 @@ async function throne(env, req) {
     env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid FROM reigns ORDER BY defenses DESC, id ASC LIMIT 10"),
     env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, ended_by, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid, (SELECT c.id FROM challenges c WHERE c.reign_id = reigns.id AND c.result = 'win' ORDER BY c.id LIMIT 1) AS lostcid FROM reigns ORDER BY id DESC LIMIT 10"),
   ]);
-  const cnt = await env.DB.prepare('SELECT COUNT(*) AS n FROM reigns').first();
-  return json(env, req, { champ: c, reignNo: c.id, recent: recent.results, best: best.results, history: hist.results });
+  const [pl, ch] = await env.DB.batch([
+    env.DB.prepare("SELECT n FROM stats WHERE k = 'plays'"),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM challenges'),
+  ]);
+  return json(env, req, { champ: c, reignNo: c.id, recent: recent.results, best: best.results, history: hist.results,
+    count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } });
 }
 
 async function challenge(env, req) {
@@ -140,6 +145,31 @@ async function getChallenge(env, req, id) {
     champ: { title: x.ctitle, display: x.cdisplay, defenses: d.n }, challenger: { title: x.title, display: x.display } });
 }
 
+// 自由対戦の対戦数を足す。誰でも送れるので、1回に送れる数と回数に上限を付けて、極端な水増しだけ防ぐ
+const PLAYS_MAX = 30;                       // 1回に送れる対戦数
+const PLAYS_CL_10MIN = 120, PLAYS_IP_10MIN = 1200;   // 10分あたりに足せる対戦数（ブラウザ1つ／同じ回線全体）
+async function plays(env, req) {
+  let body; try { body = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
+  const n = Math.min(PLAYS_MAX, Math.floor(Number(body.n)));
+  if (!(n >= 1)) return json(env, req, { error: 'bad' }, 400);
+  const ih = await ipHash(env, req);
+  const cl = /^[a-z0-9]{16,40}$/.test(String(body.client || '')) ? await ipHash(env, { headers: { get: () => 'client:' + body.client } }) : null;
+  const t10 = new Date(Date.now() - 600000).toISOString();
+  const [a, b] = await env.DB.batch([
+    cl ? env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS s FROM plays WHERE client = ? AND at > ?').bind(cl, t10)
+       : env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS s FROM plays WHERE iphash = ? AND client IS NULL AND at > ?').bind(ih, t10),   // 番号なしは回線ごとに厳しく
+    env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS s FROM plays WHERE iphash = ? AND at > ?').bind(ih, t10),
+  ]);
+  const room = Math.min((cl ? PLAYS_CL_10MIN : PLAYS_MAX) - a.results[0].s, PLAYS_IP_10MIN - b.results[0].s);
+  const add = Math.min(n, room);
+  if (add <= 0) return json(env, req, { ok: false });
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl),
+    env.DB.prepare("INSERT INTO stats (k, n) VALUES ('plays', ?) ON CONFLICT(k) DO UPDATE SET n = n + excluded.n").bind(add),
+  ]);
+  return json(env, req, { ok: true, added: add });
+}
+
 async function hide(env, req) {
   if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return json(env, req, { error: 'forbidden' }, 403);
   const b = await req.json();
@@ -200,6 +230,7 @@ export default {
     try {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req);
+      if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);
       const m = u.pathname.match(/^\/api\/challenge\/(\d{1,9})$/); if (m && req.method === 'GET') return await getChallenge(env, req, +m[1]);
       return json(env, req, { error: 'not found' }, 404);
