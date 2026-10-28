@@ -1,0 +1,10 @@
+{
+  "name": "hyakka-kenten-og",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fontsource/dela-gothic-one": "^5.2.6",
+    "@fontsource/zen-kaku-gothic-new": "^5.2.6",
+    "playwright-core": "^1.56.0"
+  }
+}

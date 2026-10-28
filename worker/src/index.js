@@ -2,6 +2,9 @@
 //   GET  /api/throne            … いまの王者・最近の挑戦・歴代王者・最長防衛
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
 //   POST /api/plays             … {n, client} 自由対戦の対戦数（ブラウザでまとめて数えたもの）を足す
+//   GET  /og/c/番号.jpg          … 王座戦の試合ごとの共有画像
+//   GET  /api/og/pending        … 画像がまだない挑戦の一覧（管理用。GitHub Actions が使う）
+//   PUT  /api/og/番号            … 作った画像を預ける（管理用）
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
 //   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
 //   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
@@ -77,7 +80,7 @@ async function throne(env, req) {
     count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } });
 }
 
-async function challenge(env, req) {
+async function challenge(env, req, ctx) {
   let body; try { body = await req.json(); } catch (_) { return json(env, req, { error: '送信内容を読めませんでした' }, 400); }
   const title = String(body.title || '').trim().slice(0, 200);
   if (!title) return json(env, req, { error: '挑戦する記事名を入れてください' }, 400);
@@ -132,6 +135,7 @@ async function challenge(env, req) {
   } else {
     await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
   }
+  if (ctx) ctx.waitUntil(askImage(env));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
   return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
 }
@@ -170,6 +174,43 @@ async function plays(env, req) {
   return json(env, req, { ok: true, added: add });
 }
 
+// ---------- 王座戦の共有画像 ----------
+const isAdmin = (env, req) => !!env.ADMIN_TOKEN && req.headers.get('Authorization') === 'Bearer ' + env.ADMIN_TOKEN;
+async function askImage(env) {
+  if (!env.GH_DISPATCH_TOKEN) return;
+  try {
+    await fetch('https://api.github.com/repos/' + (env.GH_REPO || 'y-krn/hyakka-kenten') + '/dispatches', { method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + env.GH_DISPATCH_TOKEN, 'Accept': 'application/vnd.github+json', 'User-Agent': 'hyakka-kenten (https://github.com/y-krn)', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'og' }) });
+  } catch (_) {}
+}
+async function ogPending(env, req) {
+  if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
+  const r = await env.DB.prepare(`SELECT c.id, c.reign_id, c.title, c.display, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay,
+      (SELECT COUNT(*) FROM challenges d WHERE d.reign_id = c.reign_id AND d.id <= c.id AND d.result IN ('lose','draw')) AS defenses
+    FROM challenges c JOIN reigns r ON r.id = c.reign_id LEFT JOIN ogimg o ON o.id = c.id WHERE o.id IS NULL ORDER BY c.id DESC LIMIT 30`).all();
+  return json(env, req, { items: r.results.map(x => ({ id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, defenses: x.defenses,
+    ch: { title: x.title, name: x.display }, cp: { title: x.ctitle, name: x.cdisplay } })) });
+}
+async function ogPut(env, req, id) {
+  if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
+  const b = new Uint8Array(await req.arrayBuffer());
+  if (b.length < 1000 || b.length > 1500000 || b[0] !== 0xff || b[1] !== 0xd8) return json(env, req, { error: 'JPEG（1.5MBまで）を送ってください' }, 400);
+  const ok = await env.DB.prepare('SELECT id FROM challenges WHERE id = ?').bind(id).first();
+  if (!ok) return json(env, req, { error: 'その挑戦の記録はありません' }, 404);
+  await env.DB.prepare('INSERT INTO ogimg (id, img, at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET img = excluded.img, at = excluded.at').bind(id, b, now()).run();
+  return json(env, req, { ok: true, bytes: b.length });
+}
+async function ogGet(req, env, ctx, id) {
+  const cache = caches.default, key = new Request(new URL('/og/c/' + id + '.jpg', SITE).toString());
+  const hit = await cache.match(key); if (hit) return hit;
+  const x = await env.DB.prepare('SELECT img FROM ogimg WHERE id = ?').bind(id).first();
+  if (!x) return Response.redirect(SITE + '/og.png', 302);
+  const res = new Response(new Uint8Array(x.img), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' } });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
+
 async function hide(env, req) {
   if (!env.ADMIN_TOKEN || req.headers.get('Authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return json(env, req, { error: 'forbidden' }, 403);
   const b = await req.json();
@@ -199,8 +240,8 @@ async function cardFor(env, u) {
   const q = u.searchParams, clip = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
   const c = q.get('c');
   if (c && /^\d{1,9}$/.test(c)) {
-    const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
-    if (x) return { title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
+    const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay, (SELECT 1 FROM ogimg o WHERE o.id = c.id) AS img FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
+    if (x) return { image: x.img ? SITE + '/og/c/' + c + '.jpg' : null, title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
   }
   const a = q.get('a'), b = q.get('b');
   if (a && b && a !== b && (await Promise.all([known(env, a), known(env, b)])).every(Boolean)) return { title: `${clip(a, 40)} vs ${clip(b, 40)} ― 百科拳典`, desc: 'Wikipediaの記事どうしが、事実だけで殴り合う。勝ったのはどちらか。', url: SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) };
@@ -217,19 +258,24 @@ async function page(req, env, u) {
     .on('meta[property="og:description"]', set(card.desc))
     .on('meta[name="description"]', set(card.desc))
     .on('meta[property="og:url"]', set(card.url))
+    .on('meta[property="og:image"]', set(card.image || SITE + '/og.png'))
+    .on('meta[name="twitter:card"]', set(card.image ? 'summary_large_image' : 'summary'))
     .transform(res);
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const u = new URL(req.url);
     if (u.hostname === 'www.hyakkakenten.com') return Response.redirect(SITE + u.pathname + u.search, 301);
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(env, req) });
     if (env.ASSETS && (u.pathname === '/' || u.pathname === '/index.html') && (req.method === 'GET' || req.method === 'HEAD')) return page(req, env, u);
+    const og = u.pathname.match(/^\/og\/c\/(\d{1,9})\.jpg$/); if (og && req.method === 'GET') return ogGet(req, env, ctx, +og[1]);
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req);
-      if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req);
+      if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);
+      if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
+      const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);
       const m = u.pathname.match(/^\/api\/challenge\/(\d{1,9})$/); if (m && req.method === 'GET') return await getChallenge(env, req, +m[1]);

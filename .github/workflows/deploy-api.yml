@@ -1,6 +1,6 @@
 # ゲーム（画面・記事データ）と王座戦API を、まとめて Cloudflare Workers にデプロイする（https://hyakkakenten.com）
 # 必要な設定（リポジトリの Settings → Secrets and variables → Actions）
-#   Secrets  : CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ADMIN_TOKEN, IP_SALT
+#   Secrets  : CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ADMIN_TOKEN, IP_SALT（任意: GH_DISPATCH_TOKEN … 挑戦のたびに共有画像を作らせる）
 #   Variables: D1_DATABASE_ID
 name: サイトとAPIのデプロイ
 on:
@@ -46,6 +46,8 @@ jobs:
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           IP_SALT: ${{ secrets.IP_SALT }}
+          GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
         run: |
           echo "$ADMIN_TOKEN" | npx wrangler secret put ADMIN_TOKEN
           echo "$IP_SALT" | npx wrangler secret put IP_SALT
+          if [ -n "$GH_DISPATCH_TOKEN" ]; then echo "$GH_DISPATCH_TOKEN" | npx wrangler secret put GH_DISPATCH_TOKEN; fi

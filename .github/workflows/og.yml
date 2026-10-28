@@ -1,0 +1,38 @@
+# 王座戦の試合ごとの共有画像を作って、サーバーに預ける
+#  - 挑戦が記録されると、サーバー（Worker）がこのワークフローを呼ぶ（GH_DISPATCH_TOKEN を設定したとき）
+#  - 取りこぼしは1時間ごとの定期実行で拾う
+#  必要な設定: Secrets の ADMIN_TOKEN（デプロイで使っているものと同じ）
+name: 共有画像を作る
+on:
+  repository_dispatch:
+    types: [og]
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: og
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/og
+            icon-512.png
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/og/package-lock.json
+      - run: npm ci
+        working-directory: tools/og
+      - name: 画像を作って預ける
+        working-directory: tools/og
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          TZ: Asia/Tokyo
+        run: node render.mjs

@@ -36,3 +36,5 @@ CREATE TABLE IF NOT EXISTS plays (
 );
 CREATE INDEX IF NOT EXISTS plays_client ON plays(client, at);
 CREATE INDEX IF NOT EXISTS plays_ip ON plays(iphash, at);
+-- 王座戦の試合ごとの共有画像（GitHub Actions で作って預けてもらう）
+CREATE TABLE IF NOT EXISTS ogimg (id INTEGER PRIMARY KEY, img BLOB NOT NULL, at TEXT NOT NULL);

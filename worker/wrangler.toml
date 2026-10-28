@@ -3,7 +3,7 @@ main = "src/index.js"
 compatibility_date = "2025-10-01"
 # ゲームの画面・記事データ・画像も、このWorkerから配る（デプロイ時に public/ へ集める）
 #   静的ファイルはWorkerを通さずに配る。Workerを通すのは、画面の入口（共有カードの書き換え）とAPIだけ
-assets = { directory = "./public", binding = "ASSETS", run_worker_first = ["/", "/index.html", "/api/*"] }
+assets = { directory = "./public", binding = "ASSETS", run_worker_first = ["/", "/index.html", "/api/*", "/og/*"] }
 routes = [
   { pattern = "hyakkakenten.com", custom_domain = true },
   { pattern = "www.hyakkakenten.com", custom_domain = true },

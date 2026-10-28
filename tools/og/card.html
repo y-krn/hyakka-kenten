@@ -1,0 +1,56 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="node_modules/@fontsource/dela-gothic-one/index.css">
+<link rel="stylesheet" href="node_modules/@fontsource/zen-kaku-gothic-new/700.css">
+<style>
+html,body{margin:0}
+:root{--gold:#f2c94c;--gold2:#ffe58a;--ink:#f3f1e7;--muted:#a9b3d6;--blue:#3a6cf0;--red:#e0553b}
+.c{position:relative;width:1200px;height:630px;overflow:hidden;color:var(--ink);font-family:"Zen Kaku Gothic New",sans-serif;
+  background:radial-gradient(760px 420px at 50% 46%,#1a3bb8 0%,#0e288c 40%,#071233 85%)}
+.rays{position:absolute;inset:-500px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(242,201,76,.07) 0 3deg,transparent 3deg 15deg);transform:translateY(-40px)}
+.top{position:absolute;left:48px;right:48px;top:34px;display:flex;align-items:center;gap:16px}
+.top img{width:56px;height:56px;border-radius:12px}
+.top .ttl{font-family:"Dela Gothic One";font-size:34px;letter-spacing:.06em;color:var(--gold2)}
+.top .sub{font-size:22px;color:var(--muted);font-weight:700}
+.top .dt{margin-left:auto;font-size:22px;color:var(--muted);font-weight:700}
+.ring{position:absolute;left:48px;right:48px;top:122px;height:300px;display:grid;grid-template-columns:1fr 112px 1fr;align-items:stretch}
+.side{position:relative;border-radius:18px;padding:22px 28px 24px;display:flex;flex-direction:column;background:rgba(7,18,51,.72);border:2px solid rgba(255,255,255,.12)}
+.side.b{border-top:8px solid var(--blue)} .side.r{border-top:8px solid var(--red)}
+.side.lose{opacity:.55;filter:saturate(.6)}
+.role{font-size:20px;font-weight:700;color:var(--muted);letter-spacing:.12em}
+.side.b .role b{color:#8fb0ff} .side.r .role b{color:#ff9b86}
+.nm{font-family:"Dela Gothic One";line-height:1.12;margin:10px 0 0;flex:1;display:flex;align-items:center;word-break:break-all}
+.bars{display:grid;grid-template-columns:52px 1fr 40px;gap:6px 10px;align-items:center;font-size:17px;font-weight:700;color:var(--muted)}
+.bar{height:10px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}.bar i{display:block;height:100%}
+.side.b .bar i{background:var(--blue)} .side.r .bar i{background:var(--red)}
+.bars .v{text-align:right;color:var(--ink)}
+.win{position:absolute;right:18px;top:16px;font-family:"Dela Gothic One";font-size:26px;color:#1b1500;background:var(--gold);padding:4px 14px;border-radius:8px;transform:rotate(4deg);box-shadow:0 4px 0 #a67a1c}
+.vs{display:flex;align-items:center;justify-content:center;font-family:"Dela Gothic One";font-size:64px;color:var(--gold);text-shadow:0 5px 0 rgba(0,0,0,.4)}
+.res{position:absolute;left:48px;right:48px;bottom:40px;height:132px;border-radius:18px;background:linear-gradient(180deg,#ffe58a,#f2c94c 60%,#d9a93a);color:#1b1500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 8px 0 #8a6416,0 18px 40px rgba(0,0,0,.4)}
+.res.def{background:linear-gradient(180deg,#e9ecf7,#c9cfe6);box-shadow:0 8px 0 #6f7795,0 18px 40px rgba(0,0,0,.4)}
+.res .h{font-family:"Dela Gothic One";font-size:46px;line-height:1.1;letter-spacing:.02em;white-space:nowrap}
+.res .s{font-size:24px;font-weight:700;margin-top:6px;opacity:.85}
+.url{position:absolute;right:52px;bottom:8px;font-size:17px;letter-spacing:.12em;color:var(--gold);opacity:.9}
+</style></head><body><div class="c" id="c"></div>
+<script>
+// 百科拳典 王座戦の共有画像（1200×630）。render.mjs が window.draw(試合) を呼んで撮影する
+window.draw=M=>{
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MAX=[130,34,22,30], LAB=['HP','攻撃','防御','速さ'];
+const d=new Date(M.at), dt=`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+const chWin=M.result==='win'||M.result==='late', draw=M.result==='draw', late=M.result==='late';
+const side=(p,cls,role,won)=>`<div class="side ${cls} ${(!draw&&!won)?'lose':''}">${won?'<div class="win">勝ち</div>':''}
+  <div class="role">${role}</div><div class="nm" data-fit>${esc(p.name)}</div>
+  <div class="bars">${(p.st||[]).map((v,k)=>`<span>${LAB[k]}</span><div class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></div><span class="v">${v}</span>`).join('')}</div></div>`;
+const head=late?`${esc(M.ch.name)}の勝ち。ただし王座はひと足先に別の記事へ`:chWin?`王座奪取！ ${esc(M.ch.name)}、第${M.reignNo+1}代王者に`:draw?`引き分け。王者${esc(M.cp.name)}の防衛`:`王者${esc(M.cp.name)}、${M.defenses}度目の防衛`;
+document.getElementById('c').innerHTML=`<div class="rays"></div>
+<div class="top"><img src="../../icon-512.png"><span class="ttl">百科拳典 王座戦</span><span class="sub">第${M.reignNo}代王者への挑戦</span><span class="dt">${dt}</span></div>
+<div class="ring">${side(M.ch,'b','<b>挑戦者</b>',chWin)}<div class="vs">VS</div>${side(M.cp,'r','<b>王者</b>　第'+M.reignNo+'代',!chWin&&!draw)}</div>
+<div class="res ${chWin&&!late?'':'def'}"><div class="h" data-fit-w>${head}</div><div class="s">${esc(M.how)}</div></div>
+<div class="url">hyakkakenten.com</div>`;
+document.fonts.ready.then(()=>{
+  document.querySelectorAll('[data-fit]').forEach(e=>{ let s=78; e.style.fontSize=s+'px'; const box=e.getBoundingClientRect(); const W=e.parentElement.clientWidth-56;
+    while(s>26&&(e.scrollWidth>W||e.scrollHeight>e.clientHeight)){ s-=2; e.style.fontSize=s+'px'; } });
+  document.querySelectorAll('[data-fit-w]').forEach(e=>{ let s=46; const W=e.parentElement.clientWidth-60; while(s>24&&e.scrollWidth>W){ s-=2; e.style.fontSize=s+'px'; } });
+  document.body.dataset.ready=1; }); };
+</script></body></html>
