@@ -322,7 +322,8 @@ rep("""  sel=[await loadTitle('東京タワー'),await loadTitle('エッフェ�
 
 
 # ---- 17. Google Search Console の所有権確認 ----
-rep('<meta name="twitter:card" content="summary">\n', '<meta name="twitter:card" content="summary">\n<meta name="google-site-verification" content="3es2dab9K6v41F4ald_9FXt0Djnh8pU9qI8MPVjV5f0" />\n')
+# （GitHub Pages時代の Search Console 確認用タグは、hyakkakenten.com への引っ越しで不要になったので外した）
+# rep('<meta name="twitter:card" content="summary">\n', '<meta name="twitter:card" content="summary">\n<meta name="google-site-verification" content="3es2dab9K6v41F4ald_9FXt0Djnh8pU9qI8MPVjV5f0" />\n')
 
 
 # ---- 18. 対戦URLで共有：?a=記事&b=記事（自由対戦）／?c=挑戦の番号（王座戦の記録） ----
