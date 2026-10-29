@@ -2,6 +2,7 @@
 #  - 挑戦が記録されると、サーバー（Worker）がこのワークフローを呼ぶ（GH_DISPATCH_TOKEN を設定したとき）
 #  - 取りこぼしは1時間ごとの定期実行で拾う
 #  必要な設定: Secrets の ADMIN_TOKEN（デプロイで使っているものと同じ）
+#  任意: Secrets の NTFY_TOPIC … 王座交代・5回ごとの防衛のとき、Xの投稿画面を開く通知を ntfy アプリに送る
 name: 共有画像を作る
 run-name: ${{ github.event_name == 'repository_dispatch' && format('共有画像 挑戦#{0}（{1}送信）', github.event.client_payload.id, github.event.client_payload.sent) || '共有画像を作る' }}
 on:
@@ -13,6 +14,10 @@ on:
     inputs:
       ask:
         description: 試験：サーバーから画像作りの呼び出しを1回だけ送らせる（画像は作らない）
+        type: boolean
+        default: false
+      notify_test:
+        description: 試験：いちばん新しい王座交代の通知を ntfy に送る（画像は作らない）
         type: boolean
         default: false
 concurrency:
@@ -48,5 +53,7 @@ jobs:
         working-directory: tools/og
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NOTIFY_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.notify_test && '1' || '' }}
           TZ: Asia/Tokyo
         run: node render.mjs
