@@ -668,6 +668,10 @@ const DISC='※Wikipediaの記述をもとにした架空の試合です。実�
 const xlen=s=>[...s].reduce((n,c)=>n+(c.codePointAt(0)<0x1100?1:2),0);
 function fitPost(s){ const room=280-24-xlen(DISC)-1; if(xlen(s)<=room) return s; let o=''; for(const c of s){ if(xlen(o+c)>room-2) break; o+=c; } return o+'…'; }""")
 
+# ---- 37. 「試合の型」は特別な型（比べ合い・瞬殺・泥仕合・因縁の対決）のときだけ出す ----
+rep("""<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>""",
+    """${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

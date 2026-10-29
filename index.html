@@ -827,7 +827,7 @@ function startBattle(pair){
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
   (current.mode?$('#throne'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
-  ${ringHead(current.mode)}<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>
+  ${ringHead(current.mode)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
   <div class="scoreboard" id="sb">
     <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span>`}</div>
     <div class="tick" id="tk">0</div>
