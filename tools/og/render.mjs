@@ -14,12 +14,19 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const fnv = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h; };
 // ---------- ntfy への通知（Xの投稿画面を開くリンク付き） ----------
 const NTFY = process.env.NTFY_TOPIC;
+const DISC = '※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません';
+const xlen = s => [...s].reduce((n, c) => n + (c.codePointAt(0) < 0x1100 ? 1 : 2), 0);   // Xの文字数の数え方
+function withDisc(lines) {   // 断り書きは必ず付ける。長すぎるときは、途中の行から削る
+  lines = [...lines];
+  while (lines.length > 1 && xlen(lines.join('\n') + '\n' + DISC) > 280 - 24) lines.splice(lines.length - 2, 1);
+  return lines.join('\n') + '\n' + DISC;
+}
 function postText(m) {
   const url = SITE + '/?c=' + m.id;
   if (m.result === 'win') return { title: `王座交代：第${m.reignNo + 1}代王者 ${m.ch.name}`, url,
-    text: `【王座交代】${m.ch.name}が王者${m.cp.name}を下し、第${m.reignNo + 1}代王者に。（${m.how}）\n${m.cp.name}は防衛${m.defenses}回で陥落。\n#百科拳典` };
+    text: withDisc([`【王座交代】${m.ch.name}が王者${m.cp.name}を下し、第${m.reignNo + 1}代王者に。（${m.how}）`, `${m.cp.name}は防衛${m.defenses}回で陥落。`, '#百科拳典']) };
   if (m.result === 'lose' && m.defenses > 0 && m.defenses % 5 === 0) return { title: `${m.cp.name}、${m.defenses}度目の防衛`, url,
-    text: `【防衛${m.defenses}回】王者${m.cp.name}、${m.ch.name}を退けて${m.defenses}度目の防衛。（${m.how}）\n#百科拳典` };
+    text: withDisc([`【防衛${m.defenses}回】王者${m.cp.name}、${m.ch.name}を退けて${m.defenses}度目の防衛。（${m.how}）`, '#百科拳典']) };
   return null;
 }
 async function notify(m) {
@@ -32,7 +39,9 @@ async function notify(m) {
   console.log('  通知', r.status);
 }
 
-const pending = () => fetch(SITE + '/api/og/pending', { headers: AUTH }).then(r => r.json());
+const RERENDER = process.env.RERENDER === '1';   // 1 なら、すでに画像がある試合も全部作り直す（通知は送らない）
+let before = 0;
+const pending = () => fetch(SITE + '/api/og/pending' + (RERENDER ? '?all=1&before=' + before : ''), { headers: AUTH }).then(r => r.json()).then(d => { if (d.items && d.items.length) before = Math.min(...d.items.map(x => x.id)); return d; });
 if (process.env.NOTIFY_TEST === '1') {   // 通知の試し送り：いちばん新しい王座交代を使う
   const t = await fetch(SITE + '/api/throne').then(r => r.json());
   const last = t.recent.find(x => x.result === 'win'); if (!last) { console.log('王座交代の記録がありません'); process.exit(0); }
@@ -64,7 +73,7 @@ for (let round = 0; round < 20 && pend.items && pend.items.length; round++, pend
   await page.waitForSelector('body[data-ready]'); await page.waitForTimeout(150);
   const img = await page.screenshot({ type: 'jpeg', quality: 88 });
   const r = await fetch(SITE + '/api/og/' + m.id, { method: 'PUT', headers: { ...AUTH, 'Content-Type': 'image/jpeg' }, body: img });
-  console.log(m.id, m.ch.name, 'vs', m.cp.name, r.status, img.length + 'B'); if (r.ok) { done++; ok++; await notify(m).catch(e => console.log('  通知に失敗', String(e))); }
+  console.log(m.id, m.ch.name, 'vs', m.cp.name, r.status, img.length + 'B'); if (r.ok) { done++; ok++; if (!RERENDER) await notify(m).catch(e => console.log('  通知に失敗', String(e))); }
  }
  if (!ok) break;   // 1枚も預けられなかったら、同じものを繰り返さない
 }

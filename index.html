@@ -876,6 +876,7 @@ function showResult(){
   let share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
     `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'能力値では負けていた番狂わせ。':''}`;
   if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?`第${M.no+1}代王者に。`:x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`:''); }
+  share=fitPost(share)+'\n'+DISC;
   const SHAREURL=battleURL();
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));
   const gloss=[...seen.values()];
@@ -920,6 +921,10 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API=(location.hostname.endsWith('github.io')?'https://hyakka-kenten-api.y-krn.workers.dev':location.origin);
 let THRONE=null, CHOPT=new Set();
+const DISC='※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません';
+// Xの文字数（日本語などは2、英数字は1。URLは23として数える）に収まるよう、本文を切り詰める
+const xlen=s=>[...s].reduce((n,c)=>n+(c.codePointAt(0)<0x1100?1:2),0);
+function fitPost(s){ const room=280-24-xlen(DISC)-1; if(xlen(s)<=room) return s; let o=''; for(const c of s){ if(xlen(o+c)>room-2) break; o+=c; } return o+'…'; }
 // みんなの対戦数。自由対戦は1戦ごとに送らず、この端末で数えておいて、数分おきとページを離れるときにまとめて送る
 var ALL=null; const PEND_KEY='hk-plays';
 function pend(){ try{ return Math.max(0,parseInt(localStorage.getItem(PEND_KEY)||'0',10)||0); }catch(_){ return 0; } }

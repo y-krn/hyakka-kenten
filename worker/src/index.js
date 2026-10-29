@@ -187,9 +187,11 @@ async function askImage(env, info) {
 }
 async function ogPending(env, req) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
+  const q = new URL(req.url).searchParams, all = q.get('all') === '1', before = parseInt(q.get('before'), 10) || 1e9;   // all=1 … 作り直し用に、画像のあるものも含めて古い順にたどる
   const r = await env.DB.prepare(`SELECT c.id, c.reign_id, c.title, c.display, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay,
       (SELECT COUNT(*) FROM challenges d WHERE d.reign_id = c.reign_id AND d.id <= c.id AND d.result IN ('lose','draw')) AS defenses
-    FROM challenges c JOIN reigns r ON r.id = c.reign_id LEFT JOIN ogimg o ON o.id = c.id WHERE o.id IS NULL ORDER BY c.id DESC LIMIT 30`).all();
+    FROM challenges c JOIN reigns r ON r.id = c.reign_id LEFT JOIN ogimg o ON o.id = c.id
+    WHERE ${all ? 'c.id < ?' : 'o.id IS NULL'} ORDER BY c.id DESC LIMIT 30`).bind(...(all ? [before] : [])).all();
   return json(env, req, { items: r.results.map(x => ({ id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, defenses: x.defenses,
     ch: { title: x.title, name: x.display }, cp: { title: x.ctitle, name: x.cdisplay } })) });
 }
@@ -203,7 +205,8 @@ async function ogPut(env, req, id) {
   return json(env, req, { ok: true, bytes: b.length });
 }
 async function ogGet(req, env, ctx, id) {
-  const cache = caches.default, key = new Request(new URL('/og/c/' + id + '.jpg', SITE).toString());
+  const v = new URL(req.url).searchParams.get('v') || '';
+  const cache = caches.default, key = new Request(SITE + '/og/c/' + id + '.jpg?v=' + encodeURIComponent(v));
   const hit = await cache.match(key); if (hit) return hit;
   const x = await env.DB.prepare('SELECT img FROM ogimg WHERE id = ?').bind(id).first();
   if (!x) return Response.redirect(SITE + '/og.png', 302);
@@ -241,8 +244,8 @@ async function cardFor(env, u) {
   const q = u.searchParams, clip = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
   const c = q.get('c');
   if (c && /^\d{1,9}$/.test(c)) {
-    const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay, (SELECT 1 FROM ogimg o WHERE o.id = c.id) AS img FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
-    if (x) return { image: x.img ? SITE + '/og/c/' + c + '.jpg' : null, title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
+    const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay, (SELECT o.at FROM ogimg o WHERE o.id = c.id) AS img FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
+    if (x) return { image: x.img ? SITE + '/og/c/' + c + '.jpg?v=' + Date.parse(x.img) : null, title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
   }
   const a = q.get('a'), b = q.get('b');
   if (a && b && a !== b && (await Promise.all([known(env, a), known(env, b)])).every(Boolean)) return { title: `${clip(a, 40)} vs ${clip(b, 40)} ― 百科拳典`, desc: 'Wikipediaの記事どうしが、事実だけで殴り合う。勝ったのはどちらか。', url: SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) };

@@ -30,6 +30,7 @@ html,body{margin:0}
 .res.def{background:linear-gradient(180deg,#e9ecf7,#c9cfe6);box-shadow:0 8px 0 #6f7795,0 18px 40px rgba(0,0,0,.4)}
 .res .h{font-family:"Dela Gothic One";font-size:46px;line-height:1.1;letter-spacing:.02em;white-space:nowrap}
 .res .s{font-size:24px;font-weight:700;margin-top:6px;opacity:.85}
+.disc{position:absolute;left:52px;bottom:9px;font-size:14px;color:var(--muted);opacity:.85;letter-spacing:.02em}
 .url{position:absolute;right:52px;bottom:8px;font-size:17px;letter-spacing:.12em;color:var(--gold);opacity:.9}
 </style></head><body><div class="c" id="c"></div>
 <script>
@@ -47,6 +48,7 @@ document.getElementById('c').innerHTML=`<div class="rays"></div>
 <div class="top"><img src="../../icon-512.png"><span class="ttl">百科拳典 王座戦</span><span class="sub">第${M.reignNo}代王者への挑戦</span><span class="dt">${dt}</span></div>
 <div class="ring">${side(M.ch,'b','<b>挑戦者</b>',chWin)}<div class="vs">VS</div>${side(M.cp,'r','<b>王者</b>　第'+M.reignNo+'代',!chWin&&!draw)}</div>
 <div class="res ${chWin&&!late?'':'def'}"><div class="h" data-fit-w>${head}</div><div class="s">${esc(M.how)}</div></div>
+<div class="disc">※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません。</div>
 <div class="url">hyakkakenten.com</div>`;
 document.fonts.ready.then(()=>{
   document.querySelectorAll('[data-fit]').forEach(e=>{ let s=78; e.style.fontSize=s+'px'; const box=e.getBoundingClientRect(); const W=e.parentElement.clientWidth-56;

@@ -659,6 +659,15 @@ rep("<span>勝ち抜き最高 <b>${rec.best}</b>連勝</span>`; }", "<span>勝�
 rep(".record{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}",
     ".record{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}\n.record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}\n.record .all{font-size:14px;color:var(--ink)}\n.record .all b{font-size:24px}\n.record .you{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 8px}")
 
+# ---- 36. 共有文に「架空の試合」の断り書きを付ける（実在の国・団体・人物どうしの試合が、切り取られたり自動翻訳されたりしても誤解されないように） ----
+rep("  const SHAREURL=battleURL();", """  share=fitPost(share)+'\\n'+DISC;
+  const SHAREURL=battleURL();""")
+rep("let THRONE=null, CHOPT=new Set();", """let THRONE=null, CHOPT=new Set();
+const DISC='※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません';
+// Xの文字数（日本語などは2、英数字は1。URLは23として数える）に収まるよう、本文を切り詰める
+const xlen=s=>[...s].reduce((n,c)=>n+(c.codePointAt(0)<0x1100?1:2),0);
+function fitPost(s){ const room=280-24-xlen(DISC)-1; if(xlen(s)<=room) return s; let o=''; for(const c of s){ if(xlen(o+c)>room-2) break; o+=c; } return o+'…'; }""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
