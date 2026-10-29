@@ -672,6 +672,28 @@ function fitPost(s){ const room=280-24-xlen(DISC)-1; if(xlen(s)<=room) return s;
 rep("""<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>""",
     """${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}""")
 
+# ---- 38. 王座戦で挑んだあと、試合の始まりまで確実にスクロールする（iPhone対策） ----
+#  ・キーボードを先に閉じる ・王座戦欄の描き直しを試合の前に済ませる ・キーボードが閉じてからスクロール
+#  ・スクロールが途中で止まったら位置を直す（自分で触ったときは直さない）
+#  ・王座戦欄を描き直して高さが変わったら、そのぶん見ている位置を戻す（Safariは自動でやってくれない）
+rep("""  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; startBattle([a,b]); } }catch(_){}
+  await loadThrone(msg); }""", """  try{ const ae=document.activeElement; if(ae&&ae.blur) ae.blur(); }catch(_){}
+  await loadThrone(msg);
+  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); } }catch(_){} }
+// スマホのキーボードが閉じきるのを待つ（最大0.7秒）
+function kbClosed(){ const vv=window.visualViewport; if(!TOUCH||!vv) return Promise.resolve();
+  return new Promise(res=>{ const t0=Date.now(); const ck=()=>{ if(vv.height>innerHeight-80||Date.now()-t0>700) res(); else setTimeout(ck,60); }; ck(); }); }
+// なめらかなスクロールが途中で止まったときに、位置を直す
+function settleTo(el){ let touched=false; const mark=()=>{ touched=true; }; ['touchstart','wheel','keydown'].forEach(e=>addEventListener(e,mark,{once:true,passive:true}));
+  setTimeout(()=>{ ['touchstart','wheel','keydown'].forEach(e=>removeEventListener(e,mark)); if(touched||!el.isConnected||el.hidden) return;
+    const want=parseFloat(getComputedStyle(el).scrollMarginTop)||0; if(Math.abs(el.getBoundingClientRect().top-want)>40) el.scrollIntoView({block:'start'}); },1000); }""")
+rep("  ring.scrollIntoView({behavior:'smooth',block:'start'});", "  ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);")
+rep("async function loadThrone(msg,keep){", """{ const base=renderThrone; renderThrone=function(d,msg){ const el=$('#throne'), ring=$('#ring');
+    const below=ring&&!ring.hidden&&(el.compareDocumentPosition(ring)&Node.DOCUMENT_POSITION_FOLLOWING); const r0=below?ring.getBoundingClientRect().top:null;
+    base(d,msg);
+    if(r0!==null&&r0<innerHeight&&r0>-ring.offsetHeight){ const dy=ring.getBoundingClientRect().top-r0; if(Math.abs(dy)>1) scrollBy(0,dy); } }; }
+async function loadThrone(msg,keep){""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
