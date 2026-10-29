@@ -135,7 +135,7 @@ async function challenge(env, req, ctx) {
   } else {
     await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
   }
-  if (ctx) ctx.waitUntil(askImage(env));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
+  if (ctx) ctx.waitUntil(askImage(env, { id: ins.meta.last_row_id }));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
   return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
 }
@@ -176,13 +176,14 @@ async function plays(env, req) {
 
 // ---------- 王座戦の共有画像 ----------
 const isAdmin = (env, req) => !!env.ADMIN_TOKEN && req.headers.get('Authorization') === 'Bearer ' + env.ADMIN_TOKEN;
-async function askImage(env) {
-  if (!env.GH_DISPATCH_TOKEN) return;
+async function askImage(env, info) {
+  if (!env.GH_DISPATCH_TOKEN) return null;
   try {
-    await fetch('https://api.github.com/repos/' + (env.GH_REPO || 'y-krn/hyakka-kenten') + '/dispatches', { method: 'POST',
+    const r = await fetch('https://api.github.com/repos/' + (env.GH_REPO || 'y-krn/hyakka-kenten') + '/dispatches', { method: 'POST',
       headers: { 'Authorization': 'Bearer ' + env.GH_DISPATCH_TOKEN, 'Accept': 'application/vnd.github+json', 'User-Agent': 'hyakka-kenten (https://github.com/y-krn)', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: 'og' }) });
-  } catch (_) {}
+      body: JSON.stringify({ event_type: 'og', client_payload: { ...(info || {}), sent: now() } }) });
+    return r.status;
+  } catch (e) { return String(e); }
 }
 async function ogPending(env, req) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
@@ -275,6 +276,7 @@ export default {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);
       if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
+      if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);
