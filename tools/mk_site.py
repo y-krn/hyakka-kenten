@@ -562,7 +562,7 @@ rep('.share2{display:flex', """.reads{display:flex;flex-wrap:wrap;align-items:ce
 
 
 # ---- 29. アクセス解析（Cloudflare Web Analytics：Cookieを使わない） ----
-rep('</body>', '<!-- Cloudflare Web Analytics --><script type=\'module\' src=\'https://static.cloudflareinsights.com/beacon.min.js\' data-cf-beacon=\'{"token": "372a3169a34e4c9087b188f33b44e521"}\'></script><!-- End Cloudflare Web Analytics -->\n</body>')
+rep('</body>', '<!-- Cloudflare Web Analytics --><script type=\'module\' src=\'https://static.cloudflareinsights.com/beacon.min.js\' data-cf-beacon=\'{"token": "92aaad9660e1433f8d518c17a8ac2512"}\'></script><!-- End Cloudflare Web Analytics -->\n</body>')
 
 
 # ---- 30. 試合の終わりを分かりやすく：比べ合いは取った本数を●で表示／決着したら得点板に「決着」と勝者を出す ----
