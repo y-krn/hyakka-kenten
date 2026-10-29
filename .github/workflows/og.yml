@@ -10,11 +10,24 @@ on:
   schedule:
     - cron: '23 * * * *'
   workflow_dispatch:
+    inputs:
+      ask:
+        description: 試験：サーバーから画像作りの呼び出しを1回だけ送らせる（画像は作らない）
+        type: boolean
+        default: false
 concurrency:
-  group: og
+  group: og-${{ github.event_name == 'workflow_dispatch' && inputs.ask && 'ask' || 'render' }}
   cancel-in-progress: false
 jobs:
+  ask:
+    if: github.event_name == 'workflow_dispatch' && inputs.ask
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'curl -sS -X POST -H "Authorization: Bearer $ADMIN_TOKEN" https://hyakkakenten.com/api/og/ask'
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
   render:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.ask) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
