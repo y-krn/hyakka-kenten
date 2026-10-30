@@ -216,6 +216,14 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .fb{grid-column:2;display:flex;gap:6px}
 .fb .fa{border-color:var(--a);color:var(--a)} .fb .fbb{border-color:var(--b);color:var(--b)}
 .fnote{font-size:11px;color:var(--muted);padding:4px 16px 18px}
+.flist li.sa{box-shadow:inset 4px 0 0 var(--a);background:var(--a-soft);margin:0 -16px;padding:10px 16px}
+.flist li.sb{box-shadow:inset 4px 0 0 var(--b);background:var(--b-soft);margin:0 -16px;padding:10px 16px}
+.fb .fa.on{background:var(--a);color:#fff} .fb .fbb.on{background:var(--b);color:#fff}
+.fch{font-size:11px;color:var(--muted)}
+.ffoot{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:10px 16px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;box-shadow:0 -6px 16px rgba(0,0,0,.08)}
+.fpair{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-weight:700;font-size:14px}
+.fpair .pa{color:var(--a)} .fpair .pb{color:var(--b)} .fpair .pv{font-family:var(--f-display);font-weight:400;color:var(--muted);font-size:12px}
+.fgo{display:flex;gap:8px;justify-content:flex-end}
 .mtype{font-size:13px;color:var(--muted);margin-bottom:6px}.mtype b{color:var(--ink)}
 .report{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .report button{all:unset;cursor:pointer;text-decoration:underline}
@@ -963,14 +971,28 @@ async function famFill(el){ const box=el.querySelector('.fams'); if(!box) return
 const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'万':v.toLocaleString('ja-JP');
 async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div></div><button type="button" class="btn small" id="famx">閉じる</button></div>
-  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m[0])}" data-s="0">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-s="1">赤へ</button></div></li>`).join('')}</ol>
-  <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。<a href="?fam=${encodeURIComponent(key)}">この一門のURL</a></div>`;
+  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb">${m[0]===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="1" aria-pressed="false">赤へ</button>`}</div></li>`).join('')}</ol>
+  <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。<a href="?fam=${encodeURIComponent(key)}">この一門のURL</a></div>
+  <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
+  // 選んでいる途中の組み合わせ（はじめは、いま自由対戦に入っている2記事）
+  FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
-  dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>famPick(b.dataset.t,+b.dataset.s));
-  if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
-async function famPick(t,s){ const i=await loadTitle(t); if(i<0) return; const dlg=$('#famdlg'); if(dlg.open) dlg.close();
-  if(sel[1-s]===i){ sel[1-s]=sel[s]; renderPick(1-s); }
-  sel[s]=i; renderPick(s); updateFight(); await fixChamp(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }
+  dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n};
+    if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s];   // 反対側に入っている記事なら、入れ替える
+    FP[s]=x; famMark(); });
+  $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
+  famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
+let FP=[null,null];
+function famMark(){ const dlg=$('#famdlg'); if(!dlg) return;
+  dlg.querySelectorAll('.flist li').forEach(li=>{ const b=li.querySelectorAll('[data-t]'); const t=b[0]?b[0].dataset.t:null;
+    const a=!!(t&&FP[0]&&FP[0].t===t), r=!!(t&&FP[1]&&FP[1].t===t); li.classList.toggle('sa',a); li.classList.toggle('sb',r);
+    b.forEach(x=>{ const on=+x.dataset.s===0?a:r; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on); x.textContent=(+x.dataset.s===0?'青':'赤')+(on?'に決定':'へ'); }); });
+  dlg.querySelector('.ffoot .pa').textContent='青：'+(FP[0]?FP[0].n:'未選択'); dlg.querySelector('.ffoot .pb').textContent='赤：'+(FP[1]?FP[1].n:'未選択');
+  $('#famgo').disabled=!(FP[0]&&FP[1]); }
+async function famApply(go){ const dlg=$('#famdlg');
+  for(const s of [0,1]) if(FP[s]){ const i=await loadTitle(FP[s].t); if(i>=0) sel[s]=i; }
+  if(dlg.open) dlg.close(); renderPick(0); renderPick(1); updateFight(); await fixChamp();
+  if(go&&sel[0]!==null&&sel[1]!==null) startBattle(); else $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }
 async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
     let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
