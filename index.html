@@ -213,8 +213,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .flist li.cur{background:color-mix(in srgb,var(--hl) 25%,transparent);margin:0 -16px;padding:10px 16px}
 .fn{font-weight:700;overflow-wrap:anywhere} .fn a{color:inherit;text-decoration-color:var(--line);text-underline-offset:3px}
 .fpv{font-size:11px;color:var(--muted);margin-left:8px;font-weight:400;white-space:nowrap}
-.fst{grid-column:1;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.fb{grid-row:1/3;grid-column:2;display:flex;gap:6px}
+.fb{grid-column:2;display:flex;gap:6px}
 .fb .fa{border-color:var(--a);color:var(--a)} .fb .fbb{border-color:var(--b);color:var(--b)}
 .fnote{font-size:11px;color:var(--muted);padding:4px 16px 18px}
 .mtype{font-size:13px;color:var(--muted);margin-bottom:6px}.mtype b{color:var(--ink)}
@@ -964,7 +963,7 @@ async function famFill(el){ const box=el.querySelector('.fams'); if(!box) return
 const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'万':v.toLocaleString('ja-JP');
 async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div></div><button type="button" class="btn small" id="famx">閉じる</button></div>
-  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[3]?`<span class="fpv">年${jpv(m[3])}回</span>`:''}</div><div class="fst">${m[2].map((v,k)=>STAT[k]+' '+v).join('　')}</div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m[0])}" data-s="0">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-s="1">赤へ</button></div></li>`).join('')}</ol>
+  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m[0])}" data-s="0">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-s="1">赤へ</button></div></li>`).join('')}</ol>
   <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。<a href="?fam=${encodeURIComponent(key)}">この一門のURL</a></div>`;
   $('#famx').onclick=()=>dlg.close();
   dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>famPick(b.dataset.t,+b.dataset.s));

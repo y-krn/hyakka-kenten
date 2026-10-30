@@ -21,11 +21,11 @@ for f in sorted(glob.glob(os.path.join(D, 'a', '*.json.gz'))):
             for name, desc, q in mv[7]:
                 key = KIND[mv[1]] + q
                 g = fam.setdefault(key, {'k': KIND[mv[1]], 'q': q, 'n': name, 'd': desc, 'm': {}})
-                g['m'][t] = [t, r['f'][0], r['f'][3], pv]
+                g['m'][t] = [t, r['f'][0], pv]   # 記事名・表示名・1年間の閲覧数
 out = collections.defaultdict(dict); nf = nm = 0
 for key, g in fam.items():
     if len(g['m']) < 2: continue
-    ms = sorted(g['m'].values(), key=lambda x: -x[3])
+    ms = sorted(g['m'].values(), key=lambda x: -x[2])
     out[fnv(key) % NB][key] = {'k': g['k'], 'q': g['q'], 'n': g['n'], 'd': g['d'], 'c': len(ms), 'm': ms[:CAP]}; nf += 1; nm += len(ms)
 os.makedirs(os.path.join(D, 'fam'), exist_ok=True)
 tot = 0
@@ -36,7 +36,7 @@ for k in range(NB):
 BORING = re.compile(r'(年代|世紀|年|月|日)$|^紀元前|^\d')
 feat = [[key, g['n'], len(g['m'])] for key, g in fam.items()
         if 8 <= len(g['m']) <= 60 and g['k'] in 'pcos' and not BORING.search(g['n'])
-        and sorted((x[3] for x in g['m'].values()), reverse=True)[0] >= 20000]
+        and sorted((x[2] for x in g['m'].values()), reverse=True)[0] >= 20000]
 feat.sort()
 json.dump({'nb': NB, 'featured': feat}, open(os.path.join(D, 'fam', 'featured.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
 print('一門', nf, '延べ記事', nm, '圧縮後', tot // 1024, 'KB', '今日の一門の候補', len(feat))
