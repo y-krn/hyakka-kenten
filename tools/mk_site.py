@@ -694,6 +694,12 @@ rep("async function loadThrone(msg,keep){", """{ const base=renderThrone; render
     if(r0!==null&&r0<innerHeight&&r0>-ring.offsetHeight){ const dy=ring.getBoundingClientRect().top-r0; if(Math.abs(dy)>1) scrollBy(0,dy); } }; }
 async function loadThrone(msg,keep){""")
 
+# ---- 39. 決め手・惜しかった・自滅・因縁は「外すと勝者が変わる」ものだけにする（勝ち方だけが変わるものは数えない。勝者に「自滅」が付く誤りの修正） ----
+rep("const byWho=i=>dec.filter(d=>d.who===i&&d.who!==d.alt);", "const decW=dec.filter(d=>d.alt!==w);   // 外すと勝者が変わるものだけ\n  const byWho=i=>decW.filter(d=>d.who===i&&d.who!==d.alt);")
+rep("const k=dec.filter(d=>d.who===i&&d.who===d.alt);", "const k=decW.filter(d=>d.who===i&&d.who===d.alt);")
+rep("if(dec.some(d=>d.who===-1)) lines.push(", "if(decW.some(d=>d.who===-1)) lines.push(")
+rep("const key=dec.find(d=>d.who===w);", "const key=decW.find(d=>d.who===w);")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
