@@ -1,0 +1,36 @@
+# 試作版：preview ブランチに push すると、本番を変えずに「プレビュー用URL」へ上げる
+#   https://preview-hyakka-kenten-api.y-krn.workers.dev/
+#   本番（hyakkakenten.com）はそのまま。王座戦などのデータは本番と同じものを使う
+name: 試作版のプレビュー
+on:
+  workflow_dispatch:
+  push:
+    branches: [preview]
+concurrency:
+  group: preview
+  cancel-in-progress: true
+jobs:
+  preview:
+    if: ${{ vars.D1_DATABASE_ID != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: D1のIDを設定
+        run: sed -i "s/REPLACE_WITH_D1_DATABASE_ID/${{ vars.D1_DATABASE_ID }}/" wrangler.toml
+      - name: 配るファイルを public/ に集める
+        run: |
+          mkdir -p public
+          cp ../index.html ../manifest.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
+          cp -r ../data public/data
+      - name: プレビュー用URLに上げる（本番には出さない）
+        run: npx wrangler versions upload --preview-alias preview

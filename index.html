@@ -193,6 +193,30 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .record .all b{font-size:24px}
 .record .you{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 8px}
 .record b{font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--ink);margin-right:2px}
+.fams{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fams .fl{font-size:11px;color:var(--muted);margin-right:2px}
+.famchip{font:inherit;font-size:12px;line-height:1.4;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.famchip:hover{border-color:var(--ink)}
+.famchip b{margin-left:6px;font-family:var(--f-display);font-weight:400;color:var(--muted)}
+.famchip.big{font-size:15px;font-weight:700;padding:6px 14px;border-color:var(--ink)}
+#zukan{padding:16px;display:flex;flex-direction:column;gap:12px}
+#zukan .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#zukan .tl{font-size:12px;color:var(--muted)}
+#famdlg{border:none;border-radius:14px;padding:0;width:min(600px,94vw);max-height:84vh;overflow:auto;background:var(--paper);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#famdlg::backdrop{background:rgba(10,14,24,.5)}
+@media (max-width:640px){#famdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:88vh}}
+.fhead{position:sticky;top:0;z-index:1;background:var(--paper);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.fhead h3{margin:2px 0 4px;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.3;overflow-wrap:anywhere}
+.fk{font-size:11px;letter-spacing:.12em;color:var(--muted)} .fd,.fc{font-size:12px;color:var(--muted)}
+.flist{list-style:none;margin:0;padding:4px 16px 8px}
+.flist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.flist li.cur{background:color-mix(in srgb,var(--hl) 25%,transparent);margin:0 -16px;padding:10px 16px}
+.fn{font-weight:700;overflow-wrap:anywhere} .fn a{color:inherit;text-decoration-color:var(--line);text-underline-offset:3px}
+.fpv{font-size:11px;color:var(--muted);margin-left:8px;font-weight:400;white-space:nowrap}
+.fst{grid-column:1;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.fb{grid-row:1/3;grid-column:2;display:flex;gap:6px}
+.fb .fa{border-color:var(--a);color:var(--a)} .fb .fbb{border-color:var(--b);color:var(--b)}
+.fnote{font-size:11px;color:var(--muted);padding:4px 16px 18px}
 .mtype{font-size:13px;color:var(--muted);margin-bottom:6px}.mtype b{color:var(--ink)}
 .report{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .report button{all:unset;cursor:pointer;text-decoration:underline}
@@ -238,7 +262,9 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 
   <section id="ring" class="ring" hidden></section>
 
+  <section id="zukan" class="card" hidden></section>
   <div class="record card" style="padding:10px 14px" id="record"></div>
+  <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
 
   <footer>
     <span>データ：2026年10月19日時点のWikidataと日本語版Wikipedia。災害・事件など扱わない題材は収録していません。件数はWikidataに記録されている数で、実際の総数とは限りません。Wikidataと日本語版の記事で数値が食い違うものは日本語版に合わせています。</span>
@@ -788,6 +814,7 @@ function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
   ${f[5]==='配慮'?`<div><span class="chip">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}
   <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>
+  <div class="fams" data-fi="${i}"></div>
   <details class="mvs"${WIDE()?' open':''}><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
   <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
@@ -795,7 +822,7 @@ function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=se
   el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
   <div class="pmsg" aria-live="polite"></div>
   ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
-  const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, seq=0, OPT=new Set();
+  famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, seq=0, OPT=new Set();
   inp.addEventListener('input',()=>{ updateFight(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==seq) return; OPT=new Set(list);
       showSugg(inp,dl,list);
@@ -922,6 +949,36 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API=(location.hostname.endsWith('github.io')?'https://hyakka-kenten-api.y-krn.workers.dev':location.origin);
 let THRONE=null, CHOPT=new Set();
+/* ---------- 仲間図鑑 ---------- */
+const FAMK={p:n=>n+'の一門',c:n=>n+'が生んだもの',o:n=>n+'から名前をもらったもの',s:n=>/シリーズ$/.test(n)?n:n+'シリーズ',w:n=>n+'が戦った戦い'};
+const FKIND={'親分召喚':'p','生みの親召喚':'c','本家召喚':'o','シリーズ召喚':'s','両陣営召喚':'w'};
+let FAMNB=512, FEAT=[]; const FAMB={};
+function famShard(key){ const k=fnv(key)%FAMNB; if(!FAMB[k]) FAMB[k]=fetch('data/fam/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw 0; return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(()=>{ delete FAMB[k]; return {}; }); return FAMB[k]; }
+async function famGet(key){ return (await famShard(key))[key]||null; }
+function famKeys(i){ const out=[]; for(const m of F[i][7]||[]){ if(m[0]==='SUMMON'&&FKIND[m[1]]&&Array.isArray(m[7])) for(const t of m[7]) if(t[2]) out.push(FKIND[m[1]]+t[2]); } return [...new Set(out)]; }
+const famChip=(g,big)=>`<button type="button" class="famchip${big?' big':''}" data-fam="${g.k}${esc(g.q)}">${esc(FAMK[g.k](g.n))}<b>${g.c}</b></button>`;
+async function famFill(el){ const box=el.querySelector('.fams'); if(!box) return; const i=+box.dataset.fi; const keys=famKeys(i); if(!keys.length) return;
+  const gs=(await Promise.all(keys.map(famGet))).filter(g=>g&&g.c>=2); if(!gs.length||!box.isConnected) return;
+  box.innerHTML='<span class="fl">仲間</span>'+gs.map(g=>famChip(g)).join('');
+  box.querySelectorAll('[data-fam]').forEach(b=>b.onclick=()=>openFam(b.dataset.fam,F[i][1])); }
+const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'万':v.toLocaleString('ja-JP');
+async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div></div><button type="button" class="btn small" id="famx">閉じる</button></div>
+  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[3]?`<span class="fpv">年${jpv(m[3])}回</span>`:''}</div><div class="fst">${m[2].map((v,k)=>STAT[k]+' '+v).join('　')}</div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m[0])}" data-s="0">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-s="1">赤へ</button></div></li>`).join('')}</ol>
+  <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。<a href="?fam=${encodeURIComponent(key)}">この一門のURL</a></div>`;
+  $('#famx').onclick=()=>dlg.close();
+  dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>famPick(b.dataset.t,+b.dataset.s));
+  if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
+async function famPick(t,s){ const i=await loadTitle(t); if(i<0) return; const dlg=$('#famdlg'); if(dlg.open) dlg.close();
+  if(sel[1-s]===i){ sel[1-s]=sel[s]; renderPick(1-s); }
+  sel[s]=i; renderPick(s); updateFight(); await fixChamp(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }
+async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
+  const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
+    let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
+    z.innerHTML=`<div class="sechead"><h2>仲間図鑑</h2><span>Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</span></div><div class="trow"><span class="tl">今日の一門</span><span class="today"></span><button type="button" class="btn small" id="famrnd">ほかの一門</button></div>`;
+    z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); draw(); }; }
+  const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
+  const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\d+$/.test(q)) openFam(q); }
 const DISC='※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません';
 // Xの文字数（日本語などは2、英数字は1。URLは23として数える）に収まるよう、本文を切り詰める
 const xlen=s=>[...s].reduce((n,c)=>n+(c.codePointAt(0)<0x1100?1:2),0);
@@ -1033,7 +1090,7 @@ function settleTo(el){ let touched=false; const mark=()=>{ touched=true; }; ['to
 renderRec();
 (async()=>{ try{
   const [m,ex]=await Promise.all([fetch('data/meta.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()), fetch('data/exclude.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[])]);
-  N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount();
+  N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount(); famToday();
   if(await openShared()) return; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();

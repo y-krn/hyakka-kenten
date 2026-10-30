@@ -700,6 +700,70 @@ rep("const k=dec.filter(d=>d.who===i&&d.who===d.alt);", "const k=decW.filter(d=>
 rep("if(dec.some(d=>d.who===-1)) lines.push(", "if(decW.some(d=>d.who===-1)) lines.push(")
 rep("const key=dec.find(d=>d.who===w);", "const key=decW.find(d=>d.who===w);")
 
+# ---- 40. 仲間図鑑：記事の「召喚」のつながり（所属先・生みの親・名前の由来・シリーズ・戦争の両陣営）を逆にたどった「一門」を見せ、そこから選んで戦わせる ----
+rep("""  <details class="mvs"${WIDE()?' open':''}>""", """  <div class="fams" data-fi="${i}"></div>
+  <details class="mvs"${WIDE()?' open':''}>""")
+rep("const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));",
+    "famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));")
+rep("EXCL=new Set(ex); setCount();", "EXCL=new Set(ex); setCount(); famToday();")
+rep('<div class="record card" style="padding:10px 14px" id="record"></div>', '<section id="zukan" class="card" hidden></section>\n  <div class="record card" style="padding:10px 14px" id="record"></div>\n  <dialog id="famdlg" aria-label="仲間図鑑"></dialog>')
+rep("let THRONE=null, CHOPT=new Set();", """let THRONE=null, CHOPT=new Set();
+/* ---------- 仲間図鑑 ---------- */
+const FAMK={p:n=>n+'の一門',c:n=>n+'が生んだもの',o:n=>n+'から名前をもらったもの',s:n=>/シリーズ$/.test(n)?n:n+'シリーズ',w:n=>n+'が戦った戦い'};
+const FKIND={'親分召喚':'p','生みの親召喚':'c','本家召喚':'o','シリーズ召喚':'s','両陣営召喚':'w'};
+let FAMNB=512, FEAT=[]; const FAMB={};
+function famShard(key){ const k=fnv(key)%FAMNB; if(!FAMB[k]) FAMB[k]=fetch('data/fam/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw 0; return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(()=>{ delete FAMB[k]; return {}; }); return FAMB[k]; }
+async function famGet(key){ return (await famShard(key))[key]||null; }
+function famKeys(i){ const out=[]; for(const m of F[i][7]||[]){ if(m[0]==='SUMMON'&&FKIND[m[1]]&&Array.isArray(m[7])) for(const t of m[7]) if(t[2]) out.push(FKIND[m[1]]+t[2]); } return [...new Set(out)]; }
+const famChip=(g,big)=>`<button type="button" class="famchip${big?' big':''}" data-fam="${g.k}${esc(g.q)}">${esc(FAMK[g.k](g.n))}<b>${g.c}</b></button>`;
+async function famFill(el){ const box=el.querySelector('.fams'); if(!box) return; const i=+box.dataset.fi; const keys=famKeys(i); if(!keys.length) return;
+  const gs=(await Promise.all(keys.map(famGet))).filter(g=>g&&g.c>=2); if(!gs.length||!box.isConnected) return;
+  box.innerHTML='<span class="fl">仲間</span>'+gs.map(g=>famChip(g)).join('');
+  box.querySelectorAll('[data-fam]').forEach(b=>b.onclick=()=>openFam(b.dataset.fam,F[i][1])); }
+const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'万':v.toLocaleString('ja-JP');
+async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div></div><button type="button" class="btn small" id="famx">閉じる</button></div>
+  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[3]?`<span class="fpv">年${jpv(m[3])}回</span>`:''}</div><div class="fst">${m[2].map((v,k)=>STAT[k]+' '+v).join('　')}</div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m[0])}" data-s="0">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-s="1">赤へ</button></div></li>`).join('')}</ol>
+  <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。<a href="?fam=${encodeURIComponent(key)}">この一門のURL</a></div>`;
+  $('#famx').onclick=()=>dlg.close();
+  dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>famPick(b.dataset.t,+b.dataset.s));
+  if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
+async function famPick(t,s){ const i=await loadTitle(t); if(i<0) return; const dlg=$('#famdlg'); if(dlg.open) dlg.close();
+  if(sel[1-s]===i){ sel[1-s]=sel[s]; renderPick(1-s); }
+  sel[s]=i; renderPick(s); updateFight(); await fixChamp(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }
+async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
+  const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
+    let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
+    z.innerHTML=`<div class="sechead"><h2>仲間図鑑</h2><span>Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</span></div><div class="trow"><span class="tl">今日の一門</span><span class="today"></span><button type="button" class="btn small" id="famrnd">ほかの一門</button></div>`;
+    z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); draw(); }; }
+  const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
+  const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\\d+$/.test(q)) openFam(q); }""")
+rep(".mtype{", """.fams{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fams .fl{font-size:11px;color:var(--muted);margin-right:2px}
+.famchip{font:inherit;font-size:12px;line-height:1.4;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.famchip:hover{border-color:var(--ink)}
+.famchip b{margin-left:6px;font-family:var(--f-display);font-weight:400;color:var(--muted)}
+.famchip.big{font-size:15px;font-weight:700;padding:6px 14px;border-color:var(--ink)}
+#zukan{padding:16px;display:flex;flex-direction:column;gap:12px}
+#zukan .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#zukan .tl{font-size:12px;color:var(--muted)}
+#famdlg{border:none;border-radius:14px;padding:0;width:min(600px,94vw);max-height:84vh;overflow:auto;background:var(--paper);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#famdlg::backdrop{background:rgba(10,14,24,.5)}
+@media (max-width:640px){#famdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:88vh}}
+.fhead{position:sticky;top:0;z-index:1;background:var(--paper);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.fhead h3{margin:2px 0 4px;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.3;overflow-wrap:anywhere}
+.fk{font-size:11px;letter-spacing:.12em;color:var(--muted)} .fd,.fc{font-size:12px;color:var(--muted)}
+.flist{list-style:none;margin:0;padding:4px 16px 8px}
+.flist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.flist li.cur{background:color-mix(in srgb,var(--hl) 25%,transparent);margin:0 -16px;padding:10px 16px}
+.fn{font-weight:700;overflow-wrap:anywhere} .fn a{color:inherit;text-decoration-color:var(--line);text-underline-offset:3px}
+.fpv{font-size:11px;color:var(--muted);margin-left:8px;font-weight:400;white-space:nowrap}
+.fst{grid-column:1;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.fb{grid-row:1/3;grid-column:2;display:flex;gap:6px}
+.fb .fa{border-color:var(--a);color:var(--a)} .fb .fbb{border-color:var(--b);color:var(--b)}
+.fnote{font-size:11px;color:var(--muted);padding:4px 16px 18px}
+.mtype{""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
