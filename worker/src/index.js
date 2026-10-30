@@ -254,6 +254,7 @@ async function cardFor(env, u) {
 async function page(req, env, u) {
   const res = await env.ASSETS.fetch(new Request(new URL('/', u), req));
   let card = null; try { card = await cardFor(env, u); } catch (_) {}
+  if (u.hostname !== 'hyakkakenten.com') { const h = new Headers(res.headers); h.set('X-Robots-Tag', 'noindex'); return new Response(res.body, { status: res.status, headers: h }); }   // 試作版は検索に載せない
   if (!card || !res.ok) return res;
   const set = v => ({ element(e) { e.setAttribute('content', v); } });
   return new HTMLRewriter()
@@ -271,6 +272,7 @@ export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
     if (u.hostname === 'www.hyakkakenten.com') return Response.redirect(SITE + u.pathname + u.search, 301);
+    if (u.hostname === 'hyakka-kenten-api.y-krn.workers.dev') return Response.redirect(SITE + u.pathname + u.search, 301);   // 古いアドレス（試作版のプレビュー用URLは別の名前なので対象外）
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(env, req) });
     if (env.ASSETS && (u.pathname === '/' || u.pathname === '/index.html') && (req.method === 'GET' || req.method === 'HEAD')) return page(req, env, u);
     const og = u.pathname.match(/^\/og\/c\/(\d{1,9})\.jpg$/); if (og && req.method === 'GET') return ogGet(req, env, ctx, +og[1]);
