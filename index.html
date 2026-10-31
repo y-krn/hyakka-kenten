@@ -1084,7 +1084,12 @@ async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ 
   const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました':($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
-setInterval(refreshThrone,30000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshThrone(); });
+let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true;
+function thTick(force){ if(document.hidden||(!TH_SEEN&&!force)||Date.now()-TH_ACT>600000) return; if(!force&&Date.now()-TH_LAST<120000) return; TH_LAST=Date.now(); refreshThrone(); }
+['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{ const idle=Date.now()-TH_ACT>600000; TH_ACT=Date.now(); if(idle) thTick(true); },{passive:true}));
+try{ new IntersectionObserver(es=>{ TH_SEEN=es.some(e=>e.isIntersecting); if(TH_SEEN) thTick(); }).observe($('#throne')); }catch(_){}
+setInterval(()=>thTick(),15000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) thTick(); });
 async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').value.trim(), m=$('#chM'), btn=$('#chf button');
   if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }
   if(!CHOPT.has(t)){ m.className='msg err'; m.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }

@@ -65,7 +65,15 @@ async function current(env) {
   return c;
 }
 
-async function throne(env, req) {
+// 王座戦の情報は、データベースで集計した結果を15秒だけ使い回す（大勢が見ても集計は15秒に1回。挑戦があったら捨てる）
+const TH_KEY = 'https://hyakkakenten.com/__cache/throne';
+async function throne(env, req, ctx) {
+  try { const hit = await caches.default.match(TH_KEY); if (hit) return json(env, req, await hit.json()); } catch (_) {}
+  const body = await throneBody(env);
+  try { const put = caches.default.put(TH_KEY, new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } })); if (ctx) ctx.waitUntil(put); } catch (_) {}
+  return json(env, req, body);
+}
+async function throneBody(env) {
   const c = await current(env);
   const [recent, best, hist] = await env.DB.batch([
     env.DB.prepare('SELECT c.id, c.reign_id, c.display, c.title, c.name, c.result, c.how, c.at, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id ORDER BY c.id DESC LIMIT 15'),
@@ -76,8 +84,8 @@ async function throne(env, req) {
     env.DB.prepare("SELECT n FROM stats WHERE k = 'plays'"),
     env.DB.prepare('SELECT COUNT(*) AS n FROM challenges'),
   ]);
-  return json(env, req, { champ: c, reignNo: c.id, recent: recent.results, best: best.results, history: hist.results,
-    count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } });
+  return { champ: c, reignNo: c.id, recent: recent.results, best: best.results, history: hist.results,
+    count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } };
 }
 
 async function challenge(env, req, ctx) {
@@ -135,6 +143,7 @@ async function challenge(env, req, ctx) {
   } else {
     await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
   }
+  try { await caches.default.delete(TH_KEY); } catch (_) {}   // 使い回している王座戦の情報を捨てる（すぐ新しい結果が見えるように）
   if (ctx) ctx.waitUntil(askImage(env, { id: ins.meta.last_row_id }));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
   return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
@@ -278,7 +287,7 @@ export default {
     const og = u.pathname.match(/^\/og\/c\/(\d{1,9})\.jpg$/); if (og && req.method === 'GET') return ogGet(req, env, ctx, +og[1]);
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
-      if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req);
+      if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req, ctx);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);
       if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);

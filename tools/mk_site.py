@@ -792,6 +792,15 @@ rep("""    const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&
 rep("async function rnd(ex){", "let NORAND=new Set();   // ランダムに出さない記事（tools/norand.py で作る）\nasync function rnd(ex){")
 rep("EXCL=new Set(ex); setCount(); famToday();", "EXCL=new Set(ex); setCount(); famToday();\n  try{ NORAND=new Set(await fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[])); }catch(_){}")
 
+# ---- 42. 王座戦欄の更新を控えめにする（無料枠を守る）：2分ごと。欄が画面に見えていない・10分以上操作がない・タブが裏にあるときは確認しない ----
+rep("""setInterval(refreshThrone,30000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshThrone(); });""",
+"""let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true;
+function thTick(force){ if(document.hidden||(!TH_SEEN&&!force)||Date.now()-TH_ACT>600000) return; if(!force&&Date.now()-TH_LAST<120000) return; TH_LAST=Date.now(); refreshThrone(); }
+['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{ const idle=Date.now()-TH_ACT>600000; TH_ACT=Date.now(); if(idle) thTick(true); },{passive:true}));
+try{ new IntersectionObserver(es=>{ TH_SEEN=es.some(e=>e.isIntersecting); if(TH_SEEN) thTick(); }).observe($('#throne')); }catch(_){}
+setInterval(()=>thTick(),15000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) thTick(); });""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
