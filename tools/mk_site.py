@@ -785,6 +785,13 @@ rep(".mtype{", """.fams{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .fgo{display:flex;gap:8px;justify-content:flex-end}
 .mtype{""")
 
+# ---- 41. ランダム（初期表示・ランダムボタン・別の組み合わせ）に、性的な内容の記事を出さない（自分で名前を入れれば選べる） ----
+rep("""    const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)) return i; }""",
+    """    if(NORAND.has(t)) continue;
+    const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) return i; }""")
+rep("async function rnd(ex){", "let NORAND=new Set();   // ランダムに出さない記事（tools/norand.py で作る）\nasync function rnd(ex){")
+rep("EXCL=new Set(ex); setCount(); famToday();", "EXCL=new Set(ex); setCount(); famToday();\n  try{ NORAND=new Set(await fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[])); }catch(_){}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

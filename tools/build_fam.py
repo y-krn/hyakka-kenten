@@ -34,8 +34,11 @@ for k in range(NB):
     z = gzip.compress(b, 9, mtime=0); open(os.path.join(D, 'fam', f'{k}.json.gz'), 'wb').write(z); tot += len(z)
 # 今日の一門の候補：ほどよい大きさで、年や年代の一覧のような機械的なものは除く
 BORING = re.compile(r'(年代|世紀|年|月|日)$|^紀元前|^\d')
-feat = [[key, g['n'], len(g['m'])] for key, g in fam.items()
-        if 8 <= len(g['m']) <= 60 and g['k'] in 'pcos' and not BORING.search(g['n'])
+# ランダムに出さない記事（tools/norand.py）が中心の一門は、今日の一門にも出さない
+NR = set(json.load(open(os.path.join(D, 'norand.json')))) if os.path.exists(os.path.join(D, 'norand.json')) else set()
+def tame(g): ms = list(g['m']); return g['n'] not in NR and sum(t in NR for t in ms) < 0.3 * len(ms)
+feat = [[key, g['n'], len(g['m'])] for key, g in fam.items() if tame(g)
+        and 8 <= len(g['m']) <= 60 and g['k'] in 'pcos' and not BORING.search(g['n'])
         and sorted((x[2] for x in g['m'].values()), reverse=True)[0] >= 20000]
 feat.sort()
 json.dump({'nb': NB, 'featured': feat}, open(os.path.join(D, 'fam', 'featured.json'), 'w'), ensure_ascii=False, separators=(',', ':'))

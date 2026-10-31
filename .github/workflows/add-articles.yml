@@ -66,6 +66,8 @@ jobs:
         run: |
           python3 tools/extract_all.py /tmp/w/arts.jsonl /tmp/w/meta.jsonl < /tmp/w/cirrus.jsonl
           python3 tools/add/add_prep.py /tmp/w .
+          python3 tools/norand.py data      # ランダムに出さない記事の一覧を作り直す
+          python3 tools/build_fam.py data   # 仲間図鑑を作り直す
       - name: 公開する
         run: |
           git config user.name "github-actions[bot]"
