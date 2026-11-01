@@ -722,19 +722,24 @@ async function famFill(el){ const box=el.querySelector('.fams'); if(!box) return
   box.querySelectorAll('[data-fam]').forEach(b=>b.onclick=()=>openFam(b.dataset.fam,F[i][1])); }
 const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'万':v.toLocaleString('ja-JP');
 async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div></div><button type="button" class="btn small" id="famx">閉じる</button></div>
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div>
+  <div class="fsh"><a class="btn small" id="famtw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(famText(g))}&url=${encodeURIComponent(famURL(key))}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="famshare">共有</button>':'<button type="button" class="btn small" id="famcopy">URLをコピー</button>'}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb">${m[0]===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="1" aria-pressed="false">赤へ</button>`}</div></li>`).join('')}</ol>
-  <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。<a href="?fam=${encodeURIComponent(key)}">この一門のURL</a></div>
+  <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   // 選んでいる途中の組み合わせ（はじめは、いま自由対戦に入っている2記事）
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
+  if($('#famshare')) $('#famshare').onclick=()=>{ navigator.share({title:'百科拳典 仲間図鑑',text:famText(g),url:famURL(key)}).catch(()=>{}); };
+  if($('#famcopy')) $('#famcopy').onclick=async e=>{ try{ await navigator.clipboard.writeText(famURL(key)); e.target.textContent='コピーしました'; }catch(_){ e.target.textContent=famURL(key); } };
   dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n};
     if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s];   // 反対側に入っている記事なら、入れ替える
     FP[s]=x; famMark(); });
   $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
 let FP=[null,null];
+const famURL=key=>location.origin+'/?fam='+encodeURIComponent(key);
+function famText(g){ const top=g.m.slice(0,3).map(m=>m[1]); return `【百科拳典 仲間図鑑】${FAMK[g.k](g.n)}は${g.c}記事。${top.join('、')}${g.c>top.length?'…':''}\nWikipediaのつながりから見つけた仲間たち`; }
 function famMark(){ const dlg=$('#famdlg'); if(!dlg) return;
   dlg.querySelectorAll('.flist li').forEach(li=>{ const b=li.querySelectorAll('[data-t]'); const t=b[0]?b[0].dataset.t:null;
     const a=!!(t&&FP[0]&&FP[0].t===t), r=!!(t&&FP[1]&&FP[1].t===t); li.classList.toggle('sa',a); li.classList.toggle('sb',r);
@@ -775,6 +780,7 @@ rep(".mtype{", """.fams{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .fb{grid-column:2;display:flex;gap:6px}
 .fb .fa{border-color:var(--a);color:var(--a)} .fb .fbb{border-color:var(--b);color:var(--b)}
 .fnote{font-size:11px;color:var(--muted);padding:4px 16px 18px}
+.fsh{display:flex;gap:6px;margin-top:8px}
 .flist li.sa{box-shadow:inset 4px 0 0 var(--a);background:var(--a-soft);margin:0 -16px;padding:10px 16px}
 .flist li.sb{box-shadow:inset 4px 0 0 var(--b);background:var(--b-soft);margin:0 -16px;padding:10px 16px}
 .fb .fa.on{background:var(--a);color:#fff} .fb .fbb.on{background:var(--b);color:#fff}

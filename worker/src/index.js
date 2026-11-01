@@ -249,12 +249,28 @@ async function known(env, t) {
   const list = JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text());
   return list.includes(t);
 }
+// 仲間図鑑の一門（data/fam/ を読む）
+const FAMK = { p: n => n + 'の一門', c: n => n + 'が生んだもの', o: n => n + 'から名前をもらったもの', s: n => /シリーズ$/.test(n) ? n : n + 'シリーズ', w: n => n + 'が戦った戦い' };
+let FAMNB = 0;
+async function famGet(env, key) {
+  if (!FAMNB) { const r = await dfetch(env, dataBase(env) + 'fam/featured.json'); FAMNB = r.ok ? ((await r.json()).nb || 512) : 512; }
+  const m = await meta(env), r = await dfetch(env, dataBase(env) + 'fam/' + (fnv(key) % FAMNB) + '.json.gz?v=' + (m.build || m.asof));
+  if (!r.ok) return null;
+  return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text())[key] || null;
+}
 async function cardFor(env, u) {
   const q = u.searchParams, clip = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
   const c = q.get('c');
   if (c && /^\d{1,9}$/.test(c)) {
     const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay, (SELECT o.at FROM ogimg o WHERE o.id = c.id) AS img FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
     if (x) return { image: x.img ? SITE + '/og/c/' + c + '.jpg?v=' + Date.parse(x.img) : null, title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
+  }
+  const fk = q.get('fam');
+  if (fk && /^[pcosw]Q\d{1,12}$/.test(fk)) {   // 仲間図鑑の一門
+    const g = await famGet(env, fk);
+    if (g) { const top = g.m.slice(0, 5).map(m => m[1]);
+      return { title: `${FAMK[g.k](g.n)} ${g.c}記事 ― 百科拳典 仲間図鑑`, url: SITE + '/?fam=' + fk,
+        desc: top.join('、') + (g.c > top.length ? `…ほか${g.c - top.length}記事。` : '。') + 'Wikipediaのつながりから集めた仲間たち。' }; }
   }
   const a = q.get('a'), b = q.get('b');
   if (a && b && a !== b && (await Promise.all([known(env, a), known(env, b)])).every(Boolean)) return { title: `${clip(a, 40)} vs ${clip(b, 40)} ― 百科拳典`, desc: 'Wikipediaの記事どうしが、事実だけで殴り合う。勝ったのはどちらか。', url: SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) };
