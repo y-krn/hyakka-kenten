@@ -1108,7 +1108,9 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
   catch(_){ btn.disabled=false; m.className='msg err'; m.textContent='送れませんでした。通信状態を確かめてください。'; return; }
   btn.disabled=false;
   if(d.error&&d.changed){ await loadThrone(null,true); const m2=$('#chM'); m2.className='msg err'; m2.textContent=d.error; return; }
-  if(d.error){ m.className='msg err'; m.textContent=d.error; return; }
+  if(d.error){ m.className='msg err'; m.textContent=d.error;
+    if(d.known&&d.known.id){ const a=document.createElement('a'); a.href='?c='+d.known.id; a.textContent=' その試合を見る'; a.className='rp'; a.onclick=e=>{ e.preventDefault(); replayChallenge(d.known.id); }; m.appendChild(a); }
+    return; }
   const msg=d.result==='win'?`<span class="msg win">${esc(d.challenger.display)}が${esc(d.champ.display)}を倒し、新王者になりました！（${esc(d.how||'')}）</span>`:
     d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が王者を倒していました。新しい王者に挑み直してください。`:
     d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;

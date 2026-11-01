@@ -119,8 +119,14 @@ async function challenge(env, req, ctx) {
   const B = E.info(bi);
   if (B.blocked) return json(env, req, { error: '「' + B.name + '」は確認中のため挑戦できません' }, 400);
   if (B.title === c.title) return json(env, req, { error: 'それはいまの王者です' }, 400);
-  const tried = await env.DB.prepare('SELECT result, how FROM challenges WHERE reign_id = ? AND title = ?').bind(c.id, B.title).first();
-  if (tried) return json(env, req, { error: '「' + B.name + '」はすでにこの王者に挑んで' + (tried.result === 'draw' ? '引き分けました' : '敗れています') + '。結果は何度やっても同じです。別の記事で挑んでください。', known: tried }, 409);
+  // 同じ組み合わせの王座戦は一度きり（どちらが王者だったかは問わない）。勝敗は記事のデータで決まり、何度やっても同じなので、
+  // 三すくみの記事を順に出して王座を回し続けることもできなくなる
+  const met = await env.DB.prepare(`SELECT c.id, c.result, c.title, c.display, r.title AS ctitle, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id
+      WHERE (c.title = ? AND r.title = ?) OR (c.title = ? AND r.title = ?) ORDER BY c.id DESC LIMIT 1`).bind(B.title, c.title, c.title, B.title).first();
+  if (met) {
+    const w = met.result === 'draw' ? null : (met.result === 'win' || met.result === 'late') ? met.display : met.cdisplay;
+    return json(env, req, { error: '「' + B.name + '」と「' + c.display + '」は、すでに王座戦で戦っています（' + (w ? w + 'の勝ち' : '引き分け') + '）。結果は何度やっても同じなので、別の記事で挑んでください。', known: { id: met.id, result: met.result } }, 409);
+  }
 
   const ai = await E.loadOne(c.title);
   let v, result;

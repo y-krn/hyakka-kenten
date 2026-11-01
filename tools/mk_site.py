@@ -831,6 +831,10 @@ rep("""  await loadThrone();
 """  const [,ia,ib]=await Promise.all([loadThrone(), loadTitle(ta).catch(()=>-1), loadTitle(tb).catch(()=>-1)]);
   const ids=[ia,ib]; const why=[];""")
 
+# ---- 44. 同じ組み合わせの王座戦は一度きり：断られたときは、その試合の再生リンクを添える ----
+rep("  if(d.error){ m.className='msg err'; m.textContent=d.error; return; }",
+    "  if(d.error){ m.className='msg err'; m.textContent=d.error;\n    if(d.known&&d.known.id){ const a=document.createElement('a'); a.href='?c='+d.known.id; a.textContent=' その試合を見る'; a.className='rp'; a.onclick=e=>{ e.preventDefault(); replayChallenge(d.known.id); }; m.appendChild(a); }\n    return; }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
