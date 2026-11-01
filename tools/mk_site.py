@@ -171,7 +171,7 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   el.innerHTML=`<div class="crown">王座戦 ／ 第${d.reignNo}代王者</div>
   <div class="champ">${esc(c.display)}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="meta">防衛 <b>${c.defenses}</b>回 ／ 王座を取った人：<b>${esc(c.holder)}</b> ／ ${esc(dt(c.started_at))}から在位</div>
-  <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、負けた記事での再挑戦はできません。</div>
+  <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、一度王座戦で戦った組み合わせは、もう戦えません。</div>
   <form id="chf"><input id="chT" list="chL" placeholder="挑戦する記事名" autocomplete="off" aria-label="挑戦する記事名"><datalist id="chL"></datalist>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn">挑戦する</button></form>
   <div class="msg" id="chM">${msg||''}</div>
