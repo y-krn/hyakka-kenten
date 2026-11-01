@@ -807,6 +807,30 @@ try{ new IntersectionObserver(es=>{ TH_SEEN=es.some(e=>e.isIntersecting); if(TH_
 setInterval(()=>thTick(),15000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) thTick(); });""")
 
+# ---- 43. 表示を速くする：フォントの読み込みで画面を止めない・記事データをまとめて同時に読む・試合の再生を先に始める ----
+rep("""<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600&display=swap">""",
+    """<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600&display=swap"></noscript>""")
+rep("""  try{ NORAND=new Set(await fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[])); }catch(_){}
+  if(await openShared()) return; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]);""",
+"""  const nrP=fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).then(a=>{ NORAND=new Set(a); }).catch(()=>{});
+  if(await openShared()) return;
+  const [x,y]=await Promise.all([rnd([]),rnd([])]); await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す
+  sel[0]=NORAND.has(F[x][1])?await rnd([y]):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]]):y;""")
+rep("""  if(q.get('c')&&API){ try{ await loadThrone(); const x=await fetch(API+'/api/challenge/'+encodeURIComponent(q.get('c'))).then(r=>r.json()); if(x.error) return false;
+      const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return false;
+      sel[0]=await rnd([a,b]); sel[1]=await rnd([a,b,sel[0]]); renderPick(0); renderPick(1); updateFight();
+      MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); return true; }catch(_){ return false; } }""",
+"""  if(q.get('c')&&API){ try{ const [,x]=await Promise.all([loadThrone(), fetch(API+'/api/challenge/'+encodeURIComponent(q.get('c'))).then(r=>r.json())]); if(x.error) return false;
+      const [a,b]=await Promise.all([loadTitle(x.challenger.title), loadTitle(x.champ.title)]); if(a<0||b<0) return false;
+      MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]);   // 再生を先に始めて、自由対戦の欄はあとから埋める
+      const [c,d]=await Promise.all([rnd([a,b]),rnd([a,b])]); sel[0]=c; sel[1]=d===c?await rnd([a,b,c]):d; renderPick(0); renderPick(1); updateFight(); return true; }catch(_){ return false; } }""")
+rep("""  await loadThrone();
+  const ids=[await loadTitle(ta).catch(()=>-1), await loadTitle(tb).catch(()=>-1)]; const why=[];""",
+"""  const [,ia,ib]=await Promise.all([loadThrone(), loadTitle(ta).catch(()=>-1), loadTitle(tb).catch(()=>-1)]);
+  const ids=[ia,ib]; const why=[];""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
