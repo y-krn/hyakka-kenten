@@ -1,0 +1,76 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zen-kaku-gothic-new/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dela-gothic-one/index.css">
+<style>
+html,body{margin:0}
+.c{position:relative;width:1600px;height:1000px;background:#f6f5f0;font-family:"Zen Kaku Gothic New",sans-serif;color:#1b2130;overflow:hidden}
+h1{position:absolute;left:48px;top:30px;margin:0;font-family:"Dela Gothic One";font-weight:400;font-size:38px;letter-spacing:.04em}
+.sub{position:absolute;left:50px;top:84px;font-size:20px;font-weight:700;color:#5d6475}
+.grp{position:absolute;border:2px dashed #b9bdc7;border-radius:18px}
+.grp>.gl{position:absolute;left:18px;top:-15px;background:#f6f5f0;padding:0 10px;font-size:18px;font-weight:700;color:#5d6475;letter-spacing:.06em}
+.box{position:absolute;background:#fff;border:2px solid #1b2130;border-radius:14px;box-shadow:0 4px 0 rgba(27,33,48,.12);padding:14px 18px;box-sizing:border-box}
+.box b{display:block;font-size:22px;margin-bottom:4px}
+.box span{display:block;font-size:16px;color:#5d6475;line-height:1.45}
+.box.cf{border-color:#e8862a}.box.gh{border-color:#1b2130}.box.us{border-color:#1f5fbf}.box.db{border-color:#e8862a}
+.row{position:absolute;background:#fff7ec;border:1.5px solid #f0b27a;border-radius:10px;padding:8px 14px;box-sizing:border-box}
+.row.g{background:#f1f2f4;border-color:#c5c9d2}
+.row b{font-size:18px;display:block}.row span{font-size:14px;color:#5d6475;display:block;line-height:1.35}
+svg{position:absolute;inset:0}
+.lab{font-family:"Zen Kaku Gothic New";font-weight:700;font-size:16px;fill:#1b2130;paint-order:stroke;stroke:#f6f5f0;stroke-width:6px;stroke-linejoin:round}
+.lab.o{fill:#b5600f}.lab.b{fill:#1f5fbf}
+</style></head><body><div class="c">
+<h1>百科拳典の構成</h1><div class="sub">ブラウザで戦い、サーバーは王座戦だけを確かめる。運営費はドメイン代だけ。</div>
+
+<!-- 左：データの元とGitHub -->
+<div class="box gh" style="left:48px;top:150px;width:300px;height:110px"><b>Wikipedia・Wikidata</b><span>検索用データと、数字・つながりのデータ</span></div>
+<div class="grp" style="left:36px;top:330px;width:330px;height:560px"><div class="gl">GitHub</div></div>
+<div class="box gh" style="left:56px;top:360px;width:290px;height:115px"><b>リポジトリ</b><span>コード／138万記事の能力値と技（4,096ファイル）／仲間図鑑</span></div>
+<div class="box gh" style="left:56px;top:500px;width:290px;height:370px"><b>GitHub Actions</b></div>
+<div class="row g" style="left:74px;top:548px;width:254px;height:84px"><b>共有画像を作る</b><span>王座戦の試合ごとに、約40秒で</span></div>
+<div class="row g" style="left:74px;top:650px;width:254px;height:70px"><b>デプロイ</b><span>push したら自動で反映</span></div>
+<div class="row g" style="left:74px;top:738px;width:254px;height:112px"><b>記事の追加</b><span>Issueでリクエスト→承認ラベルで取り込み</span></div>
+
+<!-- 中央：Cloudflare -->
+<div class="grp" style="left:450px;top:150px;width:600px;height:790px"><div class="gl" style="color:#b5600f">Cloudflare（hyakkakenten.com）</div></div>
+<div class="box cf" style="left:480px;top:185px;width:540px;height:525px"><b>Workers</b><span>1つのWorkerが、画面・データ・APIをまとめて配る</span></div>
+<div class="row" style="left:504px;top:265px;width:492px;height:92px"><b>静的ファイルの配信</b><span>画面・記事データ・仲間図鑑。Workerを通さずに配るので、無料枠を使わない</span></div>
+<div class="row" style="left:504px;top:375px;width:492px;height:225px"><b>王座戦API</b><span>挑戦を受けたら、ページと同じ計算で勝敗をやり直して記録する（結果はごまかせない）</span><span style="margin-top:6px">王座戦の情報は15秒使い回して、データベースへの問い合わせを減らす</span><span style="margin-top:6px">試合ごとの共有画像を受け取って保存する</span></div>
+<div class="row" style="left:504px;top:618px;width:492px;height:76px"><b>共有カードの書き換え</b><span>試合や一門のURLなら、カードの文字と画像をその内容に</span></div>
+<div class="box db" style="left:480px;top:770px;width:540px;height:140px"><b>D1（データベース）</b><span>王座戦の記録・歴代王者／みんなの対戦数／試合ごとの共有画像</span></div>
+
+<!-- 右：使う人 -->
+<div class="grp" style="left:1130px;top:150px;width:436px;height:790px"><div class="gl" style="color:#1f5fbf">遊ぶ人・見る人</div></div>
+<div class="box us" style="left:1156px;top:185px;width:386px;height:270px"><b>ブラウザ</b><span>2つの記事のデータを読み込み、戦闘の計算と実況はブラウザの中で行う</span><span style="margin-top:6px">同じ組み合わせなら、誰が何度やっても同じ結果</span></div>
+<div class="box us" style="left:1156px;top:560px;width:386px;height:140px"><b>X・LINE など</b><span>試合のURLを貼ると、試合ごとの画像付きカードが出る</span></div>
+<div class="box us" style="left:1156px;top:760px;width:386px;height:160px"><b>運営者のスマホ（ntfy）</b><span>王座交代・5回ごとの防衛を通知。押すと断り書き入りの投稿画面が開き、選んだものだけXへ</span></div>
+
+<svg viewBox="0 0 1600 1000"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1b2130"/></marker>
+<marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b5600f"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f5fbf"/></marker></defs>
+<g fill="none" stroke-width="2.5">
+ <path d="M198 262 V355" stroke="#1b2130" marker-end="url(#a)"/>
+ <path d="M200 477 V495" stroke="#1b2130" marker-end="url(#a)"/>
+ <path d="M330 685 H476" stroke="#1b2130" marker-end="url(#a)"/>
+ <path d="M74 800 H46 V420 H52" stroke="#1b2130" marker-end="url(#a)"/>
+ <path d="M998 311 H1152" stroke="#1f5fbf" marker-end="url(#ab)"/>
+ <path d="M1152 430 H1000" stroke="#1f5fbf" marker-end="url(#ab)"/>
+ <path d="M998 656 H1152" stroke="#1f5fbf" marker-end="url(#ab)"/>
+ <path d="M500 566 H333" stroke="#b5600f" marker-end="url(#ao)"/>
+ <path d="M333 596 H500" stroke="#b5600f" marker-end="url(#ao)"/>
+ <path d="M750 712 V765" stroke="#b5600f" marker-end="url(#ao)"/>
+ <path d="M200 872 V970 H1100 V840 H1152" stroke="#b5600f" marker-end="url(#ao)"/>
+</g>
+<text class="lab" x="210" y="315">能力値と技を前もって計算</text>
+<text class="lab" x="212" y="492">push</text>
+<text class="lab" x="356" y="676">デプロイ</text>
+<text class="lab" x="16" y="420" style="font-size:15px" transform="rotate(-90 16 420)">取り込んだ記事を追加</text>
+<text class="lab b" x="1012" y="300">画面・記事データ</text>
+<text class="lab b" x="1012" y="420">どの記事で挑むか</text>
+<text class="lab b" x="1012" y="645">試合ごとのカード</text>
+<text class="lab o" x="344" y="556" style="font-size:15px">画像作りを頼む</text>
+<text class="lab o" x="344" y="618" style="font-size:15px">画像を預ける</text>
+<text class="lab o" x="762" y="745">記録</text>
+<text class="lab o" x="560" y="960">王座交代・節目の防衛を通知</text>
+</svg>
+</div></body></html>

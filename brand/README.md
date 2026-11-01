@@ -7,3 +7,5 @@
 | `x-header.html` | ヘッダー画像の元データ。ブラウザで1500×500の大きさにして撮影すると `x-header.png` になる |
 
 ここにあるファイルはサイトには配信しない（保管用）。
+| `architecture.png` | 構成図（noteの記事用） |
+| `architecture.html` | 構成図の元データ |
