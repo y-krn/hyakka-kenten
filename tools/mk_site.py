@@ -850,6 +850,14 @@ rep("for(const i of [ai,bi]){ const k=decW.filter(d=>d.who===i&&d.who===d.alt); 
       lines.push(`<b>自滅</b>：${esc(F[i][0])}の【${esc(d.move)}】。使わなければ代わりに【${esc(d.rep[0])}】${eff}、${how}`); }
     else lines.push(`<b>自滅</b>：${esc(F[i][0])}の${mv(k)}（使わなければ勝っていた）`); }""")
 
+# ---- 46. サーバーで勝敗を決めるときは、表示用の計算（技を外したやり直し・番狂わせの判定）を省く（勝敗には使っていない） ----
+rep("function analyze(ai,bi){ if(lt(ai,bi)) return analyze0(ai,bi);\n  const an=analyze0(bi,ai), r=an.r;",
+    "function analyze(ai,bi,lite){ if(lt(ai,bi)) return analyze0(ai,bi,lite);\n  const an=analyze0(bi,ai,lite), r=an.r;")
+rep("function analyze0(ai,bi){\n  const r=simC(ai,bi); const base=simC(ai,bi,{noMoves:true,noRiv:true});\n  const dec=[];",
+    "function analyze0(ai,bi,lite){   // lite：勝敗だけ分かればよいとき（サーバー）。決め手・番狂わせの計算をしない\n  const r=simC(ai,bi); const base=lite?{w:null}:simC(ai,bi,{noMoves:true,noRiv:true});\n  const dec=[]; if(!lite){")
+rep("if(r.riv){ const c=simC(ai,bi,{noRiv:true}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:-1,move:'因縁',alt:c.w}); }\n  return stage(ai,bi,{r,upset:r.w!==null&&base.w!==r.w,baseW:base.w,dec});",
+    "if(r.riv){ const c=simC(ai,bi,{noRiv:true}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:-1,move:'因縁',alt:c.w}); } }\n  return stage(ai,bi,{r,upset:!lite&&r.w!==null&&base.w!==r.w,baseW:base.w,dec});")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
@@ -872,7 +880,7 @@ async function loadOne(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!=
     TXT[k]=await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); }
   const rec=pickRec(TXT[k],t); return rec?register(rec):-1; }
 function setup(o){ if(o.base) DATA_BASE=o.base; if(o.fetch) FETCH=o.fetch; if(o.nb) NB=o.nb; if(o.ver&&o.ver!==VER){ VER=o.ver; for(const k in TXT) delete TXT[k]; } if(o.excl) EXCL=new Set(o.excl); }
-function verdict(ai,bi){ const an=analyze(ai,bi); const r=an.r; return {w:r.w===null?null:F[r.w][1], kind:r.kind, how:r.how||(r.kind==='KO'?r.tick+'カウントでKO勝ち':r.kind==='判定'?'判定勝ち':r.kind), type:an.type||null}; }
+function verdict(ai,bi){ const an=analyze(ai,bi,true); const r=an.r; return {w:r.w===null?null:F[r.w][1], kind:r.kind, how:r.how||(r.kind==='KO'?r.tick+'カウントでKO勝ち':r.kind==='判定'?'判定勝ち':r.kind), type:an.type||null}; }
 function info(i){ const f=F[i]; return {title:f[1], name:f[0], q:f[2], stats:f[3], hold:!!HOLD[i], blocked:BLOCK.has(i)}; }
 export {setup, loadOne, verdict, info};
 """
