@@ -835,6 +835,21 @@ rep("""  await loadThrone();
 rep("  if(d.error){ m.className='msg err'; m.textContent=d.error; return; }",
     "  if(d.error){ m.className='msg err'; m.textContent=d.error;\n    if(d.known&&d.known.id){ const a=document.createElement('a'); a.href='?c='+d.known.id; a.textContent=' その試合を見る'; a.className='rp'; a.onclick=e=>{ e.preventDefault(); replayChallenge(d.known.id); }; m.appendChild(a); }\n    return; }")
 
+# ---- 45. 「自滅」に、使わなかったら何が起きたかを1行で添える（代わりに出した技と、勝ち方） ----
+rep("const c=simC(ai,bi,{disable:{[i]:m}}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:i,move:m,alt:c.w}); }",
+    "const c=simC(ai,bi,{disable:{[i]:m}}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:i,move:m,alt:c.w,ak:c.kind,at:c.tick,rep:repMove(r,c,i===ai?0:1,m)}); }")
+rep("function analyze0(ai,bi){", """// 技を1つ外してやり直した試合で、その技の代わりに最初に出した技（[技名, 種類]）
+function repMove(r,c,sd,m){ let k=0; while(k<r.log.length&&k<c.log.length&&r.log[k].s===c.log[k].s) k++;
+  for(let j=k;j<c.log.length;j++){ const e=c.log[j]; if(e.side===sd&&e.mv&&e.mv[1]!==m) return [e.mv[1],e.mv[0]]; } return null; }
+function analyze0(ai,bi){""")
+rep("for(const i of [ai,bi]){ const k=decW.filter(d=>d.who===i&&d.who===d.alt); if(k.length) lines.push(`<b>自滅</b>：${esc(F[i][0])}の${mv(k)}（使わなければ勝っていた）`); }",
+    """for(const i of [ai,bi]){ const k=decW.filter(d=>d.who===i&&d.who===d.alt); if(!k.length) continue;
+    const d=k[0], op=F[i===ai?bi:ai][0];
+    if(k.length===1&&d.rep){ const eff=d.rep[1]==='BIND'?`で${esc(op)}の動きを鈍らせ`:d.rep[1]==='HASTE'?'で次の行動を早め':'を出し';
+      const how=d.ak==='KO'?`${d.at}カウントでKO勝ちしていた`:d.ak==='判定'?'判定で勝っていた':'勝っていた';
+      lines.push(`<b>自滅</b>：${esc(F[i][0])}の【${esc(d.move)}】。使わなければ代わりに【${esc(d.rep[0])}】${eff}、${how}`); }
+    else lines.push(`<b>自滅</b>：${esc(F[i][0])}の${mv(k)}（使わなければ勝っていた）`); }""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

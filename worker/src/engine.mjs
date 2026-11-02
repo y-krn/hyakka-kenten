@@ -316,10 +316,13 @@ function simC(ai,bi,opt={}){
 function analyze(ai,bi){ if(lt(ai,bi)) return analyze0(ai,bi);
   const an=analyze0(bi,ai), r=an.r;   // 並びを入れ替えて計算した結果を、左右反転して返す（勝者・決め手は記事の番号なので、そのまま）
   return {...an, r:{...r, log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:l.hp?[l.hp[1],l.hp[0]]:l.hp})), hp:[r.hp[1],r.hp[0]], max:[r.max[1],r.max[0]]}}; }
+// 技を1つ外してやり直した試合で、その技の代わりに最初に出した技（[技名, 種類]）
+function repMove(r,c,sd,m){ let k=0; while(k<r.log.length&&k<c.log.length&&r.log[k].s===c.log[k].s) k++;
+  for(let j=k;j<c.log.length;j++){ const e=c.log[j]; if(e.side===sd&&e.mv&&e.mv[1]!==m) return [e.mv[1],e.mv[0]]; } return null; }
 function analyze0(ai,bi){
   const r=simC(ai,bi); const base=simC(ai,bi,{noMoves:true,noRiv:true});
   const dec=[];
-  for(const i of [ai,bi]) for(const m of [...new Set(r.used[i])]){ const c=simC(ai,bi,{disable:{[i]:m}}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:i,move:m,alt:c.w}); }
+  for(const i of [ai,bi]) for(const m of [...new Set(r.used[i])]){ const c=simC(ai,bi,{disable:{[i]:m}}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:i,move:m,alt:c.w,ak:c.kind,at:c.tick,rep:repMove(r,c,i===ai?0:1,m)}); }
   if(r.riv){ const c=simC(ai,bi,{noRiv:true}); if(c.w!==r.w||c.kind!==r.kind) dec.push({who:-1,move:'因縁',alt:c.w}); }
   return stage(ai,bi,{r,upset:r.w!==null&&base.w!==r.w,baseW:base.w,dec});
 }
