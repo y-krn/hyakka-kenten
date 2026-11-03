@@ -66,10 +66,10 @@ def sparql(qids):
             wait = 10 * (k + 1); print('  再試行', k + 1, e, f'{wait}秒待つ', flush=True); time.sleep(wait)
     raise SystemExit('Wikidata に問い合わせできませんでした')
 
-qids = sorted(H, key=lambda q: -H[q][0])
+qids = sorted(H, key=lambda q: -H[q][0])[:int(os.environ.get('BD_MAX') or 200000)]   # よく読まれている20万人まで（全員だと1時間半かかる）
 if os.environ.get('BD_LIMIT'): qids = qids[:int(os.environ['BD_LIMIT'])]   # 試しに少しだけ動かすとき
 DAY, PLACE = {}, {}
-B = 400
+B = 500
 t0 = time.time()
 for i in range(0, len(qids), B):
     rows = sparql(qids[i:i + B]); dob, pl = {}, {}
