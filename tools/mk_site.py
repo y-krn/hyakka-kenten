@@ -1008,7 +1008,7 @@ async function addPV(list){ const B=[]; for(let i=0;i<list.length;i+=50) B.push(
   await Promise.all(B.map(async b=>{ try{ const q=await wpj('action=query&prop=pageviews&pvipdays=30&redirects=1&titles='+encodeURIComponent(b.map(x=>x.t).join('|')));
     const map={}; for(const r of [...(q.query.normalized||[]),...(q.query.redirects||[])]) map[r.from]=r.to;
     const pv={}; for(const p of q.query.pages||[]) pv[p.title]=Object.values(p.pageviews||{}).reduce((s,v)=>s+(v||0),0);
-    for(const x of b){ let t=x.t; for(let n=0;n<3&&map[t];n++) t=map[t]; x.t=t; x.n=t; x.pv=pv[t]||0; }   // 転送ページは転送先の名前で表示する（表示と対戦がずれないように） }catch(_){} }));
+    for(const x of b){ let t=x.t; for(let n=0;n<3&&map[t];n++) t=map[t]; x.t=t; x.n=t; x.pv=pv[t]||0; }   /* 転送ページは転送先の名前で表示する（表示と対戦がずれないように） */ }catch(_){} }));
   return list.sort((a,b)=>b.pv-a.pv); }
 // その日に生まれた人（日付の記事の「誕生日」の節）
 const births=(m,d)=>memo('hk_bd_'+m+'/'+d,async()=>{ const pg=m+'月'+d+'日';
