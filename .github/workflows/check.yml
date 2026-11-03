@@ -1,0 +1,23 @@
+# 調査用：tools/check/ のスクリプトを1つ動かして、結果を実行結果ページ（Summary）に出す。手動でだけ動く
+name: 調査
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: tools/check/ の中のスクリプト名
+        required: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 調査を動かす
+        env:
+          SCRIPT: ${{ inputs.script }}
+        run: |
+          case "$SCRIPT" in *[!A-Za-z0-9_.-]*|"") echo "スクリプト名が不正です"; exit 1;; esac
+          node "tools/check/$SCRIPT"
