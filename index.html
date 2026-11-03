@@ -212,6 +212,16 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #today .tdrow{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:14px}
 #today .tdres{font-size:15px;text-align:center;line-height:1.6}#today .tdres b.hit{color:var(--a)}
 #today .mlink{font:inherit;font-size:12px;background:none;border:none;padding:2px 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#today .tdttl{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:var(--hl);font-size:13px;font-weight:700}
+#today .tdtmr{font-size:13px;text-align:center;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}
+#today .tdcal summary{font-size:13px;color:var(--muted);cursor:pointer}
+#today .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:12px}
+#today .cal b{font-weight:400;color:var(--muted);font-size:11px}
+#today .cal span{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--muted)}
+#today .cal span.hit{background:var(--a);color:#fff;font-weight:700}#today .cal span.miss{background:color-mix(in srgb,var(--b) 25%,transparent);color:var(--ink)}#today .cal span.watch{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--ink)}
+#today .cal span.now{outline:2px solid var(--ink);outline-offset:-2px}
+#today .calk{display:flex;gap:10px;font-size:11px;color:var(--muted);margin-top:6px;align-items:center;flex-wrap:wrap}
+#today .calk i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:2px;vertical-align:-1px}#today .calk i.hit{background:var(--a)}#today .calk i.miss{background:color-mix(in srgb,var(--b) 25%,transparent)}#today .calk i.watch{background:color-mix(in srgb,var(--muted) 18%,transparent)}
 .tdnote{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--hl) 25%,transparent);font-size:14px;text-align:center}
 #mine .trow{display:flex;gap:8px}
 #famdlg [hidden]{display:none!important}
@@ -1201,30 +1211,43 @@ async function todayPair(day){ const nr=await fetch('data/norand.json?v='+VER).t
 async function todayInit(){ const box=$('#today'); if(!box||!POPULAR.length) return; const day=jstDay();
   try{ TD=await todayPair(day); }catch(_){ TD=null; } if(!TD) return; todayDraw();
   if(new URLSearchParams(location.search).has('today')) box.scrollIntoView({behavior:'smooth',block:'start'}); }
+const TITLES=[[30,'生ける出典'],[14,'歩く百科事典'],[7,'百科の予言者'],[3,'目利き']];   // 連続的中の日数と称号
+const tdTitle=n=>(TITLES.find(t=>n>=t[0])||[])[1]||'';
+function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7); const first=new Date(Date.UTC(y,m-1,1)), days=new Date(Date.UTC(y,m,0)).getUTCDate(); const pad=first.getUTCDay();
+  const cells=[...Array(pad).fill('<span></span>')];
+  for(let d=1;d<=days;d++){ const k=now.slice(0,8)+String(d).padStart(2,'0'), x=o[k]; const st=!x||!x.done?'':x.p===null||x.p===undefined?'watch':x.hit?'hit':'miss';
+    cells.push(`<span class="${st}${k===now?' now':''}" title="${m}月${d}日${st==='hit'?'：当たり':st==='miss'?'：外れ':st==='watch'?'：観戦':''}">${d}</span>`); }
+  const hits=Object.keys(o).filter(k=>k.slice(0,7)===now.slice(0,7)&&o[k].hit).length;
+  return `<details class="tdcal"><summary>的中カレンダー（${m}月は${hits}回的中）</summary><div class="cal"><b>日</b><b>月</b><b>火</b><b>水</b><b>木</b><b>金</b><b>土</b>${cells.join('')}</div><div class="calk"><i class="hit"></i>当たり <i class="miss"></i>外れ <i class="watch"></i>予想なしで観戦</div></details>`; }
+let TMR=null;   // 当てた人だけに見せる、明日の人気の記事
+async function tdTomorrow(){ if(TMR) return TMR; const d=jstDay(-1); try{ const x=await todayPair(d); TMR=x?{day:d,a:F[x.a][0]}:null; }catch(_){ TMR=null; } return TMR; }
 function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,b}=TD; const o=tdLoad(), me=o[day]||{};
   const kind=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; }; const nm=i=>F[i][0];
   let act;
   if(me.done){ const w=me.w; const res=w===null?'引き分け':esc(w===0?nm(a):nm(b))+'の勝ち';
     const st=tdStreak(o);
-    act=`<div class="tdres">結果：${res}${me.p!==undefined&&me.p!==null?`<br>あなたの予想は<b class="${me.hit?'hit':''}">${me.hit?'当たり！':'外れ'}</b>${me.hit&&st>1?`（${st}日連続）`:''}`:''}</div>
+    const ttl=me.hit?tdTitle(st):'';
+    act=`<div class="tdres">結果：${res}${me.p!==undefined&&me.p!==null?`<br>あなたの予想は<b class="${me.hit?'hit':''}">${me.hit?'当たり！':'外れ'}</b>${me.hit&&st>1?`（${st}日連続）`:''}`:''}${ttl?`<br><span class="tdttl">称号「${esc(ttl)}」</span>`:''}</div>
+      ${me.hit?'<div class="tdtmr" id="tdtmr">明日の一戦を少しだけ…</div>':''}
       <div class="tdrow"><button type="button" class="btn small" id="tdre">もう一度見る</button><a class="btn small" id="tdsh" target="_blank" rel="noopener">Xで共有</a></div>`; }
   else if(me.p===0||me.p===1||me.p===null) act=`<div class="tdrow">あなたの予想：<b>${me.p===null?'なし':esc(me.p===0?nm(a):nm(b))}</b><button type="button" class="btn" id="tdgo">観戦する</button></div>`;
   else act=`<div class="tdq">どっちが勝つ？ 予想してから観戦しよう</div><div class="tdbtn"><button type="button" class="btn pa" data-p="0">${esc(nm(a))}</button><button type="button" class="btn pb" data-p="1">${esc(nm(b))}</button></div><div class="tdrow"><button type="button" class="mlink" id="tdno">予想せずに観戦する</button></div>`;
   box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦。みんな同じ組み合わせで、毎日0時に入れ替わります</span></div>
-    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small>${esc(kind(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>埋もれた記事</small><b>${esc(nm(b))}</b><small>${esc(kind(b))}</small></div></div>${act}`;
+    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small>${esc(kind(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>埋もれた記事</small><b>${esc(nm(b))}</b><small>${esc(kind(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
+  if($('#tdtmr')) tdTomorrow().then(x=>{ const e=$('#tdtmr'); if(!e) return; e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は明日のお楽しみ`:''; if(!x) e.remove(); });
   box.hidden=false;
   const go=()=>{ if(isChamp(a)||isChamp(b)){ todayDraw(); return; } TODAYF={day}; startBattle([a,b]); };
   box.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[day]={p:+x.dataset.p}; tdSave(o); todayDraw(); go(); });
   if($('#tdno')) $('#tdno').onclick=()=>{ const o=tdLoad(); o[day]={p:null}; tdSave(o); todayDraw(); go(); };
   if($('#tdgo')) $('#tdgo').onclick=go;
   if($('#tdre')) $('#tdre').onclick=go;
-  if($('#tdsh')){ const st=tdStreak(o); const t=fitPost(`【百科拳典 今日の一戦 ${mdJ(day)}】${nm(a)} vs ${nm(b)}`+(me.p!==null&&me.p!==undefined?`\n予想は${me.hit?'当たり！'+(st>1?`（${st}日連続）`:''):'外れ…'}`:'')+'\nあなたはどっちが勝つと思う？')+'\n'+DISC;
+  if($('#tdsh')){ const st=tdStreak(o); const t=fitPost(`【百科拳典 今日の一戦 ${mdJ(day)}】${nm(a)} vs ${nm(b)}`+(me.p!==null&&me.p!==undefined?`\n予想は${me.hit?'当たり！'+(st>1?`（${tdTitle(st)?tdTitle(st)+'・':''}${st}日連続）`:''):'外れ…'}`:'')+'\nあなたはどっちが勝つと思う？')+'\n'+DISC;
     $('#tdsh').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?today=1'); } }
 function todayDone(cur){ if(!TD||!cur.today||cur.today.day!==TD.day) return; const o=tdLoad(), me=o[TD.day]||{p:null}; const w=cur.an.r.w;
   const wi=w===null?null:(w===TD.a?0:1); if(!me.done){ me.done=1; me.w=wi; me.hit=me.p!==null&&me.p!==undefined&&me.p===wi; o[TD.day]=me; tdSave(o); }
   todayDraw();
   const res=$('#res'); if(res&&me.p!==null&&me.p!==undefined){ const st=tdStreak(o); const n=document.createElement('div'); n.className='tdnote';
-    n.textContent='今日の一戦の予想は'+(me.hit?'当たり！'+(st>1?'（'+st+'日連続）':''):'外れでした'); res.prepend(n); } }
+    n.textContent='今日の一戦の予想は'+(me.hit?'当たり！'+(st>1?'（'+(tdTitle(st)?'称号「'+tdTitle(st)+'」・':'')+st+'日連続）':''):'外れでした'); res.prepend(n); } }
 async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
     let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
