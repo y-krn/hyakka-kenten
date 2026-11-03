@@ -1070,23 +1070,28 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     const upd=()=>{ const t=shareText(); $('#mpv').textContent=t+'\n'+location.origin+'/?me=1'; $('#mtw').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?me=1'); };
     $('#mshr').onclick=()=>{ const p=$('#mshp'); p.hidden=!p.hidden; $('#mshr').setAttribute('aria-expanded',!p.hidden); if(!p.hidden) upd(); };
     $('#mwhy').onchange=upd;
-    $('#mrepgo').onclick=()=>{ if(!opp) return; FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; famApply(true); }; }
+    $('#mrepgo').onclick=()=>{ if(!opp) return; const c=[r.x,opp].find(x=>notCh(x));   // 開いている間に王座が替わっていたら、探し直して知らせる
+      if(c){ run().then(()=>{ const m=$('#mst'); m.textContent='「'+c.n+'」はいま王者になったので、自由対戦に出せません。王座戦で挑めます'; }); return; }
+      FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; famApply(true); }; }
   async function run(){ const my=++seq; const v=cur(); keep();
     if(!(v.m&&v.d)&&!v.y&&!v.p&&!v.f){ $('#mst').textContent='どれか1つ入れてください'; return; }
     $('#mst').textContent='探しています…';
     const errs=[]; const safe=(p,lab)=>p.catch(()=>{ errs.push(lab); return null; });
     const yi=/^\d{4}$/.test(v.y)?+v.y:null;
     const both=!!(v.m&&v.d&&yi);   // 誕生日と生まれた年の両方があるときは、両方が同じ人（生年月日が同じ人）を探す
+    const chT=champTitle(), CH={};   // いまの王者が、本来なら一覧に出るはずだったか（出るはずだったら、外したことを知らせる）
+    const top=(L,n,key)=>{ if(chT&&L.slice(0,n+1).some(x=>x.t===chT)) CH[key]=1; return bdTop(L,n,notCh); };
     const [ymdl,bdl,todl,yrd,plt,fvt]=await Promise.all([
-      both?safe(sameDay(yi,+v.m,+v.d).then(L=>bdTop(L,10,notCh)),'生年月日'):null,
-      v.m&&v.d?safe(births(+v.m,+v.d).then(L=>bdTop(L,10,notCh)),'誕生日'):null,
-      safe(births(td.m,td.d).then(L=>bdTop(L,6,notCh)),'きょう'),
+      both?safe(sameDay(yi,+v.m,+v.d).then(L=>top(L,10,'ymd')),'生年月日'):null,
+      v.m&&v.d?safe(births(+v.m,+v.d).then(L=>top(L,10,'bd')),'誕生日'):null,
+      safe(births(td.m,td.d).then(L=>top(L,6,'td')),'きょう'),
       yi?safe(years().then(Y=>Y[yi]||{p:[],o:[]}),'生まれた年'):null,
       v.p?safe(placeKey(v.p),'出身地'):null,
       null ]);
-    let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,10,notCh)),'出身地');
+    let pll=null; if(plt) pll=await safe(natives(plt).then(L=>top(L,10,'pl')),'出身地');
     const fvg=[];
     if(my!==seq) return;
+    if(yrd&&chT){ if(yrd.p.slice(0,11).some(a=>a[0]===chT)) CH.yr=yi+'年生まれ'; else if(yrd.o.slice(0,7).some(a=>a[0]===chT)) CH.yr=yi+'年にできたもの'; }
     const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],y:yi})).filter(x=>!notCh(x)).slice(0,10):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)).slice(0,6):[];
     const reps=[], groups=[...fvg];
     const and=both&&ymdl&&ymdl.length;
@@ -1097,6 +1102,8 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     const used=new Set(reps.map(r=>r.x.t)); const opps=(todl||[]).filter(x=>!used.has(x.t));
     v.pt=plt||v.p; ST={reps,pick:0,opps,oi:0,opp:opps[0]||null,v,groups};
     const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」');  if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
+      (()=>{ const L=[and&&CH.ymd?yi+'年'+v.m+'月'+v.d+'日生まれ':'',!and&&CH.bd&&bdl?v.m+'月'+v.d+'日生まれ':'',!and&&CH.yr?CH.yr:'',CH.pl&&pll?plt+'出身':'',CH.td?'きょう'+td.m+'月'+td.d+'日生まれ':''].filter(Boolean);
+        return L.length?'いまの王者「'+((THRONE&&THRONE.champ&&THRONE.champ.display)||chT)+'」（'+L.join('・')+'）は自由対戦に出せないので外しました。王座戦で挑めます':''; })(),
       plt&&plt!==v.p?'出身地は「'+plt+'」で探しました'+((PALT[v.p]||[]).length?'（'+PALT[v.p].map(x=>'「'+x+'」').join('や')+'で探すときは、そのとおり入力してください）':''):''].filter(Boolean).join('。');
     $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):[miss.length?miss.join('、')+'は見つかりませんでした':'',note].filter(Boolean).join('。');
     draw(); dlg.scrollTop=0; }
