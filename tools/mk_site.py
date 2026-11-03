@@ -954,20 +954,16 @@ rep("'音の数で殴る。言語学者が見たら泣くでしょう' ]; }]", "
 for a, extra in MX:
     rep(a, a[:-len(" ]]")] + "," + ",".join("'" + x + "'" for x in extra) + " ]]")
 
-# ---- 48. あなたの代表戦：誕生日・生まれた年・出身地・好きなもの。入れたい項目だけで「あなたの代表」を探し、きょう生まれの代表と戦わせる ----
+# ---- 48. あなたの代表戦：誕生日・生まれた年・出身地。入れたい項目だけで「あなたの代表」を探し、きょう生まれの代表と戦わせる ----
 #   誕生日が同じ人：日本語版Wikipediaの日付の記事（「6月18日」など）の「誕生日」の節。直近30日の閲覧数順
 #   同い年：data/bd/years.json.gz（tools/build_bd.py で収録データから作る）。1年間の閲覧数順
 #   同郷：日本語版Wikipediaの「Category:◯◯出身の人物」。直近30日の閲覧数順
 #   入力はこの端末の中だけで使う。覚えておくかどうかも選べる。共有文に何を書くかも選べる
 rep('  <section id="zukan" class="card" hidden></section>\n',
-    '  <section id="zukan" class="card" hidden></section>\n  <section id="mine" class="card"><div class="sechead"><h2>あなたの代表戦</h2><span>誕生日・生まれた年・出身地・好きなもの。入れたい項目だけで、あなたの代表を探して戦わせる</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></section>\n')
+    '  <section id="zukan" class="card" hidden></section>\n  <section id="mine" class="card"><div class="sechead"><h2>あなたの代表戦</h2><span>誕生日・生まれた年・出身地。入れたい項目だけで、あなたの代表を探して戦わせる</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></section>\n')
 rep("#zukan{padding:16px;display:flex;flex-direction:column;gap:12px}",
     "#zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}\n#mine .trow{display:flex;gap:8px}\n"
     "#famdlg [hidden]{display:none!important}\n"
-    ".mfw{position:relative;min-width:0}\n"
-    ".msug{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:3;list-style:none;margin:0;padding:4px;background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.12)}\n"
-    ".msug button{display:block;width:100%;text-align:left;font:inherit;font-size:14px;background:none;border:none;color:var(--ink);padding:8px;border-radius:6px;cursor:pointer}\n"
-    ".msug button:hover,.msug button:focus{background:color-mix(in srgb,var(--hl) 30%,transparent)}\n"
     ".mform{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;padding:14px 16px}\n"
     ".mform label{font-size:13px;color:var(--muted);white-space:nowrap}\n"
     ".mform .mrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}\n"
@@ -1025,7 +1021,7 @@ const sameDay=(y,m,d)=>bdFile('ymd/'+y).then(o=>(o[m+'/'+d]||[]).map(a=>({t:a[0]
 const bdTop=(list,n,skip)=>list.filter(x=>!(skip&&skip(x))).slice(0,n);
 const ysJ=y=>y<0?'紀元前'+(-y)+'年':y+'年';
 // 代表の「根拠」と、共有したときに推測されうること
-const MB={ymd:{lab:'生年月日が同じ',why:v=>v.y+'年'+v.m+'月'+v.d+'日生まれ',warn:'あなたの生年月日'},bd:{lab:'誕生日が同じ',why:v=>v.m+'月'+v.d+'日生まれ',warn:'あなたの誕生日'},yr:{lab:'同い年',why:v=>v.y+'年生まれ',warn:'あなたの年齢'},pl:{lab:'同郷',why:v=>v.pt+'出身',warn:'あなたの出身地'},fv:{lab:'好きなもの',why:()=>'好きなもの',warn:''}};
+const MB={ymd:{lab:'生年月日が同じ',why:v=>v.y+'年'+v.m+'月'+v.d+'日生まれ',warn:'あなたの生年月日'},bd:{lab:'誕生日が同じ',why:v=>v.m+'月'+v.d+'日生まれ',warn:'あなたの誕生日'},yr:{lab:'同い年',why:v=>v.y+'年生まれ',warn:'あなたの年齢'},pl:{lab:'同郷',why:v=>v.pt+'出身',warn:'あなたの出身地'}};
 function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(); const o=sv||{}; const td=todayJ();
   const opt=(n,cur)=>Array.from({length:n},(_,k)=>`<option value="${k+1}"${+cur===k+1?' selected':''}>${k+1}</option>`).join('');
   dlg.setAttribute('aria-label','あなたの代表戦');
@@ -1035,17 +1031,16 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     <label>誕生日</label><div class="mrow"><select id="mm" aria-label="誕生日の月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="誕生日の日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
     <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
     <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
-    <label for="mf">好きなもの</label><div class="mfw"><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="mfs" aria-expanded="false"><ul class="msug" id="mfs" role="listbox" hidden></ul></div>
     <label class="mkeep"><input type="checkbox" id="mkeep"${sv?' checked':''}>この端末に入力を覚えておく</label>
     <div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button><button type="button" class="btn small" id="mclr">入力を消す</button></div>
   </form>
   <div class="mst" id="mst"></div>
   <div id="mres" hidden></div>
-  <div class="fnote">入力は記事を探すためだけに使い、サーバーには送りません。誕生日・生まれた年・出身地は、百科拳典に置いた一覧（Wikidataの生年月日・出生地と、1年間の閲覧数から作成）からこの端末の中で探します。好きなものは、Wikipediaの検索で記事名を探します。</div>`;
+  <div class="fnote">入力は記事を探すためだけに使い、サーバーには送りません。誕生日・生まれた年・出身地は、百科拳典に置いた一覧（Wikidataの生年月日・出生地と、1年間の閲覧数から作成）からこの端末の中で探します。</div>`;
   $('#famx').onclick=()=>dlg.close();
   const notCh=x=>x.t===champTitle();   // いまの王者は自由対戦に出せない（開いたあとに王座の情報が届くこともあるので、毎回たしかめる）
   let seq=0, ST=null;
-  function cur(){ return {m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim()}; }
+  function cur(){ return {m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:''}; }
   function keep(){ const v=cur(); mineSave($('#mkeep').checked&&(v.m||v.d||v.y||v.p||v.f)?v:null); }
   const bsub=x=>typeof x.y==='number'?ysJ(x.y)+'生まれ':'';
   function shareText(){ const r=ST.reps[ST.pick], why=$('#mwhy')&&$('#mwhy').checked;
@@ -1088,40 +1083,26 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       safe(births(td.m,td.d).then(L=>bdTop(L,6,notCh)),'きょう'),
       yi?safe(years().then(Y=>Y[yi]||{p:[],o:[]}),'生まれた年'):null,
       v.p?safe(placeKey(v.p),'出身地'):null,
-      v.f?mineFind(v.f):null ]);
+      null ]);
     let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,10,notCh)),'出身地');
-    let fvg=[]; if(fvt){ try{ const fi=await loadTitle(fvt); if(fi>=0){ const gs=(await Promise.all(famKeys(fi).map(k=>famGet(k).catch(()=>null)))).filter(g=>g&&g.c>=2).sort((a,b)=>b.c-a.c).slice(0,2);
-      fvg=gs.map(g=>({k:'fv',h:`${FAMK[g.k](g.n)}（好きなものの仲間・${g.c}記事）`,L:[{t:fvt,n:fvt},...g.m.filter(m=>m[0]!==fvt).slice(0,10).map(m=>({t:m[0],n:m[1]}))].filter(x=>!notCh(x))})).filter(g=>g.L.length); } }catch(_){} }
+    const fvg=[];
     if(my!==seq) return;
     const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],y:yi})).filter(x=>!notCh(x)).slice(0,10):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)).slice(0,6):[];
     const reps=[], groups=[...fvg];
     const and=both&&ymdl&&ymdl.length;
-    const fvChamp=fvt&&notCh({t:fvt});
-    if(fvt&&!fvChamp) reps.push({k:'fv',x:{t:fvt,n:fvt}});
-    else if(fvChamp&&fvg.length) reps.push({k:'fv',x:fvg[0].L[0]});   // 好きなものが王者なら、その仲間を代わりの代表に
     if(and){ reps.push({k:'ymd',x:ymdl[0]}); groups.push({k:'ymd',h:`生年月日が同じ人（${yi}年${v.m}月${v.d}日生まれ）`,L:ymdl}); }
     else if(bdl&&bdl.length){ reps.push({k:'bd',x:bdl[0]}); groups.push({k:'bd',h:`誕生日が同じ人（${v.m}月${v.d}日生まれ）`,L:bdl}); }
     if(!and&&(yp.length||yo.length)){ reps.push({k:'yr',x:yp[0]||yo[0]}); groups.push({k:'yr',h:`同い年（${yi}年生まれ・${yi}年にできたもの）`,L:[...yp,...yo]}); }
     if(pll&&pll.length){ reps.push({k:'pl',x:pll[0]}); groups.push({k:'pl',h:`同郷の人（${plt}出身）`,L:pll}); }
     const used=new Set(reps.map(r=>r.x.t)); const opps=(todl||[]).filter(x=>!used.has(x.t));
     v.pt=plt||v.p; ST={reps,pick:0,opps,oi:0,opp:opps[0]||null,v,groups};
-    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」'); if(v.f&&!fvt) miss.push('好きなもの「'+v.f+'」');  if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
-      fvChamp?'「'+fvt+'」はいまの王者なので、自由対戦の代表にはできません（王座戦で挑めます）'+(fvg.length?'。代わりに仲間から選びました':''):'',
+    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」');  if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
       plt&&plt!==v.p?'出身地は「'+plt+'」で探しました'+((PALT[v.p]||[]).length?'（'+PALT[v.p].map(x=>'「'+x+'」').join('や')+'で探すときは、そのとおり入力してください）':''):''].filter(Boolean).join('。');
     $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):[miss.length?miss.join('、')+'は見つかりませんでした':'',note].filter(Boolean).join('。');
     draw(); dlg.scrollTop=0; }
-  { const inp=$('#mf'), ul=$('#mfs'); let tm=null, sq=0;
-    const hide=()=>{ ul.hidden=true; inp.setAttribute('aria-expanded','false'); };
-    inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.trim(); if(!v){ hide(); return; }
-      tm=setTimeout(async()=>{ const my=++sq; let c=[]; try{ c=(await suggest(v,null)).slice(0,6); }catch(_){} if(my!==sq||inp.value.trim()!==v) return;
-        if(!c.length){ hide(); return; }
-        ul.innerHTML=c.map(t=>`<li role="option"><button type="button" data-t="${esc(t)}">${esc(t)}</button></li>`).join(''); ul.hidden=false; inp.setAttribute('aria-expanded','true');
-        ul.querySelectorAll('button').forEach(b=>b.onmousedown=e=>e.preventDefault());
-        ul.querySelectorAll('button').forEach(b=>b.onclick=()=>{ inp.value=b.dataset.t; hide(); inp.focus(); }); },280); });
-    inp.addEventListener('blur',()=>setTimeout(hide,150)); inp.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); }); }
-  $('#mform').onsubmit=e=>{ e.preventDefault(); $('#mfs').hidden=true; run(); };
+  $('#mform').onsubmit=e=>{ e.preventDefault(); run(); };
   $('#mkeep').onchange=keep;
-  $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp','mf'].forEach(k=>$('#'+k).value=''); $('#mst').textContent=''; };
+  $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp'].forEach(k=>$('#'+k).value=''); $('#mst').textContent=''; };
   if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv) run(); }
 function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine();
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間図鑑')); }
