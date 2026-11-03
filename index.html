@@ -1062,8 +1062,11 @@ const BDF={}; const bdFile=p=>BDF[p]||(BDF[p]=gzj('data/bd/'+p+'.json.gz?v='+VER
 let BDM=null; const bdMeta=()=>BDM||(BDM=fetch('data/bd/meta.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ BDM=null; throw e; }));
 const births=(m,d)=>bdFile('d/'+m).then(o=>(o[m+'/'+d]||[]).map(a=>({t:a[0],n:a[1],y:a[2]})));
 async function placeKey(v){ const M=await bdMeta(); const get=async k=>{ const o=await bdFile('p/'+(fnv(k)%M.nbp)); return o[k]?k:null; };
-  for(const k of [v,v+'市',v+'県',v+'都',v+'府',v+'町',v+'村',v+'区']){ const r=await get(k); if(r) return r; }   // 「岡山」→「岡山市」など
+  if(/[都道府県市区町村]$/.test(v)&&await get(v)) return v;   // 「岡山市」「岡山県」のように書いてあれば、そのまま
+  const C=[]; for(const k of [v+'県',v+'都',v+'府',v,v+'市',v+'区',v+'町',v+'村']){ if(await get(k)) C.push(k); }   // 「岡山」→ 広いほう（岡山県）を先に。狭いほう（岡山市）は案内だけ
+  if(C.length){ PALT[v]=C.slice(1).filter(k=>k===v+'市'); return C[0]; }
   const t=await mineFind(v); return t?get(t):null; }   // 一覧にない書き方のときだけ、Wikipediaの検索で正式な記事名を探す
+const PALT={};
 const natives=k=>bdMeta().then(M=>bdFile('p/'+(fnv(k)%M.nbp))).then(o=>(o[k]||[]).map(a=>({t:a[0],n:a[1],y:a[2]})));
 const years=()=>bdFile('years');
 const sameDay=(y,m,d)=>bdFile('ymd/'+y).then(o=>(o[m+'/'+d]||[]).map(a=>({t:a[0],n:a[1],y}))).catch(e=>{ if(/404/.test(e.message)) return []; throw e; });
@@ -1146,7 +1149,8 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     if(pll&&pll.length){ reps.push({k:'pl',x:pll[0]}); groups.push({k:'pl',h:`同郷の人（${plt}出身）`,L:pll}); }
     const used=new Set(reps.map(r=>r.x.t)); const opps=(todl||[]).filter(x=>!used.has(x.t));
     v.pt=plt||v.p; ST={reps,pick:0,opps,oi:0,opp:opps[0]||null,v,groups};
-    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」'); if(v.f&&!fvt) miss.push('好きなもの「'+v.f+'」'); if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'';
+    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」'); if(v.f&&!fvt) miss.push('好きなもの「'+v.f+'」'); if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
+      plt&&plt!==v.p?'出身地は「'+plt+'」で探しました'+((PALT[v.p]||[]).length?'（'+PALT[v.p].map(x=>'「'+x+'」').join('や')+'で探すときは、そのとおり入力してください）':''):''].filter(Boolean).join('。');
     $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):[miss.length?miss.join('、')+'は見つかりませんでした':'',note].filter(Boolean).join('。');
     draw(); dlg.scrollTop=0; }
   $('#mform').onsubmit=e=>{ e.preventDefault(); run(); };
