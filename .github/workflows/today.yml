@@ -1,0 +1,35 @@
+# 今日の一戦を、毎朝 ntfy に知らせる（タップすると 𝕏 の投稿画面が開く）
+#  - 毎朝 7時13分ごろ（日本時間）。手動でも実行でき、プレビュー版で試すこともできる
+#  - 本番のページに「今日の一戦」がまだないとき（公開前）は、何も送らない
+#  必要な設定: Secrets の NTFY_TOPIC（王座交代の通知と同じもの）
+name: 今日の一戦の通知
+on:
+  schedule:
+    - cron: '13 22 * * *'   # 22:13（UTC）＝ 日本時間 7:13
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 開くページ（試すときはプレビュー版のURL）
+        default: https://hyakkakenten.com
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/og
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/og/package-lock.json
+      - run: npm ci
+        working-directory: tools/og
+      - name: 今日の一戦を知らせる
+        working-directory: tools/og
+        env:
+          SITE: ${{ inputs.site || 'https://hyakkakenten.com' }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TZ: Asia/Tokyo
+        run: node today.mjs
