@@ -204,6 +204,10 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}
 #mine .trow{display:flex;gap:8px}
 #famdlg [hidden]{display:none!important}
+.mfw{position:relative;min-width:0}
+.msug{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:3;list-style:none;margin:0;padding:4px;background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.msug button{display:block;width:100%;text-align:left;font:inherit;font-size:14px;background:none;border:none;color:var(--ink);padding:8px;border-radius:6px;cursor:pointer}
+.msug button:hover,.msug button:focus{background:color-mix(in srgb,var(--hl) 30%,transparent)}
 .mform{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;padding:14px 16px}
 .mform label{font-size:13px;color:var(--muted);white-space:nowrap}
 .mform .mrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -1083,7 +1087,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     <label>誕生日</label><div class="mrow"><select id="mm" aria-label="誕生日の月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="誕生日の日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
     <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
     <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
-    <label for="mf">好きなもの</label><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off">
+    <label for="mf">好きなもの</label><div class="mfw"><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="mfs" aria-expanded="false"><ul class="msug" id="mfs" role="listbox" hidden></ul></div>
     <label class="mkeep"><input type="checkbox" id="mkeep"${sv?' checked':''}>この端末に入力を覚えておく</label>
     <div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button><button type="button" class="btn small" id="mclr">入力を消す</button></div>
   </form>
@@ -1113,12 +1117,12 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
         ${MB[r.k].warn?`<div class="mwarn">理由を書かなくても、代表の名前から${MB[r.k].warn}が推測されることがあります。</div>`:''}
         <div><a class="btn small" id="mtw" target="_blank" rel="noopener">Xで投稿</a></div></div>
     </div>
-    <details class="mmore"><summary>ほかの候補から代表を選ぶ</summary><ol class="flist">${groups.map(g=>`<li class="mh">${esc(g.h)}</li>`+g.L.map((x,i)=>`<li${x.t===(reps.find(q=>q.k===g.k)||{x:{}}).x.t?' class="mon"':''}><div class="fn">${esc(x.n)}${bsub(x)?`<span class="mwho">${esc(bsub(x))}</span>`:''}</div><div class="fb"><button type="button" class="btn small" data-g="${g.k}" data-i="${i}">代表にする</button></div></li>`).join('')).join('')}</ol></details>`;
+    <details class="mmore"><summary>ほかの候補から代表を選ぶ</summary><ol class="flist">${groups.map((g,gi)=>`<li class="mh">${esc(g.h)}</li>`+g.L.map((x,i)=>`<li${x.t===(reps.find(q=>q.k===g.k)||{x:{}}).x.t?' class="mon"':''}><div class="fn">${esc(x.n)}${bsub(x)?`<span class="mwho">${esc(bsub(x))}</span>`:''}</div><div class="fb"><button type="button" class="btn small" data-g="${gi}" data-i="${i}">代表にする</button></div></li>`).join('')).join('')}</ol></details>`;
     box.hidden=false; $('#mform').hidden=true;
     $('#medit').onclick=()=>{ box.hidden=true; $('#mform').hidden=false; $('#mst').textContent=''; dlg.scrollTop=0; };
     box.querySelectorAll('.mpick button').forEach(b=>b.onclick=()=>{ ST.pick=+b.dataset.k; draw(); });
     if($('#mopp')) $('#mopp').onclick=()=>{ ST.oi=(ST.oi+1)%ST.opps.length; ST.opp=ST.opps[ST.oi]; draw(); };
-    box.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const g=groups.find(q=>q.k===b.dataset.g); const x=g.L[+b.dataset.i]; const k=reps.findIndex(q=>q.k===g.k);
+    box.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const g=groups[+b.dataset.g]; const x=g.L[+b.dataset.i]; const k=reps.findIndex(q=>q.k===g.k);
       if(k>=0){ reps[k]={k:g.k,x}; ST.pick=k; } draw(); dlg.scrollTo({top:0,behavior:'smooth'}); });
     const upd=()=>{ const t=shareText(); $('#mpv').textContent=t+'\n'+location.origin+'/?me=1'; $('#mtw').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?me=1'); };
     $('#mshr').onclick=()=>{ const p=$('#mshp'); p.hidden=!p.hidden; $('#mshr').setAttribute('aria-expanded',!p.hidden); if(!p.hidden) upd(); };
@@ -1138,9 +1142,11 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       v.p?safe(placeKey(v.p),'出身地'):null,
       v.f?mineFind(v.f):null ]);
     let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,10,notCh)),'出身地');
+    let fvg=[]; if(fvt){ try{ const fi=await loadTitle(fvt); if(fi>=0){ const gs=(await Promise.all(famKeys(fi).map(k=>famGet(k).catch(()=>null)))).filter(g=>g&&g.c>=2).sort((a,b)=>b.c-a.c).slice(0,2);
+      fvg=gs.map(g=>({k:'fv',h:`${FAMK[g.k](g.n)}（好きなものの仲間・${g.c}記事）`,L:[{t:fvt,n:fvt},...g.m.filter(m=>m[0]!==fvt&&m[0]!==ch).slice(0,10).map(m=>({t:m[0],n:m[1]}))]})); } }catch(_){} }
     if(my!==seq) return;
     const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],y:yi})).filter(x=>!notCh(x)).slice(0,10):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)).slice(0,6):[];
-    const reps=[], groups=[];
+    const reps=[], groups=[...fvg];
     const and=both&&ymdl&&ymdl.length;
     if(fvt) reps.push({k:'fv',x:{t:fvt,n:fvt}});
     if(and){ reps.push({k:'ymd',x:ymdl[0]}); groups.push({k:'ymd',h:`生年月日が同じ人（${yi}年${v.m}月${v.d}日生まれ）`,L:ymdl}); }
@@ -1153,7 +1159,16 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       plt&&plt!==v.p?'出身地は「'+plt+'」で探しました'+((PALT[v.p]||[]).length?'（'+PALT[v.p].map(x=>'「'+x+'」').join('や')+'で探すときは、そのとおり入力してください）':''):''].filter(Boolean).join('。');
     $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):[miss.length?miss.join('、')+'は見つかりませんでした':'',note].filter(Boolean).join('。');
     draw(); dlg.scrollTop=0; }
-  $('#mform').onsubmit=e=>{ e.preventDefault(); run(); };
+  { const inp=$('#mf'), ul=$('#mfs'); let tm=null, sq=0;
+    const hide=()=>{ ul.hidden=true; inp.setAttribute('aria-expanded','false'); };
+    inp.addEventListener('input',()=>{ clearTimeout(tm); const v=inp.value.trim(); if(!v){ hide(); return; }
+      tm=setTimeout(async()=>{ const my=++sq; let c=[]; try{ c=(await suggest(v,null)).slice(0,6); }catch(_){} if(my!==sq||inp.value.trim()!==v) return;
+        if(!c.length){ hide(); return; }
+        ul.innerHTML=c.map(t=>`<li role="option"><button type="button" data-t="${esc(t)}">${esc(t)}</button></li>`).join(''); ul.hidden=false; inp.setAttribute('aria-expanded','true');
+        ul.querySelectorAll('button').forEach(b=>b.onmousedown=e=>e.preventDefault());
+        ul.querySelectorAll('button').forEach(b=>b.onclick=()=>{ inp.value=b.dataset.t; hide(); inp.focus(); }); },280); });
+    inp.addEventListener('blur',()=>setTimeout(hide,150)); inp.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); }); }
+  $('#mform').onsubmit=e=>{ e.preventDefault(); $('#mfs').hidden=true; run(); };
   $('#mkeep').onchange=keep;
   $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp','mf'].forEach(k=>$('#'+k).value=''); $('#mst').textContent=''; };
   if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv) run(); }
