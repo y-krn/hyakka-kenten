@@ -1226,6 +1226,38 @@ function todayDone(cur){ if(!TD||!cur.today||cur.today.day!==TD.day) return; con
 async function famToday(){""")
 rep("setCount(); famToday(); mineInit();", "setCount(); famToday(); mineInit(); todayInit();")
 
+# ---- 50. トップページの整理：今日の一戦を入口に。王座戦は王者だけ見せて、挑戦の欄と記録は畳む。仲間図鑑と代表戦は「見つける」にまとめる ----
+# 今日の一戦を一番上へ（読み込むまでは枠だけ出して、あとから下の枠がずれないようにする）
+rep('  <section id="today" class="card" hidden></section>\n\n  <section id="setup" class="card"', '  <section id="setup" class="card"')
+rep('  <section id="throne" class="card" hidden aria-live="polite"></section>',
+    '  <section id="today" class="card tdload"><div class="sechead"><h2>今日の一戦</h2><span>きょうの組み合わせを準備しています…</span></div></section>\n\n  <section id="throne" class="card" hidden aria-live="polite"></section>')
+rep("async function todayInit(){ const box=$('#today'); if(!box||!POPULAR.length) return; const day=jstDay();\n  try{ TD=await todayPair(day); }catch(_){ TD=null; } if(!TD) return; todayDraw();",
+    "async function todayInit(){ const box=$('#today'); if(!box) return; if(!POPULAR.length){ box.hidden=true; return; } const day=jstDay();\n  try{ TD=await todayPair(day); }catch(_){ TD=null; } if(!TD){ box.hidden=true; return; } box.classList.remove('tdload'); todayDraw();")
+# 王座戦：王者の行だけ見せ、挑戦の欄と記録は「この王者に挑む」で開く
+rep("  <div class=\"meta\">この王者を倒せる記事を、",
+    "  <details class=\"thx\" id=\"thx\"${THOPEN||msg?' open':''}><summary>この王者に挑む・王座戦の記録</summary>\n  <div class=\"meta\">この王者を倒せる記事を、")
+rep("在位中'}）</span></li>`).join('')}</ol></details>`;", "在位中'}）</span></li>`).join('')}</ol></details></details>`;")
+rep("  const inp=$('#chT'), dl=$('#sgT');", "  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; });\n  const inp=$('#chT'), dl=$('#sgT');")
+rep("if(M){ $('#thr').onclick=()=>{ $('#throne').scrollIntoView", "if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView")
+rep("var TODAYF=null, TD=null;", "var TODAYF=null, TD=null, THOPEN=false;")
+# 見つける：仲間図鑑と代表戦を1つの枠に
+rep('<section id="zukan" class="card" hidden></section>\n  <section id="mine" class="card"><div class="sechead"><h2>あなたの代表戦</h2><span>誕生日・生まれた年・出身地。入れたい項目だけで、あなたの代表を探して戦わせる</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></section>\n',
+    '<section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaに埋もれた記事を探して、戦わせる</span></div>\n    <div class="fgrid"><div id="zukan" hidden></div>\n    <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>\n')
+rep('z.innerHTML=`<div class="sechead"><h2>仲間図鑑</h2><span>Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</span></div><div class="trow">',
+    'z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</p><div class="trow">')
+rep("#zukan,#mine,#today{padding:16px;display:flex;flex-direction:column;gap:12px}",
+    "#today{padding:16px;display:flex;flex-direction:column;gap:12px}\n#today.tdload{min-height:240px}\n"
+    "#find{padding:16px;display:flex;flex-direction:column;gap:12px}\n"
+    "#find .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}\n"
+    "@media (max-width:640px){#find .fgrid{grid-template-columns:1fr}}\n"
+    "#zukan,#mine{display:flex;flex-direction:column;gap:8px;min-width:0}\n"
+    "#zukan h3,#mine h3{margin:0;font-size:16px}#find .fsub{margin:0;font-size:12px;color:var(--muted)}\n"
+    "#zukan .trow,#mine .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}\n"
+    "#throne .thx>summary{display:inline-block;margin-top:10px;padding:8px 14px;border:1px solid var(--ink);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;list-style:none}\n"
+    "#throne .thx>summary::-webkit-details-marker{display:none}\n"
+    "#throne .thx>summary::after{content:' ▼';font-size:11px}#throne .thx[open]>summary::after{content:' ▲'}\n"
+    "#throne .thx[open]>summary{margin-bottom:10px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

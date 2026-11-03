@@ -201,7 +201,18 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .famchip:hover{border-color:var(--ink)}
 .famchip b{margin-left:6px;font-family:var(--f-display);font-weight:400;color:var(--muted)}
 .famchip.big{font-size:15px;font-weight:700;padding:6px 14px;border-color:var(--ink)}
-#zukan,#mine,#today{padding:16px;display:flex;flex-direction:column;gap:12px}
+#today{padding:16px;display:flex;flex-direction:column;gap:12px}
+#today.tdload{min-height:240px}
+#find{padding:16px;display:flex;flex-direction:column;gap:12px}
+#find .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+@media (max-width:640px){#find .fgrid{grid-template-columns:1fr}}
+#zukan,#mine{display:flex;flex-direction:column;gap:8px;min-width:0}
+#zukan h3,#mine h3{margin:0;font-size:16px}#find .fsub{margin:0;font-size:12px;color:var(--muted)}
+#zukan .trow,#mine .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#throne .thx>summary{display:inline-block;margin-top:10px;padding:8px 14px;border:1px solid var(--ink);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;list-style:none}
+#throne .thx>summary::-webkit-details-marker{display:none}
+#throne .thx>summary::after{content:' ▼';font-size:11px}#throne .thx[open]>summary::after{content:' ▲'}
+#throne .thx[open]>summary{margin-bottom:10px}
 #today .tdvs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
 #today .tdvs>div{display:flex;flex-direction:column;gap:2px;min-width:0}#today .tdvs>div:last-child{text-align:right;align-items:flex-end}
 #today .tdvs small{font-size:11px;color:var(--muted)}#today .tdvs b{font-size:20px;line-height:1.3;overflow-wrap:anywhere}
@@ -316,9 +327,9 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
     <p class="lede">記事を2つ選ぶと、Wikidataに載っている事実だけで戦います。技の下の小さな文字が、その技の元になった事実です。</p>
   </header>
 
-  <section id="throne" class="card" hidden aria-live="polite"></section>
+  <section id="today" class="card tdload"><div class="sechead"><h2>今日の一戦</h2><span>きょうの組み合わせを準備しています…</span></div></section>
 
-  <section id="today" class="card" hidden></section>
+  <section id="throne" class="card" hidden aria-live="polite"></section>
 
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
     <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる。結果は記録に残りません</span></div>
@@ -336,8 +347,9 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 
   <section id="ring" class="ring" hidden></section>
 
-  <section id="zukan" class="card" hidden></section>
-  <section id="mine" class="card"><div class="sechead"><h2>あなたの代表戦</h2><span>誕生日・生まれた年・出身地。入れたい項目だけで、あなたの代表を探して戦わせる</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></section>
+  <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaに埋もれた記事を探して、戦わせる</span></div>
+    <div class="fgrid"><div id="zukan" hidden></div>
+    <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
   <div class="record card" style="padding:10px 14px" id="record"></div>
   <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
 
@@ -1018,7 +1030,7 @@ function showResult(){
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
-  if(M){ $('#thr').onclick=()=>{ $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
+  if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
   if($('#again')) $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
@@ -1194,7 +1206,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
 function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine();
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間図鑑')); }
 /* ---------- 今日の一戦 ---------- */
-var TODAYF=null, TD=null;
+var TODAYF=null, TD=null, THOPEN=false;
 const TD_K='hk_today';
 const tdLoad=()=>{ try{ return JSON.parse(localStorage.getItem(TD_K)||'{}')||{}; }catch(_){ return {}; } };
 const tdSave=o=>{ try{ const ks=Object.keys(o).sort(); while(ks.length>60) delete o[ks.shift()]; localStorage.setItem(TD_K,JSON.stringify(o)); }catch(_){} };
@@ -1213,8 +1225,8 @@ async function todayPair(day){ const nr=await fetch('data/norand.json?v='+VER).t
   let b=-1; for(let k=0;k<30&&b<0;k++){ const B=await bucket(hash('today-b/'+day+'/'+k)%NB); const ks=Object.keys(B).sort(); if(!ks.length) continue;
     const t=ks[hash('today-t/'+day+'/'+k)%ks.length]; if(nr.has(t)) continue; const i=await loadTitle(t); if(ok(i)&&i!==a&&(F[i][7]||[]).length) b=i; }
   return a>=0&&b>=0?{day,a,b}:null; }
-async function todayInit(){ const box=$('#today'); if(!box||!POPULAR.length) return; const day=jstDay();
-  try{ TD=await todayPair(day); }catch(_){ TD=null; } if(!TD) return; todayDraw();
+async function todayInit(){ const box=$('#today'); if(!box) return; if(!POPULAR.length){ box.hidden=true; return; } const day=jstDay();
+  try{ TD=await todayPair(day); }catch(_){ TD=null; } if(!TD){ box.hidden=true; return; } box.classList.remove('tdload'); todayDraw();
   if(new URLSearchParams(location.search).has('today')) box.scrollIntoView({behavior:'smooth',block:'start'}); }
 const TITLES=[[30,'生ける出典'],[14,'歩く百科事典'],[7,'百科の予言者'],[3,'目利き']];   // 連続的中の日数と称号
 const tdTitle=n=>(TITLES.find(t=>n>=t[0])||[])[1]||'';
@@ -1269,7 +1281,7 @@ function todayDone(cur){ if(!TD||!cur.today||cur.today.day!==TD.day) return; con
 async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
     let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
-    z.innerHTML=`<div class="sechead"><h2>仲間図鑑</h2><span>Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</span></div><div class="trow"><span class="tl">今日の一門</span><span class="today"></span><button type="button" class="btn small" id="famrnd">ほかの一門</button></div>`;
+    z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</p><div class="trow"><span class="tl">今日の一門</span><span class="today"></span><button type="button" class="btn small" id="famrnd">ほかの一門</button></div>`;
     z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); draw(); }; }
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
   const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\d+$/.test(q)) openFam(q); }
@@ -1323,13 +1335,15 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <div class="crown">第${d.reignNo}代王者</div>
   <div class="champ">${esc(c.display)}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="meta">防衛 <b>${c.defenses}</b>回 ／ 王座を取った人：<b>${esc(c.holder)}</b> ／ ${esc(dt(c.started_at))}から在位</div>
+  <details class="thx" id="thx"${THOPEN||msg?' open':''}><summary>この王者に挑む・王座戦の記録</summary>
   <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、一度王座戦で戦った組み合わせは、もう戦えません。</div>
   <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
   <details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li>${x.cid?`<a class="rp" href="?c=${x.cid}" data-c="${x.cid}"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}${x.ended_at?'':'・在位中'}）</span></li>`).join('')}</ol></details>
-  <details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li>${x.cid?`<a class="rp" href="?c=${x.cid}" data-c="${x.cid}"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+(x.lostcid?`<a class="rp" href="?c=${x.lostcid}" data-c="${x.lostcid}">${esc(x.ended_by)}に敗れる</a>`:esc(x.ended_by)+'に敗れる'):'在位中'}）</span></li>`).join('')}</ol></details>`;
+  <details><summary>歴代王者</summary><ol reversed>${d.history.map(x=>`<li>${x.cid?`<a class="rp" href="?c=${x.cid}" data-c="${x.cid}"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}・${esc(dt(x.started_at))}〜${x.ended_by?'、'+(x.lostcid?`<a class="rp" href="?c=${x.lostcid}" data-c="${x.lostcid}">${esc(x.ended_by)}に敗れる</a>`:esc(x.ended_by)+'に敗れる'):'在位中'}）</span></li>`).join('')}</ol></details></details>`;
+  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; });
   const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;
   const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };
   inp.addEventListener('change',chk);
