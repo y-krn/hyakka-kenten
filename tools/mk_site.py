@@ -999,43 +999,24 @@ const mineSave=o=>{ try{ if(o) localStorage.setItem(MINE_K,JSON.stringify(o)); e
 function todayJ(){ const d=new Date(Date.now()+9*3600e3); return {m:d.getUTCMonth()+1,d:d.getUTCDate()}; }
 async function mineFind(v){ v=String(v||'').trim(); if(!v) return null; if(await inData(v)) return v;
   try{ const c=await suggest(v,null); return c[0]||null; }catch(_){ return null; } }
-const MNG=/死刑囚|犯罪者|殺人|暴力団|ヤクザ|テロリスト|AV女優|アダルト/;   // 代表としておすすめしにくい人は外す
-const WPA='https://ja.wikipedia.org/w/api.php?format=json&formatversion=2&origin=*&';
-const wpj=p=>fetch(WPA+p).then(r=>{ if(!r.ok) throw new Error('wikipedia '+r.status); return r.json(); });
-const memo=(k,f)=>{ try{ const c=JSON.parse(sessionStorage.getItem(k)||'null'); if(c) return Promise.resolve(c); }catch(_){}
-  return f().then(v=>{ try{ sessionStorage.setItem(k,JSON.stringify(v)); }catch(_){} return v; }); };
-async function addPV(list){ const B=[]; for(let i=0;i<list.length;i+=50) B.push(list.slice(i,i+50));
-  await Promise.all(B.map(async b=>{ try{ const q=await wpj('action=query&prop=pageviews&pvipdays=30&redirects=1&titles='+encodeURIComponent(b.map(x=>x.t).join('|')));
-    const map={}; for(const r of [...(q.query.normalized||[]),...(q.query.redirects||[])]) map[r.from]=r.to;
-    const pv={}; for(const p of q.query.pages||[]) pv[p.title]=Object.values(p.pageviews||{}).reduce((s,v)=>s+(v||0),0);
-    for(const x of b){ let t=x.t; for(let n=0;n<3&&map[t];n++) t=map[t]; x.t=t; x.n=t; x.pv=pv[t]||0; }   /* 転送ページは転送先の名前で表示する（表示と対戦がずれないように） */ }catch(_){} }));
-  return list.sort((a,b)=>b.pv-a.pv); }
-// その日に生まれた人（日付の記事の「誕生日」の節）
-const births=(m,d)=>memo('hk_bd_'+m+'/'+d,async()=>{ const pg=m+'月'+d+'日';
-  const s=await wpj('action=parse&prop=sections&page='+encodeURIComponent(pg));
-  const sec=((s.parse||{}).sections||[]).find(x=>x.line==='誕生日'); if(!sec) return [];
-  const t=await wpj('action=parse&prop=text&section='+sec.index+'&page='+encodeURIComponent(pg));
-  const doc=new DOMParser().parseFromString((t.parse||{}).text||'','text/html'); const out=[], seen=new Set();
-  for(const li of doc.querySelectorAll('li')){ const txt=li.textContent.replace(/\[[^\]]*\]/g,'').trim(); const ym=txt.match(/^(紀元前)?(\d+)年/);
-    const a=[...li.querySelectorAll('a[href^="/wiki/"]')].find(a=>{ const ti=a.getAttribute('title')||''; return ti&&!a.classList.contains('new')&&!ti.includes(':')&&!/^(紀元前)?\d+年$|^\d+月\d+日$/.test(ti); });
-    if(!a||!ym) continue; const rem=txt.replace(/^[^-–]*[-–]\s*/,''); if(!rem.startsWith(a.textContent.trim())) continue;   // 名前にリンクがない行は使わない
-    const ti=a.getAttribute('title'); if(seen.has(ti)) continue; seen.add(ti);
-    const w=txt.split('、').slice(1).join('、').split('\n')[0].trim(); if(MNG.test(w)) continue;
-    out.push({t:ti,n:ti,y:ym[1]?-(+ym[2]):+ym[2],w:w.length>24?w.slice(0,24)+'…':w,pv:0}); }
-  return addPV(out); });
-// その土地の出身の人（Category:◯◯出身の人物）
-const natives=place=>memo('hk_pl_'+place,async()=>{ const q=await wpj('action=query&list=categorymembers&cmnamespace=0&cmlimit=500&cmtitle='+encodeURIComponent('Category:'+place+'出身の人物'));
-  const L=((q.query||{}).categorymembers||[]).map(x=>({t:x.title,n:x.title,pv:0})).filter(x=>!/一覧$/.test(x.t)); const R=await addPV(L); const seen=new Set(); return R.filter(x=>!seen.has(x.t)&&seen.add(x.t)); });
-let YRS=null; const years=()=>YRS||(YRS=fetch('data/bd/years.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status); return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(e=>{ YRS=null; throw e; }));
-async function bdTop(list,n,skip){ const out=[]; for(let i=0;i<list.length&&out.length<n;i+=12){ const c=list.slice(i,i+12); const ok=await Promise.all(c.map(x=>inData(x.t)));
-    c.forEach((x,k)=>{ if(ok[k]&&out.length<n&&!(skip&&skip(x))) out.push(x); }); } return out; }
+// 誕生日・出身地・同い年は、百科拳典に置いた索引（tools/build_bd.py で作る）から探す。外には問い合わせない
+const gzj=u=>fetch(u).then(async r=>{ if(!r.ok) throw new Error(r.status); return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); });
+const BDF={}; const bdFile=p=>BDF[p]||(BDF[p]=gzj('data/bd/'+p+'.json.gz?v='+VER).catch(e=>{ delete BDF[p]; throw e; }));
+let BDM=null; const bdMeta=()=>BDM||(BDM=fetch('data/bd/meta.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ BDM=null; throw e; }));
+const births=(m,d)=>bdFile('d/'+m).then(o=>(o[m+'/'+d]||[]).map(a=>({t:a[0],n:a[1],y:a[2]})));
+async function placeKey(v){ const M=await bdMeta(); const get=async k=>{ const o=await bdFile('p/'+(fnv(k)%M.nbp)); return o[k]?k:null; };
+  for(const k of [v,v+'市',v+'県',v+'都',v+'府',v+'町',v+'村',v+'区']){ const r=await get(k); if(r) return r; }   // 「岡山」→「岡山市」など
+  const t=await mineFind(v); return t?get(t):null; }   // 一覧にない書き方のときだけ、Wikipediaの検索で正式な記事名を探す
+const natives=k=>bdMeta().then(M=>bdFile('p/'+(fnv(k)%M.nbp))).then(o=>(o[k]||[]).map(a=>({t:a[0],n:a[1],y:a[2]})));
+const years=()=>bdFile('years');
+const bdTop=(list,n,skip)=>list.filter(x=>!(skip&&skip(x))).slice(0,n);
 const ysJ=y=>y<0?'紀元前'+(-y)+'年':y+'年';
 // 代表の「根拠」と、共有したときに推測されうること
 const MB={bd:{lab:'誕生日が同じ',why:v=>v.m+'月'+v.d+'日生まれ',warn:'あなたの誕生日'},yr:{lab:'同い年',why:v=>v.y+'年生まれ',warn:'あなたの年齢'},pl:{lab:'同郷',why:v=>v.pt+'出身',warn:'あなたの出身地'},fv:{lab:'好きなもの',why:()=>'好きなもの',warn:''}};
 function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(); const o=sv||{}; const td=todayJ();
   const opt=(n,cur)=>Array.from({length:n},(_,k)=>`<option value="${k+1}"${+cur===k+1?' selected':''}>${k+1}</option>`).join('');
   dlg.setAttribute('aria-label','あなたの代表戦');
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">あなたの代表戦</div><h3>あなたにゆかりのある記事が、代表として戦う</h3><div class="fd">入力は記事を探すためだけに使い、百科拳典のサーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">あなたの代表戦</div><h3>あなたにゆかりのある記事が、代表として戦う</h3><div class="fd">入力は記事を探すためだけに使い、サーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <form class="mform" id="mform">
     <div class="mtip">入れたい項目だけで大丈夫です。1つだけでも探せます。</div>
     <label>誕生日</label><div class="mrow"><select id="mm" aria-label="誕生日の月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="誕生日の日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
@@ -1047,14 +1028,14 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
   </form>
   <div id="mrep"></div>
   <ol class="flist" id="mlist"></ol>
-  <div class="fnote">誕生日・出身地・好きなものは、記事を探すときにWikipediaに問い合わせます（そこで、だれが入力したかは分かりません）。生まれた年は、この端末の中だけで探します。誕生日が同じ人・同郷の人は日本語版Wikipediaの日付の記事とカテゴリから、直近30日によく読まれている順に選んでいます。</div>
+  <div class="fnote">誕生日・生まれた年・出身地は、百科拳典に置いてある一覧から、この端末の中で探します。好きなもの（と、一覧にない書き方の出身地）だけは、正式な記事名を探すためにWikipediaの検索にかけます。一覧は、Wikidataに記録された生年月日・出生地と、日本語版Wikipediaの1年間の閲覧数から作っています。</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
   const btns=x=>x.t===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(x.t)}" data-n="${esc(x.n)}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(x.t)}" data-n="${esc(x.n)}" data-s="1" aria-pressed="false">赤へ</button>`;
   const wl=x=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(x.t)}" target="_blank" rel="noopener">${esc(x.n)}</a>`;
   const prow=(x,lab,sub)=>`<li><div class="fn">${lab?`<span class="mlab">${esc(lab)}</span>`:''}${wl(x)}${sub?`<span class="mwho">${esc(sub)}</span>`:''}</div><div class="fb">${btns(x)}</div></li>`;
-  const bsub=x=>x.y!==undefined?ysJ(x.y)+'生まれ'+(x.w?'・'+x.w:''):x.w||'';
+  const bsub=x=>typeof x.y==='number'?ysJ(x.y)+'生まれ':'';
   let seq=0, ST=null;
   function cur(){ return {m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim()}; }
   function keep(){ const v=cur(); mineSave($('#mkeep').checked&&(v.m||v.d||v.y||v.p||v.f)?v:null); }
@@ -1085,7 +1066,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       v.m&&v.d?safe(births(+v.m,+v.d).then(L=>bdTop(L,10,notCh)),'誕生日'):null,
       safe(births(td.m,td.d).then(L=>bdTop(L,6,notCh)),'きょう'),
       yi?safe(years().then(Y=>Y[yi]||{p:[],o:[]}),'生まれた年'):null,
-      v.p?mineFind(v.p):null,
+      v.p?safe(placeKey(v.p),'出身地'):null,
       v.f?mineFind(v.f):null ]);
     let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,8,notCh)),'出身地');
     if(my!==seq) return;
@@ -1097,7 +1078,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     if(bdl&&bdl.length){ H.push(`<li class="mh">誕生日が同じ人（${v.m}月${v.d}日生まれ）</li>`); bdl.forEach(x=>H.push(prow(x,'',bsub(x)))); }
     if(yp.length){ H.push(`<li class="mh">同い年の人（${yi}年生まれ）</li>`); yp.slice(0,10).forEach(x=>H.push(prow(x,'',''))); }
     if(yo.length){ H.push(`<li class="mh">同い年のもの（${yi}年にできたもの・始まったもの）</li>`); yo.slice(0,6).forEach(x=>H.push(prow(x,'',''))); }
-    if(v.p){ H.push(`<li class="mh">同郷の人（${esc(plt||v.p)}出身）</li>`); if(pll&&pll.length) pll.forEach(x=>H.push(prow(x,'',''))); else H.push(`<li><div class="fn"><span class="mmiss">${plt?'「'+esc(plt)+'出身の人物」の一覧が見つかりませんでした。市や県の名前で試してください':'「'+esc(v.p)+'」に合う記事が見つかりませんでした'}</span></div></li>`); }
+    if(v.p){ H.push(`<li class="mh">同郷の人（${esc(plt||v.p)}出身）</li>`); if(pll&&pll.length) pll.forEach(x=>H.push(prow(x,'',''))); else H.push(`<li><div class="fn"><span class="mmiss">${plt?'「'+esc(plt)+'」出身の人が見つかりませんでした':'「'+esc(v.p)+'」が見つかりませんでした。市や県の名前で試してください'}</span></div></li>`); }
     if(v.f){ H.push('<li class="mh">好きなもの</li>'); H.push(fvt?prow({t:fvt,n:fvt},'',''):`<li><div class="fn"><span class="mmiss">「${esc(v.f)}」に合う記事が見つかりませんでした</span></div></li>`); }
     if(todl&&todl.length){ H.push(`<li class="mh">きょう${td.m}月${td.d}日生まれ</li>`); todl.forEach(x=>H.push(prow(x,'',bsub(x)))); }
     $('#mlist').innerHTML=H.join('');
