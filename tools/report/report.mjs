@@ -59,6 +59,8 @@ try {
 const n = x => Number(x || 0).toLocaleString('ja-JP');
 const diff = (a, b) => { a = +a || 0; b = +b || 0; if (!b) return a ? '（先週 0）' : ''; const p = Math.round((a - b) / b * 100); return `（先週 ${n(b)}、${p >= 0 ? '+' : ''}${p}%）`; };
 const v = o => o && o[0] ? { visits: o[0].sum.visits, views: o[0].count } : { visits: 0, views: 0 };
+const who = h => h && h !== '名無しの挑戦者' ? `（${h}）` : '';   // 名前を入れずに挑んだ人は書かない
+const CTRY = { JP: '日本', US: 'アメリカ', CN: '中国', FR: 'フランス', NL: 'オランダ', IE: 'アイルランド', DE: 'ドイツ', GB: 'イギリス', SG: 'シンガポール', KR: '韓国', TW: '台湾', HK: '香港', CA: 'カナダ', IN: 'インド', AU: 'オーストラリア' };
 const L = [];
 L.push(`# 百科拳典 週間レポート ${range}`, '');
 L.push('## 訪問（Cloudflare Web Analytics）');
@@ -66,7 +68,7 @@ if (rum) {
   const a = v(rum.tw), b = v(rum.tp);
   L.push(`- 訪問 ${n(a.visits)} ${diff(a.visits, b.visits)}`, `- ページ表示 ${n(a.views)} ${diff(a.views, b.views)}`);
   const list = (title, rows, key, fmt = x => x || '（不明）') => { if (rows.length) L.push(`- ${title}：` + rows.map(r => `${fmt(r.dimensions[key])} ${n(r.sum.visits)}`).join('、')); };
-  list('国・地域', rum.ctry, 'countryName');
+  list('国・地域', rum.ctry, 'countryName', x => CTRY[x] || x || '（不明）');
   list('どこから来たか', rum.ref, 'refererHost', x => x || '直接・不明');
   list('よく開かれたページ', rum.path, 'requestPath');
   list('端末', rum.dev, 'deviceType');
@@ -77,9 +79,9 @@ L.push(`- 王座戦の挑戦 ${n(cw.n)}回 ${diff(cw.n, cp.n)}、挑んだブラ
 if (daily.length) L.push('- 日別の自由対戦：' + daily.map(r => `${+r.d.slice(5, 7)}/${+r.d.slice(8)} ${n(r.n)}`).join('、'));
 if (topCh.length) L.push('- よく挑まれた記事：' + topCh.map(r => `${r.display} ${r.n}回`).join('、'));
 L.push('', '## 王座');
-if (changes.length) L.push(`- 今週の王座交代 ${changes.length}回：` + changes.map(r => `${r.display}（${r.holder}）`).join(' → '));
+if (changes.length) L.push(`- 今週の王座交代 ${changes.length}回：` + changes.map(r => r.display + who(r.holder)).join(' → '));
 else L.push('- 今週の王座交代はありませんでした');
-if (champ.id) L.push(`- いまの王者：${champ.display}（${champ.holder}）防衛${champ.defenses}回、${md(new Date(champ.started_at))}から`);
+if (champ.id) L.push(`- いまの王者：${champ.display}${who(champ.holder)} 防衛${champ.defenses}回、${md(new Date(champ.started_at))}から`);
 L.push('', `累計：自由対戦 ${n(tot.plays)}戦・王座戦 ${n(tot.ch)}回・歴代王者 ${n(tot.reigns)}代`);
 const md_ = L.join('\n');
 console.log(md_);
