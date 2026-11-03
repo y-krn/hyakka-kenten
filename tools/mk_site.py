@@ -1258,6 +1258,17 @@ rep("#zukan,#mine,#today{padding:16px;display:flex;flex-direction:column;gap:12p
     "#throne .thx>summary::after{content:' ▼';font-size:11px}#throne .thx[open]>summary::after{content:' ▲'}\n"
     "#throne .thx[open]>summary{margin-bottom:10px}")
 
+# ---- 51. トップページの整理（続き）：自由対戦の能力値を2列に、VSを小さく、記録は一番下の注意書きとまとめる、説明文を短く ----
+rep('<p class="lede">記事を2つ選ぶと、Wikidataに載っている事実だけで戦います。技の下の小さな文字が、その技の元になった事実です。</p>',
+    '<p class="lede">勝敗も技も、記事に書かれた事実だけで決まります。まずは「今日の一戦」からどうぞ。</p>')
+rep('  <div class="record card" style="padding:10px 14px" id="record"></div>\n', '')
+rep('  <footer>\n', '  <footer>\n    <div class="record" id="record"></div>\n')
+rep(".setup{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start}",
+    ".setup{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start}\n"
+    "@media (max-width:640px){.stats{grid-template-columns:auto 1fr auto auto 1fr auto!important;column-gap:8px!important}.vsmark{font-size:18px!important;margin:-6px 0}.matchup{display:none}}\n"   # スマホ：能力値は2つずつ横に、VSは小さく、カードと重なる「A vs B」の行は出さない   # スマホでは上下に並ぶので、VSは小さく、カードと重なる「A vs B」の行は出さない
+    "footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:6px}")
+rep("<details class=\"mvs\"${WIDE()?' open':''}>", "<details class=\"mvs\">")   # 技の候補は、パソコンでも最初は畳む（自由対戦の枠が長くなりすぎるため）
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

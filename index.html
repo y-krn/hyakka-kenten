@@ -85,6 +85,8 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 .btn[disabled]{opacity:.4;pointer-events:none}
 /* 選手選び */
 .setup{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start}
+@media (max-width:640px){.stats{grid-template-columns:auto 1fr auto auto 1fr auto!important;column-gap:8px!important}.vsmark{font-size:18px!important;margin:-6px 0}.matchup{display:none}}
+footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:6px}
 @media (max-width:640px){.setup{grid-template-columns:1fr}}
 .vsmark{font-family:var(--f-display);font-size:28px;color:var(--muted);align-self:center;text-align:center}
 .pick{padding:14px;display:flex;flex-direction:column;gap:10px;border-top:4px solid var(--side);min-width:0}
@@ -324,7 +326,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
     <div class="eyebrow" id="eyebrow">ひゃっかけんてん ／ 試作</div>
     <h1>百科拳典</h1>
     <p class="sub">Wikipediaの記事が、事実だけで殴り合う。</p>
-    <p class="lede">記事を2つ選ぶと、Wikidataに載っている事実だけで戦います。技の下の小さな文字が、その技の元になった事実です。</p>
+    <p class="lede">勝敗も技も、記事に書かれた事実だけで決まります。まずは「今日の一戦」からどうぞ。</p>
   </header>
 
   <section id="today" class="card tdload"><div class="sechead"><h2>今日の一戦</h2><span>きょうの組み合わせを準備しています…</span></div></section>
@@ -350,10 +352,10 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaに埋もれた記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
     <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
-  <div class="record card" style="padding:10px 14px" id="record"></div>
   <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
 
   <footer>
+    <div class="record" id="record"></div>
     <span>データ：2026年10月19日時点のWikidataと日本語版Wikipedia。災害・事件など扱わない題材は収録していません。件数はWikidataに記録されている数で、実際の総数とは限りません。Wikidataと日本語版の記事で数値が食い違うものは日本語版に合わせています。</span>
     <span>百科拳典は個人が作った非公式のゲームです。Wikipedia・WikidataおよびWikimedia Foundationとは関係がなく、提携や承認も受けていません。WikipediaはWikimedia Foundationの登録商標です。</span>
   </footer>
@@ -907,7 +909,7 @@ function fighterCard(i){ const f=F[i];
   ${f[5]==='配慮'?`<div><span class="chip">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}
   <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>
   <div class="fams" data-fi="${i}"></div>
-  <details class="mvs"${WIDE()?' open':''}><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
+  <details class="mvs"><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
   <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
