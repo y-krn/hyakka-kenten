@@ -1134,13 +1134,18 @@ rep("#zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}",
     "#today .tdttl{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:var(--hl);font-size:13px;font-weight:700}\n"
     "#today .tdtmr{font-size:13px;text-align:center;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}\n"
     "#today .tdcal summary{font-size:13px;color:var(--muted);cursor:pointer}\n"
-    "#today .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:12px}\n"
-    "#today .cal b{font-weight:400;color:var(--muted);font-size:11px}\n"
-    "#today .cal span{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--muted)}\n"
-    "#today .cal span.hit{background:var(--a);color:#fff;font-weight:700}#today .cal span.miss{background:color-mix(in srgb,var(--b) 25%,transparent);color:var(--ink)}#today .cal span.watch{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--ink)}\n"
-    "#today .cal span.now{outline:2px solid var(--ink);outline-offset:-2px}\n"
-    "#today .calk{display:flex;gap:10px;font-size:11px;color:var(--muted);margin-top:6px;align-items:center;flex-wrap:wrap}\n"
-    "#today .calk i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:2px;vertical-align:-1px}#today .calk i.hit{background:var(--a)}#today .calk i.miss{background:color-mix(in srgb,var(--b) 25%,transparent)}#today .calk i.watch{background:color-mix(in srgb,var(--muted) 18%,transparent)}\n"
+    "#today .hoshi{position:relative;margin-top:8px;border:3px double var(--ink);padding:12px 10px 10px;font-family:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;background:var(--paper)}\n"
+    "#today .hh{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:8px}\n"
+    "#today .ht{font-size:12px;line-height:1.4}#today .ht b{font-size:22px;letter-spacing:.15em}\n"
+    "#today .hr{font-size:11px;text-align:right;display:flex;flex-direction:column}#today .hr b{font-size:24px;letter-spacing:.1em}\n"
+    "#today .hg{display:grid;grid-template-columns:repeat(10,1fr);gap:0;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}\n"
+    "#today .hd{border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);display:flex;flex-direction:column;align-items:center;padding:2px 0 4px;min-width:0}\n"
+    "#today .hd.now{background:color-mix(in srgb,var(--hl) 45%,transparent)}\n"
+    "#today .hd .dn{font-size:9px;color:var(--muted);line-height:1.3;white-space:nowrap}\n"
+    "#today .hd .mk{font-size:20px;line-height:1.1;height:1.1em}#today .mk.y{font-size:13px;color:var(--muted)}#today .mk.kk{color:var(--muted)}\n"
+    "#today .hf{display:flex;gap:12px;align-items:baseline;justify-content:center;margin-top:10px}#today .hf b{font-size:24px;letter-spacing:.1em}#today .hf span{font-size:13px;color:var(--muted)}\n"
+    "#today .hk{font-size:10px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.6}\n"
+    "#today .seal{position:absolute;right:10px;bottom:34px;color:#c0392b;border:3px solid #c0392b;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.15;font-weight:700;transform:rotate(-14deg);opacity:.85;background:color-mix(in srgb,var(--paper) 70%,transparent)}\n"
     ".tdnote{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--hl) 25%,transparent);font-size:14px;text-align:center}")
 rep("current={ai,bi,an,mode:MODE}; MODE=null;", "current={ai,bi,an,mode:MODE,today:TODAYF}; MODE=null; TODAYF=null;")
 rep("(current.mode?$('#throne'):$('#setup')).after(ring);", "(current.mode?$('#throne'):current.today?$('#today'):$('#setup')).after(ring);")
@@ -1170,12 +1175,25 @@ async function todayInit(){ const box=$('#today'); if(!box||!POPULAR.length) ret
   if(new URLSearchParams(location.search).has('today')) box.scrollIntoView({behavior:'smooth',block:'start'}); }
 const TITLES=[[30,'生ける出典'],[14,'歩く百科事典'],[7,'百科の予言者'],[3,'目利き']];   // 連続的中の日数と称号
 const tdTitle=n=>(TITLES.find(t=>n>=t[0])||[])[1]||'';
-function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7); const first=new Date(Date.UTC(y,m-1,1)), days=new Date(Date.UTC(y,m,0)).getUTCDate(); const pad=first.getUTCDay();
-  const cells=[...Array(pad).fill('<span></span>')];
-  for(let d=1;d<=days;d++){ const k=now.slice(0,8)+String(d).padStart(2,'0'), x=o[k]; const st=!x||!x.done?'':x.p===null||x.p===undefined?'watch':x.hit?'hit':'miss';
-    cells.push(`<span class="${st}${k===now?' now':''}" title="${m}月${d}日${st==='hit'?'：当たり':st==='miss'?'：外れ':st==='watch'?'：観戦':''}">${d}</span>`); }
-  const hits=Object.keys(o).filter(k=>k.slice(0,7)===now.slice(0,7)&&o[k].hit).length;
-  return `<details class="tdcal"><summary>的中カレンダー（${m}月は${hits}回的中）</summary><div class="cal"><b>日</b><b>月</b><b>火</b><b>水</b><b>木</b><b>金</b><b>土</b>${cells.join('')}</div><div class="calk"><i class="hit"></i>当たり <i class="miss"></i>外れ <i class="watch"></i>予想なしで観戦</div></details>`; }
+// 的中の記録は、大相撲の星取表にならう（当たり○・外れ●・予想なしの観戦は□・来なかった日は「や」）。番付は今月の勝ち星で決まる
+const KANJI=n=>{ const d='〇一二三四五六七八九'; if(n<10) return d[n]; if(n<20) return '十'+(n%10?d[n%10]:''); return d[Math.floor(n/10)]+'十'+(n%10?d[n%10]:''); };
+const MON=['','一','二','三','四','五','六','七','八','九','十','十一','十二'];
+const BANZUKE=[[27,'横綱'],[24,'大関'],[21,'関脇'],[18,'小結'],[15,'前頭'],[12,'十両'],[9,'幕下'],[6,'三段目'],[3,'序二段'],[0,'序ノ口']];
+function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7), today=+now.slice(8,10), days=new Date(Date.UTC(y,m,0)).getUTCDate();
+  let W=0,L=0,K=0,Y=0; const first=Object.keys(o).filter(k=>k.slice(0,7)===now.slice(0,7)&&o[k].done).sort()[0]; const d0=first?+first.slice(8,10):today;
+  const cells=[]; for(let d=1;d<=days;d++){ const k=now.slice(0,8)+String(d).padStart(2,'0'), x=o[k];
+    let mk='', c='';
+    if(x&&x.done){ if(x.p===null||x.p===undefined){ mk='□'; c='kk'; K++; } else if(x.hit){ mk='○'; c='w'; W++; } else { mk='●'; c='l'; L++; } }
+    else if(d<today&&d>=d0){ mk='や'; c='y'; Y++; }   // 初めて来た日より前は数えない
+    cells.push(`<div class="hd${d===today?' now':''}"><span class="dn">${KANJI(d)}</span><span class="mk ${c}">${mk}</span></div>`); }
+  const rank=(BANZUKE.find(b=>W>=b[0])||[])[1];
+  const kachi=W>L&&W+L>=8;
+  return `<details class="tdcal" open><summary>星取表</summary><div class="hoshi">
+    <div class="hh"><div class="ht">百科拳典<br><b>${MON[m]}月場所</b></div><div class="hr">今場所の番付<b>${rank}</b></div></div>
+    <div class="hg">${cells.join('')}</div>
+    <div class="hf"><b>${KANJI(W)}勝${KANJI(L)}敗</b>${Y?`<span>${KANJI(Y)}休</span>`:''}${K?`<span>観戦のみ ${KANJI(K)}</span>`:''}</div>
+    ${kachi?'<div class="seal">勝ち<br>越し</div>':''}
+    <div class="hk">○当たり　●外れ　□予想なしで観戦　や休場（来なかった日）　番付は今月の当たりの数で上がります</div></div></details>`; }
 let TMR=null;   // 当てた人だけに見せる、明日の人気の記事
 async function tdTomorrow(){ if(TMR) return TMR; const d=jstDay(-1); try{ const x=await todayPair(d); TMR=x?{day:d,a:F[x.a][0]}:null; }catch(_){ TMR=null; } return TMR; }
 function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,b}=TD; const o=tdLoad(), me=o[day]||{};
