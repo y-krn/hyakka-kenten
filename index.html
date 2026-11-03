@@ -1074,11 +1074,10 @@ const ysJ=y=>y<0?'紀元前'+(-y)+'年':y+'年';
 function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const o=mineLoad(); const td=todayJ();
   const opt=(n,cur)=>Array.from({length:n},(_,k)=>`<option value="${k+1}"${+cur===k+1?' selected':''}>${k+1}</option>`).join('');
   dlg.setAttribute('aria-label','誕生日の代表戦');
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">誕生日の代表戦</div><h3>同じ誕生日の有名人が、あなたの代表</h3><div class="fd">入力はこの端末にだけ保存し、サーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">誕生日の代表戦</div><h3>同じ誕生日の有名人が、あなたの代表</h3><div class="fd">自分の誕生日でなくても、友達や推しの誕生日、記念日でも遊べます。入力はこの端末にだけ保存し、サーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <form class="mform" id="mform">
-    <label>誕生日</label><div class="mrow"><select id="mm" aria-label="月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
-    <details${o.y||o.p||o.f||o.f2?' open':''}><summary>生まれた年・出身地・好きなものも入れる（任意）</summary><div class="mopt">
-      <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
+    <label>日付</label><div class="mrow"><select id="mm" aria-label="月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="日"><option value="">－</option>${opt(31,o.d)}</select>日<button type="button" class="btn small" id="mrnd">おまかせ</button></div>
+    <details${o.p||o.f||o.f2?' open':''}><summary>出身地・好きなものの記事も探す（任意）</summary><div class="mopt">
       <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
       <label for="mf">好きなもの</label><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off">
       <label for="mf2">もう一つ</label><input id="mf2" type="text" placeholder="例：猫" value="${esc(o.f2||'')}" autocomplete="off"></div></details>
@@ -1086,7 +1085,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const o=mineLoad()
   </form>
   <div id="mrep"></div>
   <ol class="flist" id="mlist"></ol>
-  <div class="fnote">同じ誕生日の人は、日本語版Wikipediaの日付の記事（「${td.m}月${td.d}日」など）に載っている人を、直近30日によく読まれている順に並べています。誕生日・出身地・好きなものは、探すときにWikipediaに問い合わせます。</div>
+  <div class="fnote">同じ誕生日の人は、日本語版Wikipediaの日付の記事（「${td.m}月${td.d}日」など）に載っている人を、直近30日によく読まれている順に並べています。日付・出身地・好きなものは、探すときにWikipediaに問い合わせます。</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
@@ -1095,30 +1094,28 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const o=mineLoad()
   const prow=x=>`<li><div class="fn">${wl(x.t)}<span class="mwho">${esc(ysJ(x.y))}生まれ${x.w?'・'+esc(x.w):''}</span></div><div class="fb">${btns(x.t)}</div></li>`;
   const row=(lab,t,miss)=>`<li><div class="fn"><span class="mlab">${esc(lab)}</span>${t?wl(t):`<span class="mmiss">${esc(miss||'見つかりませんでした')}</span>`}</div>${t?`<div class="fb">${btns(t)}</div>`:''}</li>`;
   let seq=0;
-  async function run(go){ const my=++seq; const v={m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim(),f2:$('#mf2').value.trim()}; mineSave(v);
+  async function run(go){ const my=++seq; const v={m:$('#mm').value,d:$('#md').value,p:$('#mp').value.trim(),f:$('#mf').value.trim(),f2:$('#mf2').value.trim()}; mineSave(v);
     const H=[]; let rep='';
-    if(!(v.m&&v.d)){ $('#mrep').innerHTML=''; $('#mlist').innerHTML=''; $('#mst').textContent='誕生日を選ぶと、あなたの代表を探します'; famMark(); return; }
+    if(!(v.m&&v.d)){ $('#mrep').innerHTML=''; $('#mlist').innerHTML=''; $('#mst').textContent='日付を選ぶと、その日生まれの代表を探します'; famMark(); return; }
     $('#mst').textContent='Wikipediaで探しています…';
     const ch=champTitle(), notCh=x=>x.t===ch;
     const same=(+v.m===td.m&&+v.d===td.d);
     let mine=[], tod=[], err='';
     try{ const [a,b]=await Promise.all([births(+v.m,+v.d), same?Promise.resolve([]):births(td.m,td.d)]);
       mine=await bdTop(a,10,notCh); tod=same?[]:await bdTop(b,5,notCh);
-      if(/^\d{1,4}$/.test(v.y)){ const tw=a.filter(x=>x.y===+v.y); const ok=await Promise.all(tw.map(x=>inData(x.t))); var twins=tw.filter((x,k)=>ok[k]); } }
+    }
     catch(e){ err='Wikipediaから読み込めませんでした。少し待ってから、もう一度試してください'; }
     if(my!==seq) return;
     const A=mine[0], Bx=same?mine[1]:tod.find(x=>!A||x.t!==A.t);
     if(A&&Bx){ const la=v.m+'月'+v.d+'日生まれ代表', lb=same?'同じ誕生日のライバル':'きょう'+td.m+'月'+td.d+'日生まれ代表';
-      const post=fitPost(`【百科拳典 誕生日の代表戦】私の誕生日（${v.m}月${v.d}日）の代表は${A.t}。${lb}の${Bx.t}と対決！ あなたの誕生日の代表は？`)+'\n'+DISC;
+      const post=fitPost(`【百科拳典 誕生日の代表戦】${la}は${A.t}。${lb}の${Bx.t}と対決！ あなたの誕生日の代表は？`)+'\n'+DISC;
       rep=`<div class="mrep"><div class="mrk">あなたの代表戦</div><div class="mvs"><div class="ma"><small>${esc(la)}</small><b>${esc(A.t)}</b><small>${esc(ysJ(A.y))}生まれ</small></div><span class="mvx">vs</span><div class="mb"><small>${esc(lb)}</small><b>${esc(Bx.t)}</b><small>${esc(ysJ(Bx.y))}生まれ</small></div></div>
         <div class="mgo2"><a class="btn small" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(post)}&url=${encodeURIComponent(location.origin+'/?me=1')}">Xで誘う</a><button type="button" class="btn big" id="mrepgo">この代表戦を見る</button></div></div>`; }
-    if(typeof twins!=='undefined'&&twins.length){ H.push(`<li class="mh">あなたとまったく同じ日（${esc(v.y)}年${v.m}月${v.d}日）に生まれた人</li>`); twins.slice(0,5).forEach(x=>H.push(prow(x))); }
     if(mine.length){ H.push(`<li class="mh">${v.m}月${v.d}日生まれ（よく読まれている順）</li>`); mine.forEach(x=>H.push(prow(x))); }
     if(tod.length){ H.push(`<li class="mh">きょう${td.m}月${td.d}日生まれ</li>`); tod.forEach(x=>H.push(prow(x))); }
     // そのほかの入力（任意）
     const L=[]; const chk=async t=>(await inData(t))?t:null;
-    L.push(['誕生日',await chk(v.m+'月'+v.d+'日'),'']);
-    if(/^\d{1,4}$/.test(v.y)) L.push(['生まれた年',await chk((+v.y)+'年'),'この年の記事は収録していません']);
+    L.push(['日付',await chk(v.m+'月'+v.d+'日'),'']);
     if(v.p) L.push(['出身地',await mineFind(v.p),'「'+v.p+'」に合う記事が見つかりませんでした']);
     if(v.f) L.push(['好きなもの',await mineFind(v.f),'「'+v.f+'」に合う記事が見つかりませんでした']);
     if(v.f2) L.push(['好きなもの',await mineFind(v.f2),'「'+v.f2+'」に合う記事が見つかりませんでした']);
@@ -1131,7 +1128,8 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const o=mineLoad()
     if($('#mrepgo')) $('#mrepgo').onclick=()=>{ FP=[{t:A.t,n:A.t},{t:Bx.t,n:Bx.t}]; famApply(true); };
     famMark(); if(go){ const t=$('#mrep').firstChild?$('#mrep'):$('#mlist'); const hd=dlg.querySelector('.fhead'); dlg.scrollTo({top:Math.max(0,t.offsetTop-(hd?hd.offsetHeight:0)-8),behavior:'smooth'}); } }
   $('#mform').onsubmit=e=>{ e.preventDefault(); run(true); };
-  $('#mclr').onclick=()=>{ try{ localStorage.removeItem(MINE_K); }catch(_){} ['mm','md','my','mp','mf','mf2'].forEach(k=>$('#'+k).value=''); run(); };
+  $('#mclr').onclick=()=>{ try{ localStorage.removeItem(MINE_K); }catch(_){} ['mm','md','mp','mf','mf2'].forEach(k=>$('#'+k).value=''); run(); };
+  $('#mrnd').onclick=()=>{ const ML=[31,29,31,30,31,30,31,31,30,31,30,31]; const m=1+Math.floor(Math.random()*12); $('#mm').value=m; $('#md').value=1+Math.floor(Math.random()*ML[m-1]); run(true); };
   $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; run(); }
 function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine();
