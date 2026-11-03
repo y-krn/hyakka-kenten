@@ -1287,6 +1287,62 @@ rep("#zukan h3,#mine h3{margin:0;font-size:16px}",
     "#zukan .fhint{font-size:11px;color:var(--muted)}\n"
     "@media (max-width:640px){#mine{border-top:1px solid var(--line);padding-top:14px;margin-top:4px}}")
 
+# ---- 53. 実際に操作して見つけたところを直す ----
+#  1. 試合の見出しを、どこから始めた試合かに合わせる（今日の一戦／仲間図鑑から／あなたの代表戦／自由対戦）
+#  2. 今日の一戦の結果：共有文に勝者を書かない（見た人のネタバレになるため）。続けるボタンも今日の一戦向けに
+#  3. 仲間図鑑・代表戦から始めた試合のあとに、元の画面へ戻るボタン
+#  4. 記事名の候補リストが、入力欄から離れても残り、下の部品を押したつもりで候補を選んでしまう
+#  5. 小さすぎる押し場所を広げる
+rep("var TODAYF=null, TD=null, THOPEN=false;", "var TODAYF=null, TD=null, THOPEN=false, ORIG=null, MINE_LAST=null;")
+rep("current={ai,bi,an,mode:MODE,today:TODAYF}; MODE=null; TODAYF=null;", "current={ai,bi,an,mode:MODE,today:TODAYF,orig:ORIG}; MODE=null; TODAYF=null; ORIG=null;")
+rep("function ringHead(m){ if(!m) return '<div class=\"ringhead\">自由対戦</div>';",
+    "function ringHead(m,c){ if(!m) return '<div class=\"ringhead\">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間図鑑から':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')+'</div>';")
+rep("${ringHead(current.mode)}", "${ringHead(current.mode,current)}")
+# 今日の一戦の共有文（勝者は書かない）
+rep("  share=fitPost(share)+'\\n'+DISC;\n  const SHAREURL=battleURL();",
+    "  const TDY=current.today&&TD&&current.today.day===TD.day;\n"
+    "  if(TDY){ const me=tdLoad()[TD.day]||{}; const wi=w===null?null:(w===TD.a?0:1); const hit=(me.p===0||me.p===1)&&me.p===wi; const st=tdStreak({...tdLoad(),[TD.day]:{...me,done:1,hit}});\n"
+    "    share=`【百科拳典 今日の一戦 ${mdJ(TD.day)}】${F[TD.a][0]} vs ${F[TD.b][0]}`+(me.p===0||me.p===1?`\\n予想は${hit?'当たり！'+(st>1?`（${tdTitle(st)?tdTitle(st)+'・':''}${st}日連続）`:''):'外れ…'}`:'')+'\\nあなたはどっちが勝つと思う？'; }\n"
+    "  share=fitPost(share)+'\\n'+DISC;\n  const SHAREURL=TDY?location.origin+'/?today=1':battleURL();")
+rep("""    <div class="next">${M?`""",
+    """    <div class="next">${TDY?`
+      <button type="button" class="btn big" id="tdback">今日の一戦の星取表へ</button>
+      <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>`:M?`""")
+rep("""      <button type="button" class="btn" id="back">選び直す</button>`}""",
+    """      <button type="button" class="btn" id="back">選び直す</button>
+      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}""")
+rep("$('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }",
+    "$('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }\n"
+    "  if($('#tofree')&&!M) $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };\n"
+    "  if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };\n"
+    "  { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }")
+# 仲間図鑑・代表戦から始めたことを覚える
+rep("$('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);\n  famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }",
+    "$('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>{ ORIG={k:'fam',key}; famApply(true); };\n  famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }")
+rep("      FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; famApply(true); }; }",
+    "      FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; ORIG={k:'mine'}; famApply(true); }; }")
+rep("if(go&&sel[0]!==null&&sel[1]!==null) startBattle(); else $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }", "if(go&&sel[0]!==null&&sel[1]!==null) startBattle(); else $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); ORIG=null; }")
+# 代表戦に戻ったとき、覚えない設定でも直前の入力で結果を出し直す
+rep("function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(); const o=sv||{};",
+    "function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(); const o=sv||MINE_LAST||{};")
+rep("if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv) run();", "if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv||MINE_LAST) run();")
+rep("async function run(){ const my=++seq; const v=cur(); keep();", "async function run(){ const my=++seq; const v=cur(); keep(); MINE_LAST=v;")
+# 今日の一戦の当たり外れは、結果の枠の中の一番上に
+s = s.replace("res.prepend(n); } }", "(res.querySelector('.result')||res).prepend(n); } }", 1)
+# 候補リスト：入力欄が画面から外れたら閉じる。リストと入力欄の外を触ったら閉じる
+rep("async function famToday(){", r"""function sgClose(except){ document.querySelectorAll('ul.sg:not([hidden]),ul.msug:not([hidden])').forEach(ul=>{ if(except&&ul.parentElement.contains(except)) return; ul.hidden=true; const i=ul.parentElement.querySelector('input'); if(i) i.setAttribute('aria-expanded','false'); }); }
+addEventListener('scroll',()=>{ document.querySelectorAll('ul.sg:not([hidden])').forEach(ul=>{ const i=ul.parentElement.querySelector('input'); if(!i) return; const r=i.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) sgClose(); }); },{passive:true});
+document.addEventListener('pointerdown',e=>{ if(!e.target.closest('.sgw')) sgClose(); },true);
+async function famToday(){""")
+# 押し場所を広げる（見た目の大きさはほぼ変えない）
+rep(".fname a{font-size:12px;color:var(--muted)}", ".fname a{font-size:12px;color:var(--muted);padding:10px 6px;margin:-10px -6px}")
+rep(".result{padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--ink);color:var(--bg);border-radius:6px}",
+    ".result{padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--ink);color:var(--bg);border-radius:6px}\n"
+    ".result .tdnote{margin:0;background:var(--hl);color:var(--ink);font-weight:700}\n"
+    "#res .result{scroll-margin-top:120px}\n"
+    "#today .mlink,#today .tdcal>summary,.flink{padding:10px 6px;margin:-4px -6px}\n"
+    "#throne details details>summary{padding:8px 0}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
