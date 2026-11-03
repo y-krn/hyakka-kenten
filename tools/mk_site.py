@@ -1043,7 +1043,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
   <div id="mres" hidden></div>
   <div class="fnote">入力は記事を探すためだけに使い、サーバーには送りません。誕生日・生まれた年・出身地は、百科拳典に置いた一覧（Wikidataの生年月日・出生地と、1年間の閲覧数から作成）からこの端末の中で探します。好きなものは、Wikipediaの検索で記事名を探します。</div>`;
   $('#famx').onclick=()=>dlg.close();
-  const ch=champTitle(), notCh=x=>x.t===ch;
+  const notCh=x=>x.t===champTitle();   // いまの王者は自由対戦に出せない（開いたあとに王座の情報が届くこともあるので、毎回たしかめる）
   let seq=0, ST=null;
   function cur(){ return {m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim()}; }
   function keep(){ const v=cur(); mineSave($('#mkeep').checked&&(v.m||v.d||v.y||v.p||v.f)?v:null); }
@@ -1091,19 +1091,22 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       v.f?mineFind(v.f):null ]);
     let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,10,notCh)),'出身地');
     let fvg=[]; if(fvt){ try{ const fi=await loadTitle(fvt); if(fi>=0){ const gs=(await Promise.all(famKeys(fi).map(k=>famGet(k).catch(()=>null)))).filter(g=>g&&g.c>=2).sort((a,b)=>b.c-a.c).slice(0,2);
-      fvg=gs.map(g=>({k:'fv',h:`${FAMK[g.k](g.n)}（好きなものの仲間・${g.c}記事）`,L:[{t:fvt,n:fvt},...g.m.filter(m=>m[0]!==fvt&&m[0]!==ch).slice(0,10).map(m=>({t:m[0],n:m[1]}))]})); } }catch(_){} }
+      fvg=gs.map(g=>({k:'fv',h:`${FAMK[g.k](g.n)}（好きなものの仲間・${g.c}記事）`,L:[{t:fvt,n:fvt},...g.m.filter(m=>m[0]!==fvt).slice(0,10).map(m=>({t:m[0],n:m[1]}))].filter(x=>!notCh(x))})).filter(g=>g.L.length); } }catch(_){} }
     if(my!==seq) return;
     const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],y:yi})).filter(x=>!notCh(x)).slice(0,10):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)).slice(0,6):[];
     const reps=[], groups=[...fvg];
     const and=both&&ymdl&&ymdl.length;
-    if(fvt) reps.push({k:'fv',x:{t:fvt,n:fvt}});
+    const fvChamp=fvt&&notCh({t:fvt});
+    if(fvt&&!fvChamp) reps.push({k:'fv',x:{t:fvt,n:fvt}});
+    else if(fvChamp&&fvg.length) reps.push({k:'fv',x:fvg[0].L[0]});   // 好きなものが王者なら、その仲間を代わりの代表に
     if(and){ reps.push({k:'ymd',x:ymdl[0]}); groups.push({k:'ymd',h:`生年月日が同じ人（${yi}年${v.m}月${v.d}日生まれ）`,L:ymdl}); }
     else if(bdl&&bdl.length){ reps.push({k:'bd',x:bdl[0]}); groups.push({k:'bd',h:`誕生日が同じ人（${v.m}月${v.d}日生まれ）`,L:bdl}); }
     if(!and&&(yp.length||yo.length)){ reps.push({k:'yr',x:yp[0]||yo[0]}); groups.push({k:'yr',h:`同い年（${yi}年生まれ・${yi}年にできたもの）`,L:[...yp,...yo]}); }
     if(pll&&pll.length){ reps.push({k:'pl',x:pll[0]}); groups.push({k:'pl',h:`同郷の人（${plt}出身）`,L:pll}); }
     const used=new Set(reps.map(r=>r.x.t)); const opps=(todl||[]).filter(x=>!used.has(x.t));
     v.pt=plt||v.p; ST={reps,pick:0,opps,oi:0,opp:opps[0]||null,v,groups};
-    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」'); if(v.f&&!fvt) miss.push('好きなもの「'+v.f+'」'); if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
+    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」'); if(v.f&&!fvt) miss.push('好きなもの「'+v.f+'」');  if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
+      fvChamp?'「'+fvt+'」はいまの王者なので、自由対戦の代表にはできません（王座戦で挑めます）'+(fvg.length?'。代わりに仲間から選びました':''):'',
       plt&&plt!==v.p?'出身地は「'+plt+'」で探しました'+((PALT[v.p]||[]).length?'（'+PALT[v.p].map(x=>'「'+x+'」').join('や')+'で探すときは、そのとおり入力してください）':''):''].filter(Boolean).join('。');
     $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):[miss.length?miss.join('、')+'は見つかりませんでした':'',note].filter(Boolean).join('。');
     draw(); dlg.scrollTop=0; }
