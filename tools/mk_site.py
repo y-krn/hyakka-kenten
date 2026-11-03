@@ -1116,6 +1116,75 @@ function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new UR
 async function famToday(){""")
 rep("setCount(); famToday();", "setCount(); famToday(); mineInit();")
 
+# ---- 49. 今日の一戦：日本時間の日付ごとに、全員に同じ対戦（人気の記事 vs 埋もれた記事）を出す。観戦の前に勝敗を予想できる ----
+#   組み合わせは日付から決まる（サーバーには何も記録しない）。予想と的中はこの端末にだけ覚える
+rep('  <section id="setup" class="card"', '  <section id="today" class="card" hidden></section>\n\n  <section id="setup" class="card"')
+rep("#zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}",
+    "#zukan,#mine,#today{padding:16px;display:flex;flex-direction:column;gap:12px}\n"
+    "#today .tdvs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}\n"
+    "#today .tdvs>div{display:flex;flex-direction:column;gap:2px;min-width:0}#today .tdvs>div:last-child{text-align:right;align-items:flex-end}\n"
+    "#today .tdvs small{font-size:11px;color:var(--muted)}#today .tdvs b{font-size:20px;line-height:1.3;overflow-wrap:anywhere}\n"
+    "#today .tdvs .tA b{color:var(--a)}#today .tdvs .tB b{color:var(--b)}#today .tdvs .tvx{font-family:var(--f-display);font-size:18px;color:var(--muted)}\n"
+    "#today .tdq{font-size:13px;color:var(--muted);text-align:center}\n"
+    "#today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n"
+    "#today .tdbtn .pa{border-color:var(--a);color:var(--a)}#today .tdbtn .pb{border-color:var(--b);color:var(--b)}\n"
+    "#today .tdrow{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:14px}\n"
+    "#today .tdres{font-size:15px;text-align:center;line-height:1.6}#today .tdres b.hit{color:var(--a)}\n"
+    "#today .mlink{font:inherit;font-size:12px;background:none;border:none;padding:2px 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}\n"
+    ".tdnote{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--hl) 25%,transparent);font-size:14px;text-align:center}")
+rep("current={ai,bi,an,mode:MODE}; MODE=null;", "current={ai,bi,an,mode:MODE,today:TODAYF}; MODE=null; TODAYF=null;")
+rep("(current.mode?$('#throne'):$('#setup')).after(ring);", "(current.mode?$('#throne'):current.today?$('#today'):$('#setup')).after(ring);")
+rep("if(!current||current.shown) return; current.shown=true;", "if(!current||current.shown) return; current.shown=true; if(current.today) setTimeout(()=>todayDone(current),0);")
+rep("async function famToday(){", r"""/* ---------- 今日の一戦 ---------- */
+var TODAYF=null, TD=null;
+const TD_K='hk_today';
+const tdLoad=()=>{ try{ return JSON.parse(localStorage.getItem(TD_K)||'{}')||{}; }catch(_){ return {}; } };
+const tdSave=o=>{ try{ const ks=Object.keys(o).sort(); while(ks.length>60) delete o[ks.shift()]; localStorage.setItem(TD_K,JSON.stringify(o)); }catch(_){} };
+const jstDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);
+const mdJ=d=>(+d.slice(5,7))+'月'+(+d.slice(8,10))+'日';
+function tdStreak(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.hit) n++; else if(k===0&&!(x&&x.done)) continue; else break; } return n; }
+// 組み合わせ：日付から決める。人気の記事（POPULAR）と、収録記事からくじ引きした「埋もれた記事」
+async function todayPair(day){ const nr=await fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).then(a=>new Set(a)).catch(()=>new Set());
+  for(let k=0;k<30&&!THRONE;k++) await new Promise(r=>setTimeout(r,100));   // 王者は出さないので、王座の情報を少し待つ
+  // みんなに同じものを出して𝕏にも流れるので、政治家や、宗教・民族・事件などの題材は避ける
+  const NGc=/宗教|民族|人種|性的|犯罪|事件|戦争|紛争|兵器|武器|テロ|災害|病|死刑/;
+  const POL=/政治家|活動家|議員|大臣|知事|市長|町長|村長|首相|大統領|政党/;
+  const pol=i=>{ const g=GEN[i]||{}; return POL.test([g.job||'',...(g.cc||[]),...(g.h||[])].join(' '))||(EXT[i]||[]).some(e=>(e[0]==='P106'||e[0]==='P102')&&(e[2]||[]).some(x=>POL.test(Array.isArray(x)?x[0]:x))); };
+  const ok=i=>i>=0&&!BLOCK.has(i)&&!isChamp(i)&&!nr.has(F[i][1])&&!NORAND.has(F[i][1])&&!NGc.test(((GEN[i]||{}).c||'')+' '+F[i][1])&&!pol(i);
+  let a=-1; for(let k=0;k<30&&a<0;k++){ const t=POPULAR[hash('today-a/'+day+'/'+k)%POPULAR.length]; if(!t||nr.has(t)) continue; const i=await loadTitle(t); if(ok(i)) a=i; }
+  let b=-1; for(let k=0;k<30&&b<0;k++){ const B=await bucket(hash('today-b/'+day+'/'+k)%NB); const ks=Object.keys(B).sort(); if(!ks.length) continue;
+    const t=ks[hash('today-t/'+day+'/'+k)%ks.length]; if(nr.has(t)) continue; const i=await loadTitle(t); if(ok(i)&&i!==a&&(F[i][7]||[]).length) b=i; }
+  return a>=0&&b>=0?{day,a,b}:null; }
+async function todayInit(){ const box=$('#today'); if(!box||!POPULAR.length) return; const day=jstDay();
+  try{ TD=await todayPair(day); }catch(_){ TD=null; } if(!TD) return; todayDraw();
+  if(new URLSearchParams(location.search).has('today')) box.scrollIntoView({behavior:'smooth',block:'start'}); }
+function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,b}=TD; const o=tdLoad(), me=o[day]||{};
+  const kind=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; }; const nm=i=>F[i][0];
+  let act;
+  if(me.done){ const w=me.w; const res=w===null?'引き分け':esc(w===0?nm(a):nm(b))+'の勝ち';
+    const st=tdStreak(o);
+    act=`<div class="tdres">結果：${res}${me.p!==undefined&&me.p!==null?`<br>あなたの予想は<b class="${me.hit?'hit':''}">${me.hit?'当たり！':'外れ'}</b>${me.hit&&st>1?`（${st}日連続）`:''}`:''}</div>
+      <div class="tdrow"><button type="button" class="btn small" id="tdre">もう一度見る</button><a class="btn small" id="tdsh" target="_blank" rel="noopener">Xで共有</a></div>`; }
+  else if(me.p===0||me.p===1||me.p===null) act=`<div class="tdrow">あなたの予想：<b>${me.p===null?'なし':esc(me.p===0?nm(a):nm(b))}</b><button type="button" class="btn" id="tdgo">観戦する</button></div>`;
+  else act=`<div class="tdq">どっちが勝つ？ 予想してから観戦しよう</div><div class="tdbtn"><button type="button" class="btn pa" data-p="0">${esc(nm(a))}</button><button type="button" class="btn pb" data-p="1">${esc(nm(b))}</button></div><div class="tdrow"><button type="button" class="mlink" id="tdno">予想せずに観戦する</button></div>`;
+  box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦。みんな同じ組み合わせで、毎日0時に入れ替わります</span></div>
+    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small>${esc(kind(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>埋もれた記事</small><b>${esc(nm(b))}</b><small>${esc(kind(b))}</small></div></div>${act}`;
+  box.hidden=false;
+  const go=()=>{ if(isChamp(a)||isChamp(b)){ todayDraw(); return; } TODAYF={day}; startBattle([a,b]); };
+  box.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[day]={p:+x.dataset.p}; tdSave(o); todayDraw(); go(); });
+  if($('#tdno')) $('#tdno').onclick=()=>{ const o=tdLoad(); o[day]={p:null}; tdSave(o); todayDraw(); go(); };
+  if($('#tdgo')) $('#tdgo').onclick=go;
+  if($('#tdre')) $('#tdre').onclick=go;
+  if($('#tdsh')){ const st=tdStreak(o); const t=fitPost(`【百科拳典 今日の一戦 ${mdJ(day)}】${nm(a)} vs ${nm(b)}`+(me.p!==null&&me.p!==undefined?`\n予想は${me.hit?'当たり！'+(st>1?`（${st}日連続）`:''):'外れ…'}`:'')+'\nあなたはどっちが勝つと思う？')+'\n'+DISC;
+    $('#tdsh').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?today=1'); } }
+function todayDone(cur){ if(!TD||!cur.today||cur.today.day!==TD.day) return; const o=tdLoad(), me=o[TD.day]||{p:null}; const w=cur.an.r.w;
+  const wi=w===null?null:(w===TD.a?0:1); if(!me.done){ me.done=1; me.w=wi; me.hit=me.p!==null&&me.p!==undefined&&me.p===wi; o[TD.day]=me; tdSave(o); }
+  todayDraw();
+  const res=$('#res'); if(res&&me.p!==null&&me.p!==undefined){ const st=tdStreak(o); const n=document.createElement('div'); n.className='tdnote';
+    n.textContent='今日の一戦の予想は'+(me.hit?'当たり！'+(st>1?'（'+st+'日連続）':''):'外れでした'); res.prepend(n); } }
+async function famToday(){""")
+rep("setCount(); famToday(); mineInit();", "setCount(); famToday(); mineInit(); todayInit();")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
