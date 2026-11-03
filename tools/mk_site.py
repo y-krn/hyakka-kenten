@@ -1343,6 +1343,12 @@ rep(".result{padding:16px;display:flex;flex-direction:column;gap:10px;background
     "#today .mlink,#today .tdcal>summary,.flink{padding:10px 6px;margin:-4px -6px}\n"
     "#throne details details>summary{padding:8px 0}")
 
+# ---- 54. 王座戦の説明を短くし、入力欄を先に出す（決まりは入力欄の下に1行で） ----
+rep('<div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、一度王座戦で戦った組み合わせは、もう戦えません。</div>', '')
+rep('<button type="submit" class="btn" disabled>挑戦する</button></form>',
+    '<button type="submit" class="btn" disabled>挑戦する</button></form>\n  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>')
+rep(".meta{font-size:13px;color:var(--muted)}", ".meta{font-size:13px;color:var(--muted)}\n#throne .thn{font-size:12px;margin-top:6px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

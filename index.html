@@ -62,6 +62,7 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 #throne .champ{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,5vw,30px);line-height:1.2;overflow-wrap:anywhere}
 #throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}
 #throne .meta{font-size:13px;color:var(--muted)}
+#throne .thn{font-size:12px;margin-top:6px}
 #throne .meta b{color:var(--ink)}
 #throne form{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
 #throne input{flex:1 1 200px;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
@@ -1364,9 +1365,10 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <div class="champ">${esc(c.display)}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="meta">防衛 <b>${c.defenses}</b>回 ／ 王座を取った人：<b>${esc(c.holder)}</b> ／ ${esc(dt(c.started_at))}から在位</div>
   <details class="thx" id="thx"${THOPEN||msg?' open':''}><summary>この王者に挑む・王座戦の記録</summary>
-  <div class="meta">この王者を倒せる記事を、約140万記事の中から探してください。勝てば王座はあなたの記事のもの。結果は何度やっても同じなので、一度王座戦で戦った組み合わせは、もう戦えません。</div>
+  
   <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
+  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
   <details><summary>最長防衛ランキング</summary><ol>${d.best.map(x=>`<li>${x.cid?`<a class="rp" href="?c=${x.cid}" data-c="${x.cid}"><b>${esc(x.display)}</b></a>`:`<b>${esc(x.display)}</b>`} 防衛${x.defenses}回 <span class="who">（${esc(x.holder)}${x.ended_at?'':'・在位中'}）</span></li>`).join('')}</ol></details>
