@@ -1,0 +1,29 @@
+# 週1回のアクセスレポート（毎週月曜の朝9時ごろ。手動でも実行できる）
+#  - 先週1週間の訪問数（Cloudflare Web Analytics）と、遊ばれ方（王座戦・自由対戦の記録）を、その前の週と比べてまとめる
+#  - レポート本文は、この実行の結果ページ（Summary）に出る。NTFY_TOPIC があれば ntfy に短い通知を送る
+#  必要な設定: Secrets の CLOUDFLARE_API_TOKEN・CLOUDFLARE_ACCOUNT_ID、Variables の D1_DATABASE_ID（デプロイと同じもの）
+#  訪問数を取るには、APIトークンに「Account Analytics：読み取り」の権限が要る（なければ、その部分だけ省いて出す）
+name: 週間レポート
+on:
+  schedule:
+    - cron: '7 0 * * 1'   # 月曜 0:07（UTC）＝ 日本時間 9:07
+  workflow_dispatch:
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/report
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: レポートを作る
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_ID: ${{ vars.D1_DATABASE_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node tools/report/report.mjs
