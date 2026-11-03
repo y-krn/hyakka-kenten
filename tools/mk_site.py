@@ -1269,6 +1269,24 @@ rep(".setup{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items
     "footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:6px}")
 rep("<details class=\"mvs\"${WIDE()?' open':''}>", "<details class=\"mvs\">")   # 技の候補は、パソコンでも最初は畳む（自由対戦の枠が長くなりすぎるため）
 
+# ---- 52. 仲間図鑑の入口を整える：今日の一門を1枚のカード（押すと開く）にし、「ほかの一門」は控えめな文字リンクに ----
+rep('z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</p><div class="trow"><span class="tl">今日の一門</span><span class="today"></span><button type="button" class="btn small" id="famrnd">ほかの一門</button></div>`;',
+    'z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;')
+rep("let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };",
+    "let k=hash('fam'+day), other=false; const draw=()=>{ const f=pickF(k); const g={k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]};\n      z.querySelector('.today').innerHTML=`<button type=\"button\" class=\"famcard\" data-fam=\"${g.k}${esc(g.q)}\"><small>${other?'こんな一門も':'今日の一門'}</small><b>${esc(FAMK[g.k](g.n))}</b><span>${g.c}記事 ›</span></button>`; z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };")
+rep("$('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); draw(); }; }", "$('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); other=true; draw(); }; }")
+rep("#zukan h3,#mine h3{margin:0;font-size:16px}",
+    "#zukan h3,#mine h3{margin:0;font-size:16px}\n"
+    ".famcard{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:2px 12px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer}\n"
+    ".famcard:hover{border-color:var(--ink)}\n"
+    ".famcard small{grid-column:1;font-size:11px;color:var(--muted)}\n"
+    ".famcard b{grid-column:1;font-size:16px;line-height:1.35;overflow-wrap:anywhere}\n"
+    ".famcard span{grid-column:2;grid-row:1/3;font-size:13px;color:var(--muted);white-space:nowrap}\n"
+    "#zukan .frow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}\n"
+    ".flink{font:inherit;font-size:13px;background:none;border:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}\n"
+    "#zukan .fhint{font-size:11px;color:var(--muted)}\n"
+    "@media (max-width:640px){#mine{border-top:1px solid var(--line);padding-top:14px;margin-top:4px}}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

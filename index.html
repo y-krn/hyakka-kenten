@@ -209,7 +209,16 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #find .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
 @media (max-width:640px){#find .fgrid{grid-template-columns:1fr}}
 #zukan,#mine{display:flex;flex-direction:column;gap:8px;min-width:0}
-#zukan h3,#mine h3{margin:0;font-size:16px}#find .fsub{margin:0;font-size:12px;color:var(--muted)}
+#zukan h3,#mine h3{margin:0;font-size:16px}
+.famcard{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:2px 12px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer}
+.famcard:hover{border-color:var(--ink)}
+.famcard small{grid-column:1;font-size:11px;color:var(--muted)}
+.famcard b{grid-column:1;font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+.famcard span{grid-column:2;grid-row:1/3;font-size:13px;color:var(--muted);white-space:nowrap}
+#zukan .frow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.flink{font:inherit;font-size:13px;background:none;border:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#zukan .fhint{font-size:11px;color:var(--muted)}
+@media (max-width:640px){#mine{border-top:1px solid var(--line);padding-top:14px;margin-top:4px}}#find .fsub{margin:0;font-size:12px;color:var(--muted)}
 #zukan .trow,#mine .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #throne .thx>summary{display:inline-block;margin-top:10px;padding:8px 14px;border:1px solid var(--ink);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;list-style:none}
 #throne .thx>summary::-webkit-details-marker{display:none}
@@ -1282,9 +1291,10 @@ function todayDone(cur){ if(!TD||!cur.today||cur.today.day!==TD.day) return; con
     n.textContent='今日の一戦の予想は'+(me.hit?'当たり！'+(st>1?'（'+(tdTitle(st)?'称号「'+tdTitle(st)+'」・':'')+st+'日連続）':''):'外れでした'); res.prepend(n); } }
 async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
-    let k=hash('fam'+day); const draw=()=>{ const f=pickF(k); z.querySelector('.today').innerHTML=famChip({k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]},true); z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
-    z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す。記事カードの「仲間」からも開けます</p><div class="trow"><span class="tl">今日の一門</span><span class="today"></span><button type="button" class="btn small" id="famrnd">ほかの一門</button></div>`;
-    z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); draw(); }; }
+    let k=hash('fam'+day), other=false; const draw=()=>{ const f=pickF(k); const g={k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]};
+      z.querySelector('.today').innerHTML=`<button type="button" class="famcard" data-fam="${g.k}${esc(g.q)}"><small>${other?'こんな一門も':'今日の一門'}</small><b>${esc(FAMK[g.k](g.n))}</b><span>${g.c}記事 ›</span></button>`; z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
+    z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;
+    z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); other=true; draw(); }; }
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
   const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\d+$/.test(q)) openFam(q); }
 const DISC='※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません';
