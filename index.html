@@ -203,34 +203,39 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .famchip.big{font-size:15px;font-weight:700;padding:6px 14px;border-color:var(--ink)}
 #zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}
 #mine .trow{display:flex;gap:8px}
-.mform{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+#famdlg [hidden]{display:none!important}
+.mform{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;padding:14px 16px}
 .mform label{font-size:13px;color:var(--muted);white-space:nowrap}
 .mform .mrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .mform input,.mform select{box-sizing:border-box;font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:0}
 .mform input[type=text]{width:100%}.mform input[type=number]{width:7em}
-.mform .mtip{grid-column:1/-1;font-size:12px;color:var(--muted);margin:-2px 0 2px}
+.mform .mtip{grid-column:1/-1;font-size:13px;color:var(--muted)}
 .mform .mkeep{grid-column:1/-1;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .mform .mkeep input{width:auto}
-.mform .mgo{grid-column:1/-1;display:flex;gap:8px;align-items:center}
-.mform .mst{font-size:12px;color:var(--muted)}
-.mrep{margin:12px 16px 4px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--hl) 18%,transparent);display:flex;flex-direction:column;gap:10px}
-.mrep .mrk{font-size:11px;letter-spacing:.12em;color:var(--muted)}
-.mrep .mpick{display:flex;flex-wrap:wrap;gap:6px}
-.mrep .mpick button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
-.mrep .mpick button[aria-pressed=true]{border-color:var(--a);background:var(--a);color:#fff}
-.mrep .mvs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
-.mrep .mvs>div{display:flex;flex-direction:column;gap:2px;min-width:0}.mrep .mvs>div:last-child{text-align:right}
-.mrep .mvs small{font-size:11px;color:var(--muted)}.mrep .mvs b{font-size:17px;overflow-wrap:anywhere;line-height:1.3}
-.mrep .ma b{color:var(--a)}.mrep .mb b{color:var(--b)}.mrep .mvx{font-size:12px;color:var(--muted)}
-.mrep .mgo2{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
-.mshare{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
-.mshare .mpv{font-size:12px;white-space:pre-wrap;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere}
-.mshare label{font-size:12px;display:flex;gap:6px;align-items:center}
-.mshare .mwarn{font-size:11px;color:var(--muted)}
-.mshare .mgo2{justify-content:flex-start}
-.flist li.mh{display:block;border:none;padding:16px 0 2px;font-size:12px;color:var(--muted);font-weight:700}
-.mlab{display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 7px;margin-right:6px;font-weight:400;vertical-align:1px}
+.mform .mgo{grid-column:1/-1;display:flex;gap:8px;align-items:center;margin-top:4px}
+.mform .mgo .btn.big{flex:1}
+.mst{font-size:12px;color:var(--muted);padding:0 16px}
+.msum{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.msum span{overflow-wrap:anywhere}
+.mcard{margin:14px 16px;padding:14px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;gap:12px}
+.mcard .mpick{display:flex;flex-wrap:wrap;gap:6px}
+.mcard .mpick button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.mcard .mpick button[aria-pressed=true]{border-color:var(--a);background:var(--a);color:#fff}
+.mduel{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:start}
+.mduel>div{display:flex;flex-direction:column;gap:2px;min-width:0}.mduel>div:last-child{text-align:right;align-items:flex-end}
+.mduel small{font-size:11px;color:var(--muted)}.mduel b{font-size:18px;overflow-wrap:anywhere;line-height:1.3}
+.mduel .ma b{color:var(--a)}.mduel .mb b{color:var(--b)}.mduel .mvx{font-size:12px;color:var(--muted);padding-top:18px}
+.mlink{font:inherit;font-size:12px;background:none;border:none;padding:2px 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.mact{display:flex;gap:8px;align-items:center}.mact .btn.big{flex:1}
+.mshare{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.mshare .mpv{font-size:12px;white-space:pre-wrap;border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere;color:var(--muted)}
+.mshare label{font-size:13px;display:flex;gap:6px;align-items:center}
+.mwarn{font-size:11px;color:var(--muted)}
+.mmore{margin:0 16px 8px}.mmore summary{font-size:13px;color:var(--muted);cursor:pointer;padding:8px 0}
+.mmore .flist{padding:0}
+.flist li.mh{display:block;border:none;padding:14px 0 2px;font-size:12px;color:var(--muted);font-weight:700}
 .mwho{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:1px}
+.flist li.mon .fn{color:var(--a)}
 .mmiss{font-size:12px;color:var(--muted);font-weight:400}
 #famx{white-space:nowrap;flex-shrink:0}
 #zukan .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -1068,51 +1073,57 @@ const MB={bd:{lab:'誕生日が同じ',why:v=>v.m+'月'+v.d+'日生まれ',warn:
 function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(); const o=sv||{}; const td=todayJ();
   const opt=(n,cur)=>Array.from({length:n},(_,k)=>`<option value="${k+1}"${+cur===k+1?' selected':''}>${k+1}</option>`).join('');
   dlg.setAttribute('aria-label','あなたの代表戦');
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">あなたの代表戦</div><h3>あなたにゆかりのある記事が、代表として戦う</h3><div class="fd">入力は記事を探すためだけに使い、サーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
+  dlg.innerHTML=`<div class="fhead"><div><h3>あなたの代表戦</h3></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <form class="mform" id="mform">
-    <div class="mtip">入れたい項目だけで大丈夫です。1つだけでも探せます。</div>
+    <div class="mtip">あなたにゆかりのある記事を、代表として戦わせます。入れたい項目だけで大丈夫です。</div>
     <label>誕生日</label><div class="mrow"><select id="mm" aria-label="誕生日の月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="誕生日の日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
     <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
-    <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市、岡山県" value="${esc(o.p||'')}" autocomplete="off">
-    <label for="mf">好きなもの</label><input id="mf" type="text" placeholder="例：ラーメン、猫" value="${esc(o.f||'')}" autocomplete="off">
+    <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
+    <label for="mf">好きなもの</label><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off">
     <label class="mkeep"><input type="checkbox" id="mkeep"${sv?' checked':''}>この端末に入力を覚えておく</label>
-    <div class="mgo"><button type="submit" class="btn" id="mfind">代表を探す</button><span class="mst" id="mst"></span><button type="button" class="btn small" id="mclr" style="margin-left:auto">入力を消す</button></div>
+    <div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button><button type="button" class="btn small" id="mclr">入力を消す</button></div>
   </form>
-  <div id="mrep"></div>
-  <ol class="flist" id="mlist"></ol>
-  <div class="fnote">誕生日・生まれた年・出身地は、百科拳典に置いてある一覧から、この端末の中で探します。好きなもの（と、一覧にない書き方の出身地）だけは、正式な記事名を探すためにWikipediaの検索にかけます。一覧は、Wikidataに記録された生年月日・出生地と、日本語版Wikipediaの1年間の閲覧数から作っています。</div>
-  <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
-  FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
+  <div class="mst" id="mst"></div>
+  <div id="mres" hidden></div>
+  <div class="fnote">入力は記事を探すためだけに使い、サーバーには送りません。誕生日・生まれた年・出身地は、百科拳典に置いた一覧（Wikidataの生年月日・出生地と、1年間の閲覧数から作成）からこの端末の中で探します。好きなものは、Wikipediaの検索で記事名を探します。</div>`;
   $('#famx').onclick=()=>dlg.close();
-  const btns=x=>x.t===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(x.t)}" data-n="${esc(x.n)}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(x.t)}" data-n="${esc(x.n)}" data-s="1" aria-pressed="false">赤へ</button>`;
-  const wl=x=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(x.t)}" target="_blank" rel="noopener">${esc(x.n)}</a>`;
-  const prow=(x,lab,sub)=>`<li><div class="fn">${lab?`<span class="mlab">${esc(lab)}</span>`:''}${wl(x)}${sub?`<span class="mwho">${esc(sub)}</span>`:''}</div><div class="fb">${btns(x)}</div></li>`;
-  const bsub=x=>typeof x.y==='number'?ysJ(x.y)+'生まれ':'';
+  const ch=champTitle(), notCh=x=>x.t===ch;
   let seq=0, ST=null;
   function cur(){ return {m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim()}; }
   function keep(){ const v=cur(); mineSave($('#mkeep').checked&&(v.m||v.d||v.y||v.p||v.f)?v:null); }
-  function shareText(){ const {reps,pick,opp,v}=ST; const r=reps[pick]; const why=$('#mwhy')&&$('#mwhy').checked;
-    return fitPost(`【百科拳典】私の代表は${r.x.n}${why?'（'+MB[r.k].why(v)+'）':''}。きょう${td.m}月${td.d}日生まれの${opp.n}と対決！ あなたの代表は？`)+'\n'+DISC; }
-  function drawRep(){ if(!ST||!ST.reps.length){ $('#mrep').innerHTML=''; return; } const {reps,pick,opp}=ST; const r=reps[pick];
-    $('#mrep').innerHTML=`<div class="mrep"><div class="mrk">あなたの代表戦</div>
-      ${reps.length>1?`<div class="mpick" role="group" aria-label="代表を選ぶ">${reps.map((x,k)=>`<button type="button" data-k="${k}" aria-pressed="${k===pick}">${esc(MB[x.k].lab)}：${esc(x.x.n)}</button>`).join('')}</div>`:''}
-      ${opp?`<div class="mvs"><div class="ma"><small>あなたの代表（${esc(MB[r.k].lab)}）</small><b>${esc(r.x.n)}</b></div><span class="mvx">vs</span><div class="mb"><small>きょう${td.m}月${td.d}日生まれ代表</small><b>${esc(opp.n)}</b><small>${esc(bsub(opp))}</small></div></div>
-      <div class="mgo2"><button type="button" class="btn big" id="mrepgo">この代表戦を見る</button></div>
-      <div class="mshare"><div class="mrk">共有する</div>
-        <label><input type="checkbox" id="mwhy">代表に選ばれた理由（${esc(MB[r.k].why(ST.v))}）も書く</label>
+  const bsub=x=>typeof x.y==='number'?ysJ(x.y)+'生まれ':'';
+  function shareText(){ const r=ST.reps[ST.pick], why=$('#mwhy')&&$('#mwhy').checked;
+    return fitPost(`【百科拳典】私の代表は${r.x.n}${why?'（'+MB[r.k].why(ST.v)+'）':''}。きょう${td.m}月${td.d}日生まれの${ST.opp.n}と対決！ あなたの代表は？`)+'\n'+DISC; }
+  function draw(){ const {reps,pick,v,groups}=ST; const box=$('#mres');
+    if(!reps.length){ box.innerHTML=''; return; }
+    const r=reps[pick], opp=ST.opp; const sumL=[v.m&&v.d?v.m+'月'+v.d+'日':'',v.y?v.y+'年':'',v.p,v.f].filter(Boolean).join('・');
+    box.innerHTML=`<div class="msum"><span>${esc(sumL)}</span><button type="button" class="btn small" id="medit">条件を変える</button></div>
+    <div class="mcard">
+      ${reps.length>1?`<div class="mpick" role="group" aria-label="代表を選ぶ">${reps.map((x,k)=>`<button type="button" data-k="${k}" aria-pressed="${k===pick}">${esc(MB[x.k].lab)}</button>`).join('')}</div>`:''}
+      <div class="mduel"><div class="ma"><small>あなたの代表・${esc(MB[r.k].lab)}</small><b>${esc(r.x.n)}</b><small>${esc(bsub(r.x))}</small></div><span class="mvx">vs</span>
+        <div class="mb"><small>きょう${td.m}月${td.d}日生まれ</small>${opp?`<b>${esc(opp.n)}</b><small>${esc(bsub(opp))}</small>${ST.opps.length>1?'<button type="button" class="mlink" id="mopp">相手を変える</button>':''}`:'<small>読み込めませんでした</small>'}</div></div>
+      <div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>
+      <div class="mshare" id="mshp" hidden>
+        <label><input type="checkbox" id="mwhy">選ばれた理由（${esc(MB[r.k].why(v))}）も書く</label>
         <div class="mpv" id="mpv"></div>
-        ${MB[r.k].warn?`<div class="mwarn">理由を書かなくても、代表の名前から${MB[r.k].warn}が推測されることがあります。気になるときは、別の代表を選ぶか、共有しないでください。</div>`:''}
-        <div class="mgo2"><a class="btn small" id="mtw" target="_blank" rel="noopener">Xで投稿</a></div></div>`
-      :`<div class="mvs"><div class="ma"><small>あなたの代表（${esc(MB[r.k].lab)}）</small><b>${esc(r.x.n)}</b></div></div><div class="mwarn">きょう生まれの代表を読み込めませんでした。下の一覧から相手を選んでください。</div>`}</div>`;
-    $('#mrep').querySelectorAll('.mpick button').forEach(b=>b.onclick=()=>{ ST.pick=+b.dataset.k; drawRep(); });
+        ${MB[r.k].warn?`<div class="mwarn">理由を書かなくても、代表の名前から${MB[r.k].warn}が推測されることがあります。</div>`:''}
+        <div><a class="btn small" id="mtw" target="_blank" rel="noopener">Xで投稿</a></div></div>
+    </div>
+    <details class="mmore"><summary>ほかの候補から代表を選ぶ</summary><ol class="flist">${groups.map(g=>`<li class="mh">${esc(g.h)}</li>`+g.L.map((x,i)=>`<li${x.t===(reps.find(q=>q.k===g.k)||{x:{}}).x.t?' class="mon"':''}><div class="fn">${esc(x.n)}${bsub(x)?`<span class="mwho">${esc(bsub(x))}</span>`:''}</div><div class="fb"><button type="button" class="btn small" data-g="${g.k}" data-i="${i}">代表にする</button></div></li>`).join('')).join('')}</ol></details>`;
+    box.hidden=false; $('#mform').hidden=true;
+    $('#medit').onclick=()=>{ box.hidden=true; $('#mform').hidden=false; $('#mst').textContent=''; dlg.scrollTop=0; };
+    box.querySelectorAll('.mpick button').forEach(b=>b.onclick=()=>{ ST.pick=+b.dataset.k; draw(); });
+    if($('#mopp')) $('#mopp').onclick=()=>{ ST.oi=(ST.oi+1)%ST.opps.length; ST.opp=ST.opps[ST.oi]; draw(); };
+    box.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const g=groups.find(q=>q.k===b.dataset.g); const x=g.L[+b.dataset.i]; const k=reps.findIndex(q=>q.k===g.k);
+      if(k>=0){ reps[k]={k:g.k,x}; ST.pick=k; } draw(); dlg.scrollTo({top:0,behavior:'smooth'}); });
     const upd=()=>{ const t=shareText(); $('#mpv').textContent=t+'\n'+location.origin+'/?me=1'; $('#mtw').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?me=1'); };
-    if($('#mwhy')){ $('#mwhy').onchange=upd; upd(); }
-    if($('#mrepgo')) $('#mrepgo').onclick=()=>{ FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; famApply(true); }; }
-  async function run(go){ const my=++seq; const v=cur(); keep();
-    if(!(v.m&&v.d)&&!v.y&&!v.p&&!v.f){ ST=null; drawRep(); $('#mlist').innerHTML=''; $('#mst').textContent='どれか1つ入れると、あなたの代表を探します'; famMark(); return; }
+    $('#mshr').onclick=()=>{ const p=$('#mshp'); p.hidden=!p.hidden; $('#mshr').setAttribute('aria-expanded',!p.hidden); if(!p.hidden) upd(); };
+    $('#mwhy').onchange=upd;
+    $('#mrepgo').onclick=()=>{ if(!opp) return; FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; famApply(true); }; }
+  async function run(){ const my=++seq; const v=cur(); keep();
+    if(!(v.m&&v.d)&&!v.y&&!v.p&&!v.f){ $('#mst').textContent='どれか1つ入れてください'; return; }
     $('#mst').textContent='探しています…';
-    const ch=champTitle(), notCh=x=>x.t===ch; const errs=[];
-    const safe=(p,lab)=>p.catch(()=>{ errs.push(lab); return null; });
+    const errs=[]; const safe=(p,lab)=>p.catch(()=>{ errs.push(lab); return null; });
     const yi=/^\d{4}$/.test(v.y)?+v.y:null;
     const [bdl,todl,yrd,plt,fvt]=await Promise.all([
       v.m&&v.d?safe(births(+v.m,+v.d).then(L=>bdTop(L,10,notCh)),'誕生日'):null,
@@ -1120,29 +1131,23 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       yi?safe(years().then(Y=>Y[yi]||{p:[],o:[]}),'生まれた年'):null,
       v.p?safe(placeKey(v.p),'出身地'):null,
       v.f?mineFind(v.f):null ]);
-    let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,8,notCh)),'出身地');
+    let pll=null; if(plt) pll=await safe(natives(plt).then(L=>bdTop(L,10,notCh)),'出身地');
     if(my!==seq) return;
-    const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],w:a[2]})).filter(x=>!notCh(x)):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)):[];
-    const reps=[]; if(fvt) reps.push({k:'fv',x:{t:fvt,n:fvt}}); if(bdl&&bdl[0]) reps.push({k:'bd',x:bdl[0]}); if(yp[0]) reps.push({k:'yr',x:yp[0]}); if(pll&&pll[0]) reps.push({k:'pl',x:pll[0]});
-    const used=new Set(reps.map(r=>r.x.t)); const opp=(todl||[]).find(x=>!used.has(x.t))||null;
-    v.pt=plt||v.p; ST={reps,pick:0,opp,v}; drawRep();
-    const H=[];
-    if(bdl&&bdl.length){ H.push(`<li class="mh">誕生日が同じ人（${v.m}月${v.d}日生まれ）</li>`); bdl.forEach(x=>H.push(prow(x,'',bsub(x)))); }
-    if(yp.length){ H.push(`<li class="mh">同い年の人（${yi}年生まれ）</li>`); yp.slice(0,10).forEach(x=>H.push(prow(x,'',''))); }
-    if(yo.length){ H.push(`<li class="mh">同い年のもの（${yi}年にできたもの・始まったもの）</li>`); yo.slice(0,6).forEach(x=>H.push(prow(x,'',''))); }
-    if(v.p){ H.push(`<li class="mh">同郷の人（${esc(plt||v.p)}出身）</li>`); if(pll&&pll.length) pll.forEach(x=>H.push(prow(x,'',''))); else H.push(`<li><div class="fn"><span class="mmiss">${plt?'「'+esc(plt)+'」出身の人が見つかりませんでした':'「'+esc(v.p)+'」が見つかりませんでした。市や県の名前で試してください'}</span></div></li>`); }
-    if(v.f){ H.push('<li class="mh">好きなもの</li>'); H.push(fvt?prow({t:fvt,n:fvt},'',''):`<li><div class="fn"><span class="mmiss">「${esc(v.f)}」に合う記事が見つかりませんでした</span></div></li>`); }
-    if(todl&&todl.length){ H.push(`<li class="mh">きょう${td.m}月${td.d}日生まれ</li>`); todl.forEach(x=>H.push(prow(x,'',bsub(x)))); }
-    $('#mlist').innerHTML=H.join('');
-    $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':reps.length?'':'代表が見つかりませんでした';
-    $('#mlist').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n};
-      if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s]; FP[s]=x; famMark(); });
-    famMark(); if(go){ const t=$('#mrep').firstChild?$('#mrep'):$('#mlist'); const hd=dlg.querySelector('.fhead'); dlg.scrollTo({top:Math.max(0,t.offsetTop-(hd?hd.offsetHeight:0)-8),behavior:'smooth'}); } }
-  $('#mform').onsubmit=e=>{ e.preventDefault(); run(true); };
+    const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],y:yi})).filter(x=>!notCh(x)).slice(0,10):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)).slice(0,6):[];
+    const reps=[], groups=[];
+    if(fvt) reps.push({k:'fv',x:{t:fvt,n:fvt}});
+    if(bdl&&bdl.length){ reps.push({k:'bd',x:bdl[0]}); groups.push({k:'bd',h:`誕生日が同じ人（${v.m}月${v.d}日生まれ）`,L:bdl}); }
+    if(yp.length||yo.length){ reps.push({k:'yr',x:yp[0]||yo[0]}); groups.push({k:'yr',h:`同い年（${yi}年生まれ・${yi}年にできたもの）`,L:[...yp,...yo]}); }
+    if(pll&&pll.length){ reps.push({k:'pl',x:pll[0]}); groups.push({k:'pl',h:`同郷の人（${plt}出身）`,L:pll}); }
+    const used=new Set(reps.map(r=>r.x.t)); const opps=(todl||[]).filter(x=>!used.has(x.t));
+    v.pt=plt||v.p; ST={reps,pick:0,opps,oi:0,opp:opps[0]||null,v,groups};
+    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」'); if(v.f&&!fvt) miss.push('好きなもの「'+v.f+'」'); if(yi&&!(yp.length||yo.length)) miss.push(yi+'年');
+    $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):miss.length?miss.join('、')+'は見つかりませんでした':'';
+    draw(); dlg.scrollTop=0; }
+  $('#mform').onsubmit=e=>{ e.preventDefault(); run(); };
   $('#mkeep').onchange=keep;
-  $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp','mf'].forEach(k=>$('#'+k).value=''); run(); };
-  $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
-  famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv) run(); else $('#mst').textContent='どれか1つ入れると、あなたの代表を探します'; }
+  $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp','mf'].forEach(k=>$('#'+k).value=''); $('#mst').textContent=''; };
+  if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv) run(); }
 function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine();
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間図鑑')); }
 async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+VER).then(r=>r.json()); FAMNB=d.nb||512; FEAT=d.featured||[]; }catch(_){ return; }
