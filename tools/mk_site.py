@@ -954,9 +954,10 @@ rep("'音の数で殴る。言語学者が見たら泣くでしょう' ]; }]", "
 for a, extra in MX:
     rep(a, a[:-len(" ]]")] + "," + ",".join("'" + x + "'" for x in extra) + " ]]")
 
-# ---- 48. 自分の記事で戦う：誕生日・生まれた年・出身地・好きなものから記事を探し、仲間図鑑と同じ要領で青・赤に入れる ----
+# ---- 48. 自分の記事で戦う：誕生日が同じ有名人を「あなたの代表」にして、きょう生まれの代表と戦わせる ----
+#   同じ誕生日の人は、日本語版Wikipediaの日付の記事（「6月18日」など）の「誕生日」の節から取り、閲覧数の多い順に並べる
 rep('  <section id="zukan" class="card" hidden></section>\n',
-    '  <section id="zukan" class="card" hidden></section>\n  <section id="mine" class="card"><div class="sechead"><h2>自分の記事で戦う</h2><span>誕生日・生まれた年・出身地・好きなものから、あなたにまつわる記事を探して戦わせる</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の記事を探す</button></div></section>\n')
+    '  <section id="zukan" class="card" hidden></section>\n  <section id="mine" class="card"><div class="sechead"><h2>誕生日の代表戦</h2><span>同じ誕生日の有名人が、あなたの代表として戦う</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></section>\n')
 rep("#zukan{padding:16px;display:flex;flex-direction:column;gap:12px}",
     "#zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}\n#mine .trow{display:flex;gap:8px}\n"
     ".mform{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}\n"
@@ -964,56 +965,122 @@ rep("#zukan{padding:16px;display:flex;flex-direction:column;gap:12px}",
     ".mform .mrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}\n"
     ".mform input,.mform select{box-sizing:border-box;font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:0}\n"
     ".mform input[type=text]{width:100%}.mform input[type=number]{width:7em}\n"
+    ".mform details{grid-column:1/-1}.mform details summary{font-size:13px;color:var(--muted);cursor:pointer;padding:2px 0}\n"
+    ".mform .mopt{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;margin-top:8px}\n"
     ".mform .mgo{grid-column:1/-1;display:flex;gap:8px;align-items:center}\n"
     ".mform .mst{font-size:12px;color:var(--muted)}\n"
+    ".mrep{margin:12px 16px 4px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--hl) 18%,transparent);display:flex;flex-direction:column;gap:10px}\n"
+    ".mrep .mrk{font-size:11px;letter-spacing:.12em;color:var(--muted)}\n"
+    ".mrep .mvs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}\n"
+    ".mrep .mvs>div{display:flex;flex-direction:column;gap:2px;min-width:0}.mrep .mvs>div:last-child{text-align:right}\n"
+    ".mrep .mvs small{font-size:11px;color:var(--muted)}.mrep .mvs b{font-size:17px;overflow-wrap:anywhere;line-height:1.3}\n"
+    ".mrep .ma b{color:var(--a)}.mrep .mb b{color:var(--b)}.mrep .mvx{font-size:12px;color:var(--muted)}\n"
+    ".mrep .mgo2{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}\n"
+    ".flist li.mh{display:block;border:none;padding:16px 0 2px;font-size:12px;color:var(--muted);font-weight:700}\n"
     ".mlab{display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 7px;margin-right:6px;font-weight:400;vertical-align:1px}\n"
+    ".mwho{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:1px}\n"
     ".mmiss{font-size:12px;color:var(--muted);font-weight:400}\n#famx{white-space:nowrap;flex-shrink:0}")
-rep("async function famToday(){", r"""/* ---------- 自分の記事で戦う（入力はこの端末にだけ保存する） ---------- */
+rep("async function famToday(){", r"""/* ---------- 誕生日の代表戦（入力はこの端末にだけ保存する） ---------- */
 const MINE_K='hk_mine';
 const mineLoad=()=>{ try{ return JSON.parse(localStorage.getItem(MINE_K)||'{}')||{}; }catch(_){ return {}; } };
 const mineSave=o=>{ try{ localStorage.setItem(MINE_K,JSON.stringify(o)); }catch(_){} };
 function todayJ(){ const d=new Date(Date.now()+9*3600e3); return {m:d.getUTCMonth()+1,d:d.getUTCDate()}; }
 async function mineFind(v){ v=String(v||'').trim(); if(!v) return null; if(await inData(v)) return v;
   try{ const c=await suggest(v,null); return c[0]||null; }catch(_){ return null; } }
+// 日付の記事の「誕生日」の節から、その日に生まれた人を取り出し、直近30日の閲覧数で並べる
+const WPA='https://ja.wikipedia.org/w/api.php?format=json&formatversion=2&origin=*&';
+const wpj=p=>fetch(WPA+p).then(r=>{ if(!r.ok) throw new Error('wikipedia '+r.status); return r.json(); });
+const BDC={};
+async function births(m,d){ const k=m+'/'+d; if(BDC[k]) return BDC[k];
+  return BDC[k]=(async()=>{ const ck='hk_bd_'+k; try{ const c=JSON.parse(sessionStorage.getItem(ck)||'null'); if(c) return c; }catch(_){}
+    const pg=m+'月'+d+'日';
+    const s=await wpj('action=parse&prop=sections&page='+encodeURIComponent(pg));
+    const sec=((s.parse||{}).sections||[]).find(x=>x.line==='誕生日'); if(!sec) return [];
+    const t=await wpj('action=parse&prop=text&section='+sec.index+'&page='+encodeURIComponent(pg));
+    const doc=new DOMParser().parseFromString((t.parse||{}).text||'','text/html'); const out=[], seen=new Set();
+    for(const li of doc.querySelectorAll('li')){ const txt=li.textContent.replace(/\[[^\]]*\]/g,'').trim(); const ym=txt.match(/^(紀元前)?(\d+)年/);
+      const a=[...li.querySelectorAll('a[href^="/wiki/"]')].find(a=>{ const ti=a.getAttribute('title')||''; return ti&&!a.classList.contains('new')&&!ti.includes(':')&&!/^(紀元前)?\d+年$|^\d+月\d+日$/.test(ti); });
+      if(!a||!ym) continue; const rem=txt.replace(/^[^-–]*[-–]\s*/,''); if(!rem.startsWith(a.textContent.trim())) continue;   // 名前にリンクがない行（後ろの所属先などのリンク）は使わない
+      const ti=a.getAttribute('title'); if(seen.has(ti)) continue; seen.add(ti);
+      const w=txt.split('、').slice(1).join('、').split('\n')[0].trim();
+      out.push({t:ti,y:ym[1]?-(+ym[2]):+ym[2],w:w.length>24?w.slice(0,24)+'…':w,pv:0}); }
+    const B=[]; for(let i=0;i<out.length;i+=50) B.push(out.slice(i,i+50));
+    await Promise.all(B.map(async b=>{ try{ const q=await wpj('action=query&prop=pageviews&pvipdays=30&redirects=1&titles='+encodeURIComponent(b.map(x=>x.t).join('|')));
+      const map={}; for(const r of [...(q.query.normalized||[]),...(q.query.redirects||[])]) map[r.from]=r.to;
+      const pv={}; for(const p of q.query.pages||[]) pv[p.title]=Object.values(p.pageviews||{}).reduce((s,v)=>s+(v||0),0);
+      for(const x of b){ let t=x.t; for(let n=0;n<3&&map[t];n++) t=map[t]; x.t=t; x.pv=pv[t]||0; } }catch(_){} }));
+    out.sort((a,b)=>b.pv-a.pv);
+    try{ sessionStorage.setItem(ck,JSON.stringify(out)); }catch(_){}
+    return out; })().catch(e=>{ delete BDC[k]; throw e; }); }
+// 収録している記事だけを、閲覧数の多い順に n 件
+async function bdTop(list,n,skip){ const out=[]; for(let i=0;i<list.length&&out.length<n;i+=12){ const c=list.slice(i,i+12); const ok=await Promise.all(c.map(x=>inData(x.t)));
+    c.forEach((x,k)=>{ if(ok[k]&&out.length<n&&!(skip&&skip(x))) out.push(x); }); } return out; }
+const ysJ=y=>y<0?'紀元前'+(-y)+'年':y+'年';
 function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const o=mineLoad(); const td=todayJ();
   const opt=(n,cur)=>Array.from({length:n},(_,k)=>`<option value="${k+1}"${+cur===k+1?' selected':''}>${k+1}</option>`).join('');
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">自分の記事で戦う</div><h3>あなたにまつわる記事</h3><div class="fd">入力はこの端末にだけ保存し、サーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
+  dlg.setAttribute('aria-label','誕生日の代表戦');
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">誕生日の代表戦</div><h3>同じ誕生日の有名人が、あなたの代表</h3><div class="fd">入力はこの端末にだけ保存し、サーバーには送りません。</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <form class="mform" id="mform">
     <label>誕生日</label><div class="mrow"><select id="mm" aria-label="月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
-    <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
-    <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
-    <label for="mf">好きなもの</label><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off">
-    <label for="mf2">もう一つ</label><input id="mf2" type="text" placeholder="例：猫" value="${esc(o.f2||'')}" autocomplete="off">
-    <div class="mgo"><button type="submit" class="btn" id="mfind">記事を探す</button><span class="mst" id="mst"></span><button type="button" class="btn small" id="mclr" style="margin-left:auto">入力を消す</button></div>
+    <details${o.y||o.p||o.f||o.f2?' open':''}><summary>生まれた年・出身地・好きなものも入れる（任意）</summary><div class="mopt">
+      <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
+      <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
+      <label for="mf">好きなもの</label><input id="mf" type="text" placeholder="例：ラーメン" value="${esc(o.f||'')}" autocomplete="off">
+      <label for="mf2">もう一つ</label><input id="mf2" type="text" placeholder="例：猫" value="${esc(o.f2||'')}" autocomplete="off"></div></details>
+    <div class="mgo"><button type="submit" class="btn" id="mfind">代表を探す</button><span class="mst" id="mst"></span><button type="button" class="btn small" id="mclr" style="margin-left:auto">入力を消す</button></div>
   </form>
+  <div id="mrep"></div>
   <ol class="flist" id="mlist"></ol>
-  <div class="fnote">見つけた記事どうしでも、きょうの日付とでも戦わせられます。誕生日の記事には、その日に起きた出来事や生まれた人が載っています。出身地と好きなものは、記事を探すときにWikipediaの検索にかけます。</div>
+  <div class="fnote">同じ誕生日の人は、日本語版Wikipediaの日付の記事（「${td.m}月${td.d}日」など）に載っている人を、直近30日によく読まれている順に並べています。誕生日・出身地・好きなものは、探すときにWikipediaに問い合わせます。</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
-  const row=(lab,t,miss)=>{ if(!t) return `<li><div class="fn"><span class="mlab">${esc(lab)}</span><span class="mmiss">${esc(miss||'見つかりませんでした')}</span></div></li>`;
-    return `<li><div class="fn"><span class="mlab">${esc(lab)}</span><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(t)}" target="_blank" rel="noopener">${esc(t)}</a></div><div class="fb">${t===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(t)}" data-n="${esc(t)}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(t)}" data-n="${esc(t)}" data-s="1" aria-pressed="false">赤へ</button>`}</div></li>`; };
-  async function run(){ const v={m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim(),f2:$('#mf2').value.trim()}; mineSave(v);
-    $('#mst').textContent='探しています…'; const L=[];
-    const chk=async t=>(await inData(t))?t:null;
-    if(v.m&&v.d) L.push(['誕生日',await chk(v.m+'月'+v.d+'日'),'']);
+  const btns=t=>t===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(t)}" data-n="${esc(t)}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(t)}" data-n="${esc(t)}" data-s="1" aria-pressed="false">赤へ</button>`;
+  const wl=t=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(t)}" target="_blank" rel="noopener">${esc(t)}</a>`;
+  const prow=x=>`<li><div class="fn">${wl(x.t)}<span class="mwho">${esc(ysJ(x.y))}生まれ${x.w?'・'+esc(x.w):''}</span></div><div class="fb">${btns(x.t)}</div></li>`;
+  const row=(lab,t,miss)=>`<li><div class="fn"><span class="mlab">${esc(lab)}</span>${t?wl(t):`<span class="mmiss">${esc(miss||'見つかりませんでした')}</span>`}</div>${t?`<div class="fb">${btns(t)}</div>`:''}</li>`;
+  let seq=0;
+  async function run(go){ const my=++seq; const v={m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:$('#mf').value.trim(),f2:$('#mf2').value.trim()}; mineSave(v);
+    const H=[]; let rep='';
+    if(!(v.m&&v.d)){ $('#mrep').innerHTML=''; $('#mlist').innerHTML=''; $('#mst').textContent='誕生日を選ぶと、あなたの代表を探します'; famMark(); return; }
+    $('#mst').textContent='Wikipediaで探しています…';
+    const ch=champTitle(), notCh=x=>x.t===ch;
+    const same=(+v.m===td.m&&+v.d===td.d);
+    let mine=[], tod=[], err='';
+    try{ const [a,b]=await Promise.all([births(+v.m,+v.d), same?Promise.resolve([]):births(td.m,td.d)]);
+      mine=await bdTop(a,10,notCh); tod=same?[]:await bdTop(b,5,notCh);
+      if(/^\d{1,4}$/.test(v.y)){ const tw=a.filter(x=>x.y===+v.y); const ok=await Promise.all(tw.map(x=>inData(x.t))); var twins=tw.filter((x,k)=>ok[k]); } }
+    catch(e){ err='Wikipediaから読み込めませんでした。少し待ってから、もう一度試してください'; }
+    if(my!==seq) return;
+    const A=mine[0], Bx=same?mine[1]:tod.find(x=>!A||x.t!==A.t);
+    if(A&&Bx){ const la=v.m+'月'+v.d+'日生まれ代表', lb=same?'同じ誕生日のライバル':'きょう'+td.m+'月'+td.d+'日生まれ代表';
+      const post=fitPost(`【百科拳典 誕生日の代表戦】私の誕生日（${v.m}月${v.d}日）の代表は${A.t}。${lb}の${Bx.t}と対決！ あなたの誕生日の代表は？`)+'\n'+DISC;
+      rep=`<div class="mrep"><div class="mrk">あなたの代表戦</div><div class="mvs"><div class="ma"><small>${esc(la)}</small><b>${esc(A.t)}</b><small>${esc(ysJ(A.y))}生まれ</small></div><span class="mvx">vs</span><div class="mb"><small>${esc(lb)}</small><b>${esc(Bx.t)}</b><small>${esc(ysJ(Bx.y))}生まれ</small></div></div>
+        <div class="mgo2"><a class="btn small" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(post)}&url=${encodeURIComponent(location.origin+'/?me=1')}">Xで誘う</a><button type="button" class="btn big" id="mrepgo">この代表戦を見る</button></div></div>`; }
+    if(typeof twins!=='undefined'&&twins.length){ H.push(`<li class="mh">あなたとまったく同じ日（${esc(v.y)}年${v.m}月${v.d}日）に生まれた人</li>`); twins.slice(0,5).forEach(x=>H.push(prow(x))); }
+    if(mine.length){ H.push(`<li class="mh">${v.m}月${v.d}日生まれ（よく読まれている順）</li>`); mine.forEach(x=>H.push(prow(x))); }
+    if(tod.length){ H.push(`<li class="mh">きょう${td.m}月${td.d}日生まれ</li>`); tod.forEach(x=>H.push(prow(x))); }
+    // そのほかの入力（任意）
+    const L=[]; const chk=async t=>(await inData(t))?t:null;
+    L.push(['誕生日',await chk(v.m+'月'+v.d+'日'),'']);
     if(/^\d{1,4}$/.test(v.y)) L.push(['生まれた年',await chk((+v.y)+'年'),'この年の記事は収録していません']);
     if(v.p) L.push(['出身地',await mineFind(v.p),'「'+v.p+'」に合う記事が見つかりませんでした']);
     if(v.f) L.push(['好きなもの',await mineFind(v.f),'「'+v.f+'」に合う記事が見つかりませんでした']);
     if(v.f2) L.push(['好きなもの',await mineFind(v.f2),'「'+v.f2+'」に合う記事が見つかりませんでした']);
-    const tt=td.m+'月'+td.d+'日'; if(!L.some(x=>x[1]===tt)) L.push(['きょう',await chk(tt),'']);
-    const seen=new Set(); const R=L.filter(x=>!x[1]||!seen.has(x[1])&&seen.add(x[1]));
-    $('#mlist').innerHTML=R.map(x=>row(x[0],x[1],x[2])).join('');
-    const hit=R.filter(x=>x[1]&&x[0]!=='きょう').length;
-    $('#mst').textContent=L.length<=1?'どれか一つ入れると、記事を探します':hit?hit+'件見つかりました':'見つかりませんでした';
+    if(my!==seq) return;
+    H.push('<li class="mh">あなたにまつわる記事</li>'); L.forEach(x=>H.push(row(x[0],x[1],x[2])));
+    $('#mrep').innerHTML=rep; $('#mlist').innerHTML=H.join('');
+    $('#mst').textContent=err||(mine.length?'':'同じ誕生日の人が見つかりませんでした');
     $('#mlist').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n};
       if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s]; FP[s]=x; famMark(); });
-    famMark(); }
-  $('#mform').onsubmit=e=>{ e.preventDefault(); run(); };
-  $('#mclr').onclick=()=>{ try{ localStorage.removeItem(MINE_K); }catch(_){} ['mm','md'].forEach(k=>$('#'+k).value=''); ['my','mp','mf','mf2'].forEach(k=>$('#'+k).value=''); run(); };
+    if($('#mrepgo')) $('#mrepgo').onclick=()=>{ FP=[{t:A.t,n:A.t},{t:Bx.t,n:Bx.t}]; famApply(true); };
+    famMark(); if(go){ const t=$('#mrep').firstChild?$('#mrep'):$('#mlist'); const hd=dlg.querySelector('.fhead'); dlg.scrollTo({top:Math.max(0,t.offsetTop-(hd?hd.offsetHeight:0)-8),behavior:'smooth'}); } }
+  $('#mform').onsubmit=e=>{ e.preventDefault(); run(true); };
+  $('#mclr').onclick=()=>{ try{ localStorage.removeItem(MINE_K); }catch(_){} ['mm','md','my','mp','mf','mf2'].forEach(k=>$('#'+k).value=''); run(); };
   $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; run(); }
-function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine(); }
+function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine();
+  const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間図鑑')); }
 async function famToday(){""")
 rep("setCount(); famToday();", "setCount(); famToday(); mineInit();")
 
