@@ -1060,7 +1060,7 @@ async function addPV(list){ const B=[]; for(let i=0;i<list.length;i+=50) B.push(
   await Promise.all(B.map(async b=>{ try{ const q=await wpj('action=query&prop=pageviews&pvipdays=30&redirects=1&titles='+encodeURIComponent(b.map(x=>x.t).join('|')));
     const map={}; for(const r of [...(q.query.normalized||[]),...(q.query.redirects||[])]) map[r.from]=r.to;
     const pv={}; for(const p of q.query.pages||[]) pv[p.title]=Object.values(p.pageviews||{}).reduce((s,v)=>s+(v||0),0);
-    for(const x of b){ let t=x.t; for(let n=0;n<3&&map[t];n++) t=map[t]; x.t=t; x.pv=pv[t]||0; } }catch(_){} }));
+    for(const x of b){ let t=x.t; for(let n=0;n<3&&map[t];n++) t=map[t]; x.t=t; x.n=t; x.pv=pv[t]||0; }   // 転送ページは転送先の名前で表示する（表示と対戦がずれないように） }catch(_){} }));
   return list.sort((a,b)=>b.pv-a.pv); }
 // その日に生まれた人（日付の記事の「誕生日」の節）
 const births=(m,d)=>memo('hk_bd_'+m+'/'+d,async()=>{ const pg=m+'月'+d+'日';
@@ -1077,7 +1077,7 @@ const births=(m,d)=>memo('hk_bd_'+m+'/'+d,async()=>{ const pg=m+'月'+d+'日';
   return addPV(out); });
 // その土地の出身の人（Category:◯◯出身の人物）
 const natives=place=>memo('hk_pl_'+place,async()=>{ const q=await wpj('action=query&list=categorymembers&cmnamespace=0&cmlimit=500&cmtitle='+encodeURIComponent('Category:'+place+'出身の人物'));
-  const L=((q.query||{}).categorymembers||[]).map(x=>({t:x.title,n:x.title,pv:0})).filter(x=>!/一覧$/.test(x.t)); return addPV(L); });
+  const L=((q.query||{}).categorymembers||[]).map(x=>({t:x.title,n:x.title,pv:0})).filter(x=>!/一覧$/.test(x.t)); const R=await addPV(L); const seen=new Set(); return R.filter(x=>!seen.has(x.t)&&seen.add(x.t)); });
 let YRS=null; const years=()=>YRS||(YRS=fetch('data/bd/years.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status); return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); }).catch(e=>{ YRS=null; throw e; }));
 async function bdTop(list,n,skip){ const out=[]; for(let i=0;i<list.length&&out.length<n;i+=12){ const c=list.slice(i,i+12); const ok=await Promise.all(c.map(x=>inData(x.t)));
     c.forEach((x,k)=>{ if(ok[k]&&out.length<n&&!(skip&&skip(x))) out.push(x); }); } return out; }
