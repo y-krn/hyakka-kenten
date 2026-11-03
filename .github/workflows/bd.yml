@@ -1,0 +1,47 @@
+# 「あなたの代表戦」の索引（誕生日・出身地・同い年）を作り直して、指定したブランチに入れる
+#   Wikidata に生年月日と出生地を問い合わせるので、30分ほどかかる。手動で実行する
+#   入れたあとは、preview ならプレビュー版を、main なら本番を上げ直す
+name: 代表戦の索引を作る
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 入れるブランチ（preview / main）
+        default: preview
+      limit:
+        description: 試しに動かすときの人数（空なら全員）
+        default: ''
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: bd
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - name: 索引を作る
+        env:
+          BD_LIMIT: ${{ inputs.limit }}
+        run: python3 tools/build_bd.py --wikidata
+      - name: ブランチに入れる
+        if: ${{ inputs.limit == '' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/bd
+          git diff --cached --quiet && { echo "変更なし"; exit 0; }
+          git commit -m "代表戦の索引を更新"
+          git push origin HEAD:${{ inputs.branch }}
+      - name: 上げ直す
+        if: ${{ inputs.limit == '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.branch }}" = main ]; then gh workflow run deploy-api.yml --ref main -R ${{ github.repository }} || true
+          else gh workflow run preview.yml --ref preview -R ${{ github.repository }}; fi
