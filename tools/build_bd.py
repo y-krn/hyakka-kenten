@@ -2,6 +2,7 @@
 #   data/bd/years.json.gz … 生まれた年・できた年ごとに、よく読まれている人（20件）・もの（10件）
 #   --wikidata を付けると、Wikidata に生年月日と出生地を問い合わせて、次の2つも作る
 #   data/bd/d/<月>.json.gz … 誕生日（月日）ごとに、よく読まれている人（15件）
+#   data/bd/ymd/<年>.json.gz … 生年月日ごとに、その日に生まれた人（10件）。誕生日と生まれた年の両方を入れたとき用
 #   data/bd/p/<番号>.json.gz … 出身地（日本語版の記事名）ごとに、よく読まれている人（12件）。番号は記事名のFNVハッシュ % NBP
 #     出生地の1つ上・2つ上の行政区画（例：北区 → 札幌市 → 北海道）にも数える
 #   よく読まれている＝収録データにある1年間の閲覧数。人の並びは毎回この索引から作るので、遊ぶ人のブラウザは Wikipedia に問い合わせない
@@ -68,7 +69,7 @@ def sparql(qids):
 
 qids = sorted(H, key=lambda q: -H[q][0])[:int(os.environ.get('BD_MAX') or 200000)]   # よく読まれている20万人まで（全員だと1時間半かかる）
 if os.environ.get('BD_LIMIT'): qids = qids[:int(os.environ['BD_LIMIT'])]   # 試しに少しだけ動かすとき
-DAY, PLACE = {}, {}
+DAY, PLACE, YMD = {}, {}, {}
 B = 500
 t0 = time.time()
 for i in range(0, len(qids), B):
@@ -77,12 +78,13 @@ for i in range(0, len(qids), B):
         q = b['item']['value'].rsplit('/', 1)[1]
         if 'dob' in b and b.get('prec', {}).get('value') == '11':
             m = re.match(r'^(\d{4})-(\d\d)-(\d\d)', b['dob']['value'])
-            if m and int(m.group(1)) >= 1600: dob.setdefault(q, set()).add((int(m.group(2)), int(m.group(3))))
+            if m and int(m.group(1)) >= 1600: dob.setdefault(q, set()).add((int(m.group(1)), int(m.group(2)), int(m.group(3))))
         for k in ('pobT', 'parT', 'par2T'):
             if k in b: pl.setdefault(q, set()).add(b[k]['value'])
     for q, ds in dob.items():
         if len(ds) != 1: continue   # 誕生日の記録が食い違う人は使わない
-        (mm, dd), = ds; pv, t, n, y = H[q]; DAY.setdefault(f'{mm}/{dd}', []).append((pv, t, n, y))
+        (yy, mm, dd), = ds; pv, t, n, y = H[q]; DAY.setdefault(f'{mm}/{dd}', []).append((pv, t, n, yy))
+        if Y0 <= yy <= Y1: YMD.setdefault(yy, {}).setdefault(f'{mm}/{dd}', []).append((pv, t, n))
     for q, ps in pl.items():
         pv, t, n, y = H[q]
         for p in ps: PLACE.setdefault(p, []).append((pv, t, n, y))
@@ -91,6 +93,8 @@ for i in range(0, len(qids), B):
 
 for mm in range(1, 13):
     dump(os.path.join(D, 'bd', 'd', f'{mm}.json.gz'), {k: [[t, n, y] for _, t, n, y in sorted(v, reverse=True)[:15]] for k, v in DAY.items() if k.startswith(f'{mm}/')})
+for yy, days in YMD.items():
+    dump(os.path.join(D, 'bd', 'ymd', f'{yy}.json.gz'), {k: [[t, n] for _, t, n in sorted(v, reverse=True)[:10]] for k, v in days.items()})
 PB = {}
 for p, v in PLACE.items():
     if len(v) < 2: continue
