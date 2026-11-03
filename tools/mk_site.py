@@ -954,6 +954,168 @@ rep("'音の数で殴る。言語学者が見たら泣くでしょう' ]; }]", "
 for a, extra in MX:
     rep(a, a[:-len(" ]]")] + "," + ",".join("'" + x + "'" for x in extra) + " ]]")
 
+# ---- 48. あなたの代表戦：誕生日・生まれた年・出身地。入れたい項目だけで「あなたの代表」を探し、きょう生まれの代表と戦わせる ----
+#   誕生日が同じ人：日本語版Wikipediaの日付の記事（「6月18日」など）の「誕生日」の節。直近30日の閲覧数順
+#   同い年：data/bd/years.json.gz（tools/build_bd.py で収録データから作る）。1年間の閲覧数順
+#   同郷：日本語版Wikipediaの「Category:◯◯出身の人物」。直近30日の閲覧数順
+#   入力はこの端末の中だけで使う。覚えておくかどうかも選べる。共有文に何を書くかも選べる
+rep('  <section id="zukan" class="card" hidden></section>\n',
+    '  <section id="zukan" class="card" hidden></section>\n  <section id="mine" class="card"><div class="sechead"><h2>あなたの代表戦</h2><span>誕生日・生まれた年・出身地。入れたい項目だけで、あなたの代表を探して戦わせる</span></div><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></section>\n')
+rep("#zukan{padding:16px;display:flex;flex-direction:column;gap:12px}",
+    "#zukan,#mine{padding:16px;display:flex;flex-direction:column;gap:12px}\n#mine .trow{display:flex;gap:8px}\n"
+    "#famdlg [hidden]{display:none!important}\n"
+    ".mform{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;padding:14px 16px}\n"
+    ".mform label{font-size:13px;color:var(--muted);white-space:nowrap}\n"
+    ".mform .mrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}\n"
+    ".mform input,.mform select{box-sizing:border-box;font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:0}\n"
+    ".mform input[type=text]{width:100%}.mform input[type=number]{width:7em}\n"
+    ".mform .mtip{grid-column:1/-1;font-size:13px;color:var(--muted)}\n"
+    ".mform .mkeep{grid-column:1/-1;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}\n"
+    ".mform .mkeep input{width:auto}\n"
+    ".mform .mgo{grid-column:1/-1;display:flex;gap:8px;align-items:center;margin-top:4px}\n"
+    ".mform .mgo .btn.big{flex:1}\n"
+    ".mst{font-size:12px;color:var(--muted);padding:0 16px}\n"
+    ".msum{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}\n"
+    ".msum span{overflow-wrap:anywhere}\n"
+    ".mcard{margin:14px 16px;padding:14px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;gap:12px}\n"
+    ".mcard .mpick{display:flex;flex-wrap:wrap;gap:6px}\n"
+    ".mcard .mpick button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}\n"
+    ".mcard .mpick button[aria-pressed=true]{border-color:var(--a);background:var(--a);color:#fff}\n"
+    ".mduel{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:start}\n"
+    ".mduel>div{display:flex;flex-direction:column;gap:2px;min-width:0}.mduel>div:last-child{text-align:right;align-items:flex-end}\n"
+    ".mduel small{font-size:11px;color:var(--muted)}.mduel b{font-size:18px;overflow-wrap:anywhere;line-height:1.3}\n"
+    ".mduel .ma b{color:var(--a)}.mduel .mb b{color:var(--b)}.mduel .mvx{font-size:12px;color:var(--muted);padding-top:18px}\n"
+    ".mlink{font:inherit;font-size:12px;background:none;border:none;padding:2px 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}\n"
+    ".mact{display:flex;gap:8px;align-items:center}.mact .btn.big{flex:1}\n"
+    ".mshare{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}\n"
+    ".mshare .mpv{font-size:12px;white-space:pre-wrap;border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere;color:var(--muted)}\n"
+    ".mshare label{font-size:13px;display:flex;gap:6px;align-items:center}\n"
+    ".mwarn{font-size:11px;color:var(--muted)}\n"
+    ".mmore{margin:0 16px 8px}.mmore summary{font-size:13px;color:var(--muted);cursor:pointer;padding:8px 0}\n"
+    ".mmore .flist{padding:0}\n"
+    ".flist li.mh{display:block;border:none;padding:14px 0 2px;font-size:12px;color:var(--muted);font-weight:700}\n"
+    ".mwho{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:1px}\n"
+    ".flist li.mon .fn{color:var(--a)}\n"
+    ".mmiss{font-size:12px;color:var(--muted);font-weight:400}\n#famx{white-space:nowrap;flex-shrink:0}")
+rep("async function famToday(){", r"""/* ---------- あなたの代表戦（入力はこの端末の中だけで使う） ---------- */
+const MINE_K='hk_mine';
+const mineLoad=()=>{ try{ return JSON.parse(localStorage.getItem(MINE_K)||'null'); }catch(_){ return null; } };
+const mineSave=o=>{ try{ if(o) localStorage.setItem(MINE_K,JSON.stringify(o)); else localStorage.removeItem(MINE_K); }catch(_){} };
+function todayJ(){ const d=new Date(Date.now()+9*3600e3); return {m:d.getUTCMonth()+1,d:d.getUTCDate()}; }
+async function mineFind(v){ v=String(v||'').trim(); if(!v) return null; if(await inData(v)) return v;
+  try{ const c=await suggest(v,null); return c[0]||null; }catch(_){ return null; } }
+// 誕生日・出身地・同い年は、百科拳典に置いた索引（tools/build_bd.py で作る）から探す。外には問い合わせない
+const gzj=u=>fetch(u).then(async r=>{ if(!r.ok) throw new Error(r.status); return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()); });
+const BDF={}; const bdFile=p=>BDF[p]||(BDF[p]=gzj('data/bd/'+p+'.json.gz?v='+VER).catch(e=>{ delete BDF[p]; throw e; }));
+let BDM=null; const bdMeta=()=>BDM||(BDM=fetch('data/bd/meta.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ BDM=null; throw e; }));
+const births=(m,d)=>bdFile('d/'+m).then(o=>(o[m+'/'+d]||[]).map(a=>({t:a[0],n:a[1],y:a[2]})));
+async function placeKey(v){ const M=await bdMeta(); const get=async k=>{ const o=await bdFile('p/'+(fnv(k)%M.nbp)); return o[k]?k:null; };
+  if(/[都道府県市区町村]$/.test(v)&&await get(v)) return v;   // 「岡山市」「岡山県」のように書いてあれば、そのまま
+  const C=[]; for(const k of [v+'県',v+'都',v+'府',v,v+'市',v+'区',v+'町',v+'村']){ if(await get(k)) C.push(k); }   // 「岡山」→ 広いほう（岡山県）を先に。狭いほう（岡山市）は案内だけ
+  if(C.length){ PALT[v]=C.slice(1).filter(k=>k===v+'市'); return C[0]; }
+  const t=await mineFind(v); return t?get(t):null; }   // 一覧にない書き方のときだけ、Wikipediaの検索で正式な記事名を探す
+const PALT={};
+const natives=k=>bdMeta().then(M=>bdFile('p/'+(fnv(k)%M.nbp))).then(o=>(o[k]||[]).map(a=>({t:a[0],n:a[1],y:a[2]})));
+const years=()=>bdFile('years');
+const sameDay=(y,m,d)=>bdFile('ymd/'+y).then(o=>(o[m+'/'+d]||[]).map(a=>({t:a[0],n:a[1],y}))).catch(e=>{ if(/404/.test(e.message)) return []; throw e; });
+const bdTop=(list,n,skip)=>list.filter(x=>!(skip&&skip(x))).slice(0,n);
+const ysJ=y=>y<0?'紀元前'+(-y)+'年':y+'年';
+// 代表の「根拠」と、共有したときに推測されうること
+const MB={ymd:{lab:'生年月日が同じ',why:v=>v.y+'年'+v.m+'月'+v.d+'日生まれ',warn:'あなたの生年月日'},bd:{lab:'誕生日が同じ',why:v=>v.m+'月'+v.d+'日生まれ',warn:'あなたの誕生日'},yr:{lab:'同い年',why:v=>v.y+'年生まれ',warn:'あなたの年齢'},pl:{lab:'同郷',why:v=>v.pt+'出身',warn:'あなたの出身地'}};
+function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(); const o=sv||{}; const td=todayJ();
+  const opt=(n,cur)=>Array.from({length:n},(_,k)=>`<option value="${k+1}"${+cur===k+1?' selected':''}>${k+1}</option>`).join('');
+  dlg.setAttribute('aria-label','あなたの代表戦');
+  dlg.innerHTML=`<div class="fhead"><div><h3>あなたの代表戦</h3></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
+  <form class="mform" id="mform">
+    <div class="mtip">あなたにゆかりのある記事を、代表として戦わせます。入れたい項目だけで大丈夫です。</div>
+    <label>誕生日</label><div class="mrow"><select id="mm" aria-label="誕生日の月"><option value="">－</option>${opt(12,o.m)}</select>月<select id="md" aria-label="誕生日の日"><option value="">－</option>${opt(31,o.d)}</select>日</div>
+    <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
+    <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
+    <label class="mkeep"><input type="checkbox" id="mkeep"${sv?' checked':''}>この端末に入力を覚えておく</label>
+    <div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button><button type="button" class="btn small" id="mclr">入力を消す</button></div>
+  </form>
+  <div class="mst" id="mst"></div>
+  <div id="mres" hidden></div>
+  <div class="fnote">入力は記事を探すためだけに使い、サーバーには送りません。誕生日・生まれた年・出身地は、百科拳典に置いた一覧（Wikidataの生年月日・出生地と、1年間の閲覧数から作成）からこの端末の中で探します。</div>`;
+  $('#famx').onclick=()=>dlg.close();
+  const notCh=x=>x.t===champTitle();   // いまの王者は自由対戦に出せない（開いたあとに王座の情報が届くこともあるので、毎回たしかめる）
+  let seq=0, ST=null;
+  function cur(){ return {m:$('#mm').value,d:$('#md').value,y:$('#my').value.trim(),p:$('#mp').value.trim(),f:''}; }
+  function keep(){ const v=cur(); mineSave($('#mkeep').checked&&(v.m||v.d||v.y||v.p||v.f)?v:null); }
+  const bsub=x=>typeof x.y==='number'?ysJ(x.y)+'生まれ':'';
+  function shareText(){ const r=ST.reps[ST.pick], why=$('#mwhy')&&$('#mwhy').checked;
+    return fitPost(`【百科拳典】私の代表は${r.x.n}${why?'（'+MB[r.k].why(ST.v)+'）':''}。きょう${td.m}月${td.d}日生まれの${ST.opp.n}と対決！ あなたの代表は？`)+'\n'+DISC; }
+  function draw(){ const {reps,pick,v,groups}=ST; const box=$('#mres');
+    if(!reps.length){ box.innerHTML=''; return; }
+    const r=reps[pick], opp=ST.opp; const sumL=[v.m&&v.d?v.m+'月'+v.d+'日':'',v.y?v.y+'年':'',v.p,v.f].filter(Boolean).join('・');
+    box.innerHTML=`<div class="msum"><span>${esc(sumL)}</span><button type="button" class="btn small" id="medit">条件を変える</button></div>
+    <div class="mcard">
+      ${reps.length>1?`<div class="mpick" role="group" aria-label="代表を選ぶ">${reps.map((x,k)=>`<button type="button" data-k="${k}" aria-pressed="${k===pick}">${esc(MB[x.k].lab)}</button>`).join('')}</div>`:''}
+      <div class="mduel"><div class="ma"><small>あなたの代表・${esc(MB[r.k].lab)}</small><b>${esc(r.x.n)}</b><small>${esc(bsub(r.x))}</small></div><span class="mvx">vs</span>
+        <div class="mb"><small>きょう${td.m}月${td.d}日生まれ</small>${opp?`<b>${esc(opp.n)}</b><small>${esc(bsub(opp))}</small>${ST.opps.length>1?'<button type="button" class="mlink" id="mopp">相手を変える</button>':''}`:'<small>読み込めませんでした</small>'}</div></div>
+      <div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>
+      <div class="mshare" id="mshp" hidden>
+        <label><input type="checkbox" id="mwhy">選ばれた理由（${esc(MB[r.k].why(v))}）も書く</label>
+        <div class="mpv" id="mpv"></div>
+        ${MB[r.k].warn?`<div class="mwarn">理由を書かなくても、代表の名前から${MB[r.k].warn}が推測されることがあります。</div>`:''}
+        <div><a class="btn small" id="mtw" target="_blank" rel="noopener">Xで投稿</a></div></div>
+    </div>
+    <details class="mmore"><summary>ほかの候補から代表を選ぶ</summary><ol class="flist">${groups.map((g,gi)=>`<li class="mh">${esc(g.h)}</li>`+g.L.map((x,i)=>`<li${x.t===(reps.find(q=>q.k===g.k)||{x:{}}).x.t?' class="mon"':''}><div class="fn">${esc(x.n)}${bsub(x)?`<span class="mwho">${esc(bsub(x))}</span>`:''}</div><div class="fb"><button type="button" class="btn small" data-g="${gi}" data-i="${i}">代表にする</button></div></li>`).join('')).join('')}</ol></details>`;
+    box.hidden=false; $('#mform').hidden=true;
+    $('#medit').onclick=()=>{ box.hidden=true; $('#mform').hidden=false; $('#mst').textContent=''; dlg.scrollTop=0; };
+    box.querySelectorAll('.mpick button').forEach(b=>b.onclick=()=>{ ST.pick=+b.dataset.k; draw(); });
+    if($('#mopp')) $('#mopp').onclick=()=>{ ST.oi=(ST.oi+1)%ST.opps.length; ST.opp=ST.opps[ST.oi]; draw(); };
+    box.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const g=groups[+b.dataset.g]; const x=g.L[+b.dataset.i]; const k=reps.findIndex(q=>q.k===g.k);
+      if(k>=0){ reps[k]={k:g.k,x}; ST.pick=k; } draw(); dlg.scrollTo({top:0,behavior:'smooth'}); });
+    const upd=()=>{ const t=shareText(); $('#mpv').textContent=t+'\n'+location.origin+'/?me=1'; $('#mtw').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?me=1'); };
+    $('#mshr').onclick=()=>{ const p=$('#mshp'); p.hidden=!p.hidden; $('#mshr').setAttribute('aria-expanded',!p.hidden); if(!p.hidden) upd(); };
+    $('#mwhy').onchange=upd;
+    $('#mrepgo').onclick=()=>{ if(!opp) return; const c=[r.x,opp].find(x=>notCh(x));   // 開いている間に王座が替わっていたら、探し直して知らせる
+      if(c){ run().then(()=>{ const m=$('#mst'); m.textContent='「'+c.n+'」はいま王者になったので、自由対戦に出せません。王座戦で挑めます'; }); return; }
+      FP=[{t:r.x.t,n:r.x.n},{t:opp.t,n:opp.n}]; famApply(true); }; }
+  async function run(){ const my=++seq; const v=cur(); keep();
+    if(!(v.m&&v.d)&&!v.y&&!v.p&&!v.f){ $('#mst').textContent='どれか1つ入れてください'; return; }
+    $('#mst').textContent='探しています…';
+    const errs=[]; const safe=(p,lab)=>p.catch(()=>{ errs.push(lab); return null; });
+    const yi=/^\d{4}$/.test(v.y)?+v.y:null;
+    const both=!!(v.m&&v.d&&yi);   // 誕生日と生まれた年の両方があるときは、両方が同じ人（生年月日が同じ人）を探す
+    const chT=champTitle(), CH={};   // いまの王者が、本来なら一覧に出るはずだったか（出るはずだったら、外したことを知らせる）
+    const top=(L,n,key)=>{ if(chT&&L.slice(0,n+1).some(x=>x.t===chT)) CH[key]=1; return bdTop(L,n,notCh); };
+    const [ymdl,bdl,todl,yrd,plt,fvt]=await Promise.all([
+      both?safe(sameDay(yi,+v.m,+v.d).then(L=>top(L,10,'ymd')),'生年月日'):null,
+      v.m&&v.d?safe(births(+v.m,+v.d).then(L=>top(L,10,'bd')),'誕生日'):null,
+      safe(births(td.m,td.d).then(L=>top(L,6,'td')),'きょう'),
+      yi?safe(years().then(Y=>Y[yi]||{p:[],o:[]}),'生まれた年'):null,
+      v.p?safe(placeKey(v.p),'出身地'):null,
+      null ]);
+    let pll=null; if(plt) pll=await safe(natives(plt).then(L=>top(L,10,'pl')),'出身地');
+    const fvg=[];
+    if(my!==seq) return;
+    if(yrd&&chT){ if(yrd.p.slice(0,11).some(a=>a[0]===chT)) CH.yr=yi+'年生まれ'; else if(yrd.o.slice(0,7).some(a=>a[0]===chT)) CH.yr=yi+'年にできたもの'; }
+    const yp=yrd?yrd.p.map(a=>({t:a[0],n:a[1],y:yi})).filter(x=>!notCh(x)).slice(0,10):[], yo=yrd?yrd.o.map(a=>({t:a[0],n:a[1]})).filter(x=>!notCh(x)).slice(0,6):[];
+    const reps=[], groups=[...fvg];
+    const and=both&&ymdl&&ymdl.length;
+    if(and){ reps.push({k:'ymd',x:ymdl[0]}); groups.push({k:'ymd',h:`生年月日が同じ人（${yi}年${v.m}月${v.d}日生まれ）`,L:ymdl}); }
+    else if(bdl&&bdl.length){ reps.push({k:'bd',x:bdl[0]}); groups.push({k:'bd',h:`誕生日が同じ人（${v.m}月${v.d}日生まれ）`,L:bdl}); }
+    if(!and&&(yp.length||yo.length)){ reps.push({k:'yr',x:yp[0]||yo[0]}); groups.push({k:'yr',h:`同い年（${yi}年生まれ・${yi}年にできたもの）`,L:[...yp,...yo]}); }
+    if(pll&&pll.length){ reps.push({k:'pl',x:pll[0]}); groups.push({k:'pl',h:`同郷の人（${plt}出身）`,L:pll}); }
+    const used=new Set(reps.map(r=>r.x.t)); const opps=(todl||[]).filter(x=>!used.has(x.t));
+    v.pt=plt||v.p; ST={reps,pick:0,opps,oi:0,opp:opps[0]||null,v,groups};
+    const miss=[]; if(v.p&&!(pll&&pll.length)) miss.push('出身地「'+v.p+'」');  if(yi&&!(yp.length||yo.length)) miss.push(yi+'年'); const note=[both&&!and&&!errs.length?yi+'年'+v.m+'月'+v.d+'日生まれの人は見つからなかったので、誕生日と生まれた年で別々に探しました':'',
+      (()=>{ const L=[and&&CH.ymd?yi+'年'+v.m+'月'+v.d+'日生まれ':'',!and&&CH.bd&&bdl?v.m+'月'+v.d+'日生まれ':'',!and&&CH.yr?CH.yr:'',CH.pl&&pll?plt+'出身':'',CH.td?'きょう'+td.m+'月'+td.d+'日生まれ':''].filter(Boolean);
+        return L.length?'いまの王者「'+((THRONE&&THRONE.champ&&THRONE.champ.display)||chT)+'」（'+L.join('・')+'）は自由対戦に出せないので外しました。王座戦で挑めます':''; })(),
+      plt&&plt!==v.p?'出身地は「'+plt+'」で探しました'+((PALT[v.p]||[]).length?'（'+PALT[v.p].map(x=>'「'+x+'」').join('や')+'で探すときは、そのとおり入力してください）':''):''].filter(Boolean).join('。');
+    $('#mst').textContent=errs.length?errs.join('・')+'は読み込めませんでした。少し待って、もう一度試してください':!reps.length?'代表が見つかりませんでした'+(miss.length?'（'+miss.join('、')+'）':''):[miss.length?miss.join('、')+'は見つかりませんでした':'',note].filter(Boolean).join('。');
+    draw(); dlg.scrollTop=0; }
+  $('#mform').onsubmit=e=>{ e.preventDefault(); run(); };
+  $('#mkeep').onchange=keep;
+  $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp'].forEach(k=>$('#'+k).value=''); $('#mst').textContent=''; };
+  if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv) run(); }
+function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine();
+  const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間図鑑')); }
+async function famToday(){""")
+rep("setCount(); famToday();", "setCount(); famToday(); mineInit();")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
