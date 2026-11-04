@@ -1377,7 +1377,7 @@ rep("const key=decW.find(d=>d.who===w);", r"""const key=decW.find(d=>d.who===w);
   const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);""")
 rep('<div class="reads"><span>記事を読む</span>',
     """${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div>${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
-      return (cmp.length?`<ul>${cmp.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
+      return (cmp.length?`<ul>${cmp.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。</div></div>`:''}
     <div class="reads"><span>記事を読む</span>""")
 rep(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}",
     ".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}\n"
@@ -1398,15 +1398,46 @@ function register(rec){ const t=rec.f[1];
 rep("async function loadTitle(t){ t=String(t||'').trim(); if(!t) return -1;", "async function loadTitle(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1;")
 
 # ---- 57. 報告をページの中で受け付ける（GitHubのアカウントがなくても送れる）。送り先は百科拳典のサーバー（/api/report） ----
+#   送る人の手間を減らす：
+#     数字や事実の誤り … 「2つの記事から分かること」の下の「違う点を知らせる」→ 行を押す。どの記事のどの事実かは自動で入る（正しい値・出典は任意）
+#     不適切な内容      … 同じ場所の「不適切な内容を知らせる」→ どれについてか → 理由を押すと送る（ひとことは任意）
+#   管理者の手間を減らす：何を何に直すかが分かる形で送る（記事・項目・いまの値・正しい値）
+# 1. 事実に、報告用の中身（記事・項目・いまの値）を持たせる
+rep("const add=(who,t,cap)=>{ t=String(t||'').trim(); if(!t||seen.has(t)) return false; if(who!==null&&(per[who]||0)>=(cap||2)) return false; seen.add(t); out.push({who,t});",
+    "const add=(who,t,cap,rp)=>{ t=String(t||'').trim(); if(!t||seen.has(t)) return false; if(who!==null&&(per[who]||0)>=(cap||2)) return false; seen.add(t); out.push({who,t,rp});")
+rep("forEach(x=>add(null,(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)));",
+    "forEach(x=>add(null,(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b),0,{k:RLAB[x.k]||x.k,it:[{t:F[x.ia][1],n:nm(x.ia),v:fmtR(x.k,x.a)},{t:F[x.ib][1],n:nm(x.ib),v:fmtR(x.k,x.b)}]}));")
+rep("add(null,c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3]); }",
+    "add(null,c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3],0,{k:c[1],it:[{t:F[me][1],n:nm(me),v:c[2]},{t:F[op][1],n:nm(op),v:c[3]}]}); }")
+rep("A.slice(0,4).forEach(t=>add(ai,t)); B.slice(0,4).forEach(t=>add(bi,t));",
+    "const rp1=(i,t)=>{ const m=t.match(/^(.+?)：(.+)$/); return {k:m?m[1]:'',it:[{t:F[i][1],n:nm(i),v:m?m[2]:t}]}; };\n"
+    "    A.slice(0,4).forEach(t=>add(ai,t,2,rp1(ai,t))); B.slice(0,4).forEach(t=>add(bi,t,2,rp1(bi,t)));")
+# 2. 行には目印を出さず、押せるようにする目印（data-fi）だけ
+rep("  const ASOF=((document.querySelector('footer')", "  const fxa=f=>API&&f.rp?' data-fi=\"'+facts.indexOf(f)+'\"':'';\n  const ASOF=((document.querySelector('footer')")
+rep("return (cmp.length?`<ul>${cmp.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class=\"fwho\">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`).join('');",
+    "return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class=\"fwho\">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`).join('');")
+rep("時点）':''}より。</div></div>", "時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type=\"button\" class=\"fxgo\" aria-pressed=\"false\">違う点を知らせる</button>':''}${API?'<button type=\"button\" class=\"fxbad\">不適切な内容を知らせる</button>':''}</div><div class=\"fxhint\" hidden>違うと思う行を押してください</div><div class=\"fxmsg\" aria-live=\"polite\"></div></div>")
+# 事実がひとつもない試合でも、知らせる入口は出す
+rep("${facts.length?`<div class=\"facts\"><div class=\"fh\">2つの記事から分かること</div>", "${facts.length||API?`<div class=\"facts\">${facts.length?'<div class=\"fh\">2つの記事から分かること</div>':''}")
+# 3. 送る枠（1つの枠を、押した場所の近くに動かして使う）
 rep('<div class="report" style="margin-top:10px"><span>この対戦の内容が不適切だと思ったら知らせる：</span><button type="button" data-rep="a">${esc(F[ai][0])}の記事</button><button type="button" data-rep="b">${esc(F[bi][0])}の記事</button><button type="button" data-rep="text">対戦の文面</button><span id="repmsg" aria-live="polite"></span></div>`;',
-    '''<div class="report" style="margin-top:10px"><span>気になる点を知らせる：</span><button type="button" data-rk="num">数字が違う</button><button type="button" data-rk="bad">内容が不適切</button><span id="repmsg" aria-live="polite"></span></div>
-  <form class="repf" id="repf" hidden>
-    <div class="rrow"><label for="rpt">どこ？</label><select id="rpt"><option value="a">${esc(F[ai][0])}の記事</option><option value="b">${esc(F[bi][0])}の記事</option><option value="text">実況の文面</option></select></div>
-    <textarea id="rptx" maxlength="200" rows="3" aria-label="気になった点"></textarea>
-    <input id="rpu" type="url" inputmode="url" maxlength="300" placeholder="出典のURL（任意）" aria-label="出典のURL">
+    '''  <form class="repf" id="repf" hidden novalidate>
+    <div class="rhd" id="rphd"></div>
+    <div class="rchips" id="rpside" hidden></div>
+    <div class="rnum" id="rpnum" hidden>
+      <input id="rpfix" maxlength="60" autocomplete="off" placeholder="正しい値（分かれば）" aria-label="正しい値（分かれば）">
+      <input id="rpu" type="url" inputmode="url" maxlength="300" autocomplete="off" placeholder="出典のURL（分かれば）" aria-label="出典のURL（分かれば）">
+      <div class="rgo"><button type="submit" class="btn small" id="rpgo">送る</button><button type="button" class="btn small rpx">やめる</button></div>
+    </div>
+    <div class="rbad" id="rpbad" hidden>
+      <textarea id="rptx" maxlength="200" rows="2" placeholder="ひとこと（任意）" aria-label="ひとこと（任意）"></textarea>
+      <div class="rlab">理由を押すと送ります</div>
+      <div class="rchips"><button type="button" data-rr="fact">数字や事実が違う</button><button type="button" data-rr="dis">差別的・攻撃的</button><button type="button" data-rr="subj">扱いがふさわしくない題材</button><button type="button" data-rr="other">その他</button></div>
+      <div class="rgo"><button type="button" class="btn small rpx">やめる</button></div>
+    </div>
     <input id="rphp" name="website" class="rhp" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <div class="rgo"><button type="submit" class="btn small">送る</button><button type="button" class="btn small" id="rpx">やめる</button><a id="rpgh" target="_blank" rel="noopener">GitHubで詳しく書く</a></div>
-    <div class="rnote">名前やメールアドレスは送りません。送った内容は管理者だけが見て、確かめたうえで直します。</div>
+    <div class="rerr" id="rperr" aria-live="polite"></div>
+    <div class="rnote">送られるのは、この報告の内容と、続けて送られるのを防ぐための回線・ブラウザの番号（元に戻せない形に変えて保存）です。見るのは管理者だけです。</div>
   </form>`;''')
 rep("""  document.querySelectorAll('[data-rep]').forEach(btn=>btn.onclick=()=>{ const kind=btn.dataset.rep;
     const tgt=kind==='a'?F[ai][0]:kind==='b'?F[bi][0]:F[ai][0]+' 対 '+F[bi][0];
@@ -1414,31 +1445,87 @@ rep("""  document.querySelectorAll('[data-rep]').forEach(btn=>btn.onclick=()=>{ 
     const body='対戦：'+F[ai][0]+' 対 '+F[bi][0]+'\\n対象：'+(kind==='text'?'実況の文面':tgt+'の記事')+'\\n\\n気になった点（任意）：\\n';
     window.open('https://github.com/y-krn/hyakka-kenten/issues/new?labels=report&title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener');
     $('#repmsg').textContent='GitHubの報告ページを開きました（GitHubのアカウントが必要です）。確認して、必要なら収録から外します。'; });""",
-    r"""  { let kind=null, t0=0; const f=$('#repf'), msg=$('#repmsg');
-    const gh=()=>{ const tg=$('#rpt').value, tgt=tg==='a'?F[ai][0]:tg==='b'?F[bi][0]:F[ai][0]+' 対 '+F[bi][0];
-      $('#rpgh').href='https://github.com/y-krn/hyakka-kenten/issues/new?labels=report&title='+encodeURIComponent((kind==='num'?'【数字】':tg==='text'?'【文面】':'【記事】')+tgt)+'&body='+encodeURIComponent('対戦：'+F[ai][0]+' 対 '+F[bi][0]+'\n対象：'+(tg==='text'?'実況の文面':tgt+'の記事')+'\n\n'+$('#rptx').value); };
-    document.querySelectorAll('[data-rk]').forEach(btn=>btn.onclick=()=>{ kind=btn.dataset.rk; t0=Date.now(); f.hidden=false; msg.textContent='';
-      document.querySelectorAll('[data-rk]').forEach(x=>x.classList.toggle('on',x===btn));
-      $('#rptx').placeholder=kind==='num'?'どの数字が、どう違うか（例：富士山の標高は3,776mでは？）':'気になった点（任意）'; gh(); $('#rptx').focus(); });
-    $('#rpt').onchange=gh; $('#rptx').oninput=gh;
-    $('#rpx').onclick=()=>{ f.hidden=true; kind=null; document.querySelectorAll('[data-rk]').forEach(x=>x.classList.remove('on')); };
-    f.onsubmit=async e=>{ e.preventDefault(); const bt=f.querySelector('[type=submit]'); bt.disabled=true; msg.textContent='送っています…';
-      try{ const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,target:$('#rpt').value,a:F[ai][1],b:F[bi][1],text:$('#rptx').value,url:$('#rpu').value,hp:$('#rphp').value,ms:Date.now()-t0,client:clientId()})});
+    r"""  { const f=$('#repf'), msg=$('#res .fxmsg'), err=$('#rperr'), bad=$('#res .fxbad'); let st=null, t0=0;
+    const all=()=>document.querySelectorAll('#res .facts li[data-fi],#res .fxbad'), fb=$('#res .facts'), go=$('#res .fxgo');
+    // 「違う点を知らせる」を押すと、事実の行が押せるようになる（ふだんは行に何も出さない）
+    const pick=on=>{ if(!fb) return; fb.classList.toggle('pick',on); if(go){ go.textContent=on?'やめる':'違う点を知らせる'; go.setAttribute('aria-pressed',on); } fb.querySelector('.fxhint').hidden=!on;
+      fb.querySelectorAll('li[data-fi]').forEach(li=>{ if(on&&!li.dataset.done){ li.tabIndex=0; li.setAttribute('role','button'); } else { li.removeAttribute('tabindex'); li.removeAttribute('role'); } }); };
+    const close=()=>{ f.hidden=true; const was=st&&st.mode==='num'; st=null; all().forEach(x=>x.classList.remove('on')); if(was) pick(false); };
+    if(go) go.onclick=()=>{ const on=!fb.classList.contains('pick'); if(st){ f.hidden=true; st=null; all().forEach(x=>x.classList.remove('on')); } pick(on); };
+    const open=(s,btn,where)=>{ st=s; t0=Date.now(); err.textContent=''; msg.textContent=''; all().forEach(x=>x.classList.toggle('on',x===btn));
+      where.after(f); f.hidden=false; $('#rpnum').hidden=s.mode!=='num'; $('#rpbad').hidden=s.mode!=='bad';
+      f.querySelector('[data-rr="subj"]').hidden=s.target==='text';   // 実況の文面には「題材」は当てはまらない
+      f.scrollIntoView({behavior:'smooth',block:'nearest'}); };
+    // 事実の行の「違う？」：どの記事のどの事実かは、こちらで入れる
+    const pickLine=btn=>{ if(!fb.classList.contains('pick')||btn.dataset.done) return; const fc=facts[+btn.dataset.fi]; if(!fc||!fc.rp) return; const rp=fc.rp;
+      if(st&&st.btn===btn){ f.hidden=true; st=null; btn.classList.remove('on'); return; }
+      open({mode:'num',btn,rp,side:rp.it.length===1?0:null},btn,btn.closest('ul'));
+      const side=$('#rpside'), hd=$('#rphd');
+      const head=()=>{ const it=st.side===null?null:rp.it[st.side]; hd.textContent=it?'「違う」と知らせる：'+it.n+'の'+(rp.k?rp.k+' ':'')+it.v:'どちらの数字が違いますか？'; };
+      side.hidden=rp.it.length<2; side.innerHTML=rp.it.length<2?'':rp.it.map((it,k)=>`<button type="button" data-sd="${k}">${esc(it.n)}　${esc(it.v)}</button>`).join('');
+      side.querySelectorAll('[data-sd]').forEach(b=>b.onclick=()=>{ st.side=+b.dataset.sd; side.querySelectorAll('[data-sd]').forEach(x=>x.classList.toggle('on',x===b)); err.textContent=''; head(); $('#rpfix').focus({preventScroll:true}); });
+      $('#rpfix').value=''; $('#rpu').value=''; head(); };
+    document.querySelectorAll('#res .facts li[data-fi]').forEach(li=>{ li.onclick=()=>pickLine(li); li.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pickLine(li); } }; });
+    // 下の「気になる点を知らせる」：どれについてかを選ぶと、理由のボタンが出る（押すと送る）
+    if(bad) bad.onclick=()=>{ if(st&&st.mode==='bad'){ close(); return; } if(st) close(); pick(false);
+      open({mode:'bad',btn:bad,target:null},bad,fb.querySelector('.fsrc')); const side=$('#rpside'); side.hidden=false;
+      side.innerHTML=[['a',F[ai][0]+'の記事'],['b',F[bi][0]+'の記事'],['text','実況の文面']].map(([k,t])=>`<button type="button" data-tg="${k}">${esc(t)}</button>`).join('');
+      side.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{ st.target=b.dataset.tg; side.querySelectorAll('[data-tg]').forEach(x=>x.classList.toggle('on',x===b)); f.querySelector('[data-rr="subj"]').hidden=st.target==='text'; err.textContent=''; });
+      $('#rphd').textContent='どれについてですか？'; $('#rptx').value=''; };
+    f.querySelectorAll('.rpx').forEach(b=>b.onclick=close);
+    const send=async body=>{ const bs=f.querySelectorAll('button'); bs.forEach(b=>b.disabled=true); err.textContent='送っています…';
+      await new Promise(r=>setTimeout(r,Math.max(0,900-(Date.now()-t0))));   // 開いてすぐ（機械的な送信）と見分けるため、少しだけ待つ
+      try{ const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,a:F[ai][1],b:F[bi][1],hp:$('#rphp').value,ms:Date.now()-t0,client:clientId()})});
         const d=await r.json().catch(()=>({}));
-        if(r.ok&&d.ok){ f.hidden=true; msg.textContent='受け付けました。ありがとうございます。確かめたうえで直します。'; document.querySelectorAll('[data-rk]').forEach(x=>x.disabled=true); }
-        else msg.textContent=d.error||'送れませんでした。時間をおいてもう一度お願いします。'; }
-      catch(_){ msg.textContent='送れませんでした。通信の状態を確かめてください。'; }
-      bt.disabled=false; }; }""")
+        if(r.ok&&d.ok){ const b=st.btn, m=st.mode; close(); const ok=d.dup?'同じ報告を受け付け済みです':'受け付けました。ありがとうございます';
+          if(m==='num'){ b.dataset.done=1; b.classList.add('done'); b.insertAdjacentHTML('beforeend','<span class="fxok">　'+(d.dup?'受け付け済み':'受け付けました')+'</span>'); } else { msg.textContent=ok+'。確かめたうえで対応します。'; if(bad) bad.disabled=true; } err.textContent=''; }
+        else err.textContent=d.error||'送れませんでした。時間をおいてもう一度お願いします。'; }
+      catch(_){ err.textContent='送れませんでした。通信の状態を確かめてください。'; }
+      bs.forEach(b=>b.disabled=false); };
+    f.onsubmit=e=>{ e.preventDefault(); if(!st||st.mode!=='num') return; if(st.side===null){ err.textContent='どちらの数字かを選んでください'; return; }
+      const it=st.rp.it[st.side]; send({kind:'num',reason:'fact',target:it.t===F[ai][1]?'a':'b',fact:{n:it.t,k:st.rp.k,v:it.v},fix:$('#rpfix').value,url:$('#rpu').value}); };
+    f.querySelectorAll('[data-rr]').forEach(b=>b.onclick=()=>{ if(!st||st.mode!=='bad') return; const rr=b.dataset.rr, tx=$('#rptx').value.trim(); if(!st.target){ err.textContent='どれについてかを選んでください'; return; }
+      if(rr==='fact'&&!tx){ err.textContent='どこが違うか、ひとこと書いてから押してください（記事の事実は「2つの記事から分かること」の「違う？」からも送れます）'; $('#rptx').focus(); return; }
+      send({kind:rr==='fact'?'num':'bad',reason:rr,target:st.target,text:tx}); }); }""")
 rep(".report button{all:unset;cursor:pointer;text-decoration:underline}",
-    ".report button{all:unset;cursor:pointer;text-decoration:underline;padding:8px 2px}\n.report button.on{color:var(--ink);font-weight:700}.report button:disabled{opacity:.5;cursor:default}\n"
-    ".repf{margin-top:6px;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}\n"
-    ".repf .rrow{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}\n"
-    ".repf select,.repf textarea,.repf input{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);box-sizing:border-box;max-width:100%}\n"
-    ".repf textarea{width:100%;resize:vertical}.repf input[type=url]{width:100%}\n"
+    ".report button{all:unset;cursor:pointer;text-decoration:underline;padding:6px 2px}\n.report button.on{color:var(--ink);font-weight:700}.report button:disabled{opacity:.5;cursor:default}\n"
+    ".facts .fxgo,.facts .fxbad{all:unset;cursor:pointer;text-decoration:underline;padding:8px 4px;margin:-8px 0 -8px 4px;white-space:nowrap}.facts .fxbad:disabled{opacity:.5;cursor:default}\n"
+    ".facts .fxmsg{font-size:12px;margin-top:6px}.facts .fxmsg:empty{display:none}\n"
+    ".facts .fxhint{font-size:12px;font-weight:700;margin-top:6px}\n"
+    ".facts.pick li[data-fi]:not([data-done]){cursor:pointer;text-decoration:underline dashed;text-underline-offset:4px}\n"
+    ".facts.pick li[data-fi].on{text-decoration:underline solid}\n"
+    ".facts li .fxok{font-size:12px;opacity:.7}\n"
+    ".repf{margin-top:6px;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}\n"
+    ".facts .repf{margin:8px 0 4px}.result .repf .btn{border-color:var(--ink);color:var(--ink);background:var(--paper)}.result .repf .btn:hover{background:var(--ink);color:var(--paper)}\n"
+    ".repf .rhd{font-size:14px;font-weight:700;overflow-wrap:anywhere}\n"
+    ".repf .rnum,.repf .rbad{display:flex;flex-direction:column;gap:8px}\n"
+    ".repf textarea,.repf input{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);box-sizing:border-box;width:100%}\n"
+    ".repf textarea{resize:vertical}\n"
+    ".repf .rchips{display:flex;flex-wrap:wrap;gap:8px}\n"
+    ".repf .rchips button{font:inherit;font-size:14px;padding:9px 12px;border:1px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);cursor:pointer}\n"
+    ".repf .rchips button.on{background:var(--ink);color:var(--paper)}.repf .rchips button:disabled{opacity:.5}\n"
+    ".repf .rlab{font-size:12px;color:var(--muted)}\n"
     ".repf .rhp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}\n"
-    ".repf .rgo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.repf .rgo a{font-size:12px;color:var(--muted)}\n"
+    ".repf .rgo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}\n"
+    ".repf .rerr{font-size:13px;color:var(--ink)}.repf .rerr:empty{display:none}\n"
     ".repf .rnote{font-size:11px;color:var(--muted)}\n"
-    "#famdlg .repf[hidden],.repf[hidden]{display:none}")
+    ".repf[hidden],.repf [hidden]{display:none!important}")
+# 4. 違う回線の2人以上から「内容が不適切」と知らされた記事は、確かめるまで今日の一戦とランダムに出さない（サーバーの /api/holds）
+rep("async function todayPair(day){ const nr=await fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).then(a=>new Set(a)).catch(()=>new Set());",
+    "let HOLDS=null; function holdsGet(){ return HOLDS||(HOLDS=API?fetch(API+'/api/holds').then(r=>r.ok?r.json():{}).then(o=>Array.isArray(o.titles)?o.titles:[]).catch(()=>[]):Promise.resolve([])); }\n"
+    "async function todayPair(day){ const nr=await Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>new Set([...a,...h]));")
+rep("const nrP=fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).then(a=>{ NORAND=new Set(a); }).catch(()=>{});",
+    "const nrP=Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>{ NORAND=new Set([...a,...h]); }).catch(()=>{});")
+
+# ---- 58. 結果の枠を短く：勝ち方・残りHP・「能力値だけなら」の行はやめる（試合の経過と「番狂わせ」の札で分かる）。連勝中だけ残す ----
+rep("""<div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${an.baseW===null?'引き分けの':esc(nm(an.baseW))+'が勝つ'}組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>""",
+    """${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中</div>`:''}""")
+
+# ---- 59. 訂正表で、誤った数字を「消す」こともできるように（値を null にする）。末尾の説明を実際の扱いに合わせる ----
+rep("for(const [k,v] of Object.entries(fx)) if(FIXK[k]&&typeof v==='number') rec.qt[FIXK[k]]=v; } }",
+    "const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};\n"
+    "    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number') rec.qt[q]=v; else if(v===null){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } }")
+rep("Wikidataと日本語版の記事で数値が食い違うものは日本語版に合わせています。", "Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')

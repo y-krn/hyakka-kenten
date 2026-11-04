@@ -325,7 +325,8 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .report{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .report button{all:unset;cursor:pointer;text-decoration:underline;padding:6px 2px}
 .report button.on{color:var(--ink);font-weight:700}.report button:disabled{opacity:.5;cursor:default}
-.facts .fxgo{all:unset;cursor:pointer;text-decoration:underline;padding:8px 4px;margin:-8px 0 -8px 4px;white-space:nowrap}
+.facts .fxgo,.facts .fxbad{all:unset;cursor:pointer;text-decoration:underline;padding:8px 4px;margin:-8px 0 -8px 4px;white-space:nowrap}.facts .fxbad:disabled{opacity:.5;cursor:default}
+.facts .fxmsg{font-size:12px;margin-top:6px}.facts .fxmsg:empty{display:none}
 .facts .fxhint{font-size:12px;font-weight:700;margin-top:6px}
 .facts.pick li[data-fi]:not([data-done]){cursor:pointer;text-decoration:underline dashed;text-underline-offset:4px}
 .facts.pick li[data-fi].on{text-decoration:underline solid}
@@ -396,7 +397,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 
   <footer>
     <div class="record" id="record"></div>
-    <span>データ：2026年10月19日時点のWikidataと日本語版Wikipedia。災害・事件など扱わない題材は収録していません。件数はWikidataに記録されている数で、実際の総数とは限りません。Wikidataと日本語版の記事で数値が食い違うものは日本語版に合わせています。</span>
+    <span>データ：2026年10月19日時点のWikidataと日本語版Wikipedia。災害・事件など扱わない題材は収録していません。件数はWikidataに記録されている数で、実際の総数とは限りません。Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。</span>
     <span>百科拳典は個人が作った非公式のゲームです。Wikipedia・WikidataおよびWikimedia Foundationとは関係がなく、提携や承認も受けていません。WikipediaはWikimedia Foundationの登録商標です。</span>
   </footer>
 </div>
@@ -931,7 +932,8 @@ const FIXK={'標高':'e','高さ':'h','重さ':'m','面積':'a','人口':'p','�
 let FIX=null, FIXP=null;
 function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=fetch('data/fix.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(o=>{ FIX=o||{}; }).catch(()=>{ FIX={}; })); }
 function register(rec){ const t=rec.f[1];
-  { const fx=FIX&&FIX[t]; if(fx){ rec.qt={...(rec.qt||{})}; for(const [k,v] of Object.entries(fx)) if(FIXK[k]&&typeof v==='number') rec.qt[FIXK[k]]=v; } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
+  { const fx=FIX&&FIX[t]; if(fx){ rec.qt={...(rec.qt||{})}; const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};
+    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number') rec.qt[q]=v; else if(v===null){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
   F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
@@ -1087,8 +1089,8 @@ function showResult(){
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
-    ${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div>${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
-      return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div></div>`:''}
+    ${facts.length||API?`<div class="facts">${facts.length?'<div class="fh">2つの記事から分かること</div>':''}${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
+      return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}${API?'<button type="button" class="fxbad">不適切な内容を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div><div class="fxmsg" aria-live="polite"></div></div>`:''}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
@@ -1105,8 +1107,7 @@ function showResult(){
     </div>
   </div>
   ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
-  <div class="report" style="margin-top:10px"><span>気になる点を知らせる：</span><button type="button" data-rt="a">${esc(F[ai][0])}の記事</button><button type="button" data-rt="b">${esc(F[bi][0])}の記事</button><button type="button" data-rt="text">実況の文面</button><span id="repmsg" aria-live="polite"></span></div>
-  <form class="repf" id="repf" hidden novalidate>
+    <form class="repf" id="repf" hidden novalidate>
     <div class="rhd" id="rphd"></div>
     <div class="rchips" id="rpside" hidden></div>
     <div class="rnum" id="rpnum" hidden>
@@ -1134,13 +1135,13 @@ function showResult(){
   { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }
   if($('#again')) $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
-  { const f=$('#repf'), msg=$('#repmsg'), err=$('#rperr'), rb=$('#res .report'); let st=null, t0=0;
-    const all=()=>document.querySelectorAll('#res .facts li[data-fi],[data-rt]'), fb=$('#res .facts'), go=$('#res .fxgo');
+  { const f=$('#repf'), msg=$('#res .fxmsg'), err=$('#rperr'), bad=$('#res .fxbad'); let st=null, t0=0;
+    const all=()=>document.querySelectorAll('#res .facts li[data-fi],#res .fxbad'), fb=$('#res .facts'), go=$('#res .fxgo');
     // 「違う点を知らせる」を押すと、事実の行が押せるようになる（ふだんは行に何も出さない）
     const pick=on=>{ if(!fb) return; fb.classList.toggle('pick',on); if(go){ go.textContent=on?'やめる':'違う点を知らせる'; go.setAttribute('aria-pressed',on); } fb.querySelector('.fxhint').hidden=!on;
       fb.querySelectorAll('li[data-fi]').forEach(li=>{ if(on&&!li.dataset.done){ li.tabIndex=0; li.setAttribute('role','button'); } else { li.removeAttribute('tabindex'); li.removeAttribute('role'); } }); };
     const close=()=>{ f.hidden=true; const was=st&&st.mode==='num'; st=null; all().forEach(x=>x.classList.remove('on')); if(was) pick(false); };
-    if(go) go.onclick=()=>{ const on=!fb.classList.contains('pick'); if(st&&st.mode==='num'){ f.hidden=true; st=null; all().forEach(x=>x.classList.remove('on')); } pick(on); };
+    if(go) go.onclick=()=>{ const on=!fb.classList.contains('pick'); if(st){ f.hidden=true; st=null; all().forEach(x=>x.classList.remove('on')); } pick(on); };
     const open=(s,btn,where)=>{ st=s; t0=Date.now(); err.textContent=''; msg.textContent=''; all().forEach(x=>x.classList.toggle('on',x===btn));
       where.after(f); f.hidden=false; $('#rpnum').hidden=s.mode!=='num'; $('#rpbad').hidden=s.mode!=='bad';
       f.querySelector('[data-rr="subj"]').hidden=s.target==='text';   // 実況の文面には「題材」は当てはまらない
@@ -1156,22 +1157,24 @@ function showResult(){
       $('#rpfix').value=''; $('#rpu').value=''; head(); };
     document.querySelectorAll('#res .facts li[data-fi]').forEach(li=>{ li.onclick=()=>pickLine(li); li.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pickLine(li); } }; });
     // 下の「気になる点を知らせる」：どれについてかを選ぶと、理由のボタンが出る（押すと送る）
-    document.querySelectorAll('[data-rt]').forEach(btn=>btn.onclick=()=>{ if(st&&st.btn===btn){ close(); return; } const t=btn.dataset.rt;
-      open({mode:'bad',btn,target:t},btn,rb); $('#rpside').hidden=true;
-      $('#rphd').textContent=(t==='text'?'実況の文面':(t==='a'?F[ai][0]:F[bi][0])+'の記事')+'について'; $('#rptx').value=''; });
+    if(bad) bad.onclick=()=>{ if(st&&st.mode==='bad'){ close(); return; } if(st) close(); pick(false);
+      open({mode:'bad',btn:bad,target:null},bad,fb.querySelector('.fsrc')); const side=$('#rpside'); side.hidden=false;
+      side.innerHTML=[['a',F[ai][0]+'の記事'],['b',F[bi][0]+'の記事'],['text','実況の文面']].map(([k,t])=>`<button type="button" data-tg="${k}">${esc(t)}</button>`).join('');
+      side.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{ st.target=b.dataset.tg; side.querySelectorAll('[data-tg]').forEach(x=>x.classList.toggle('on',x===b)); f.querySelector('[data-rr="subj"]').hidden=st.target==='text'; err.textContent=''; });
+      $('#rphd').textContent='どれについてですか？'; $('#rptx').value=''; };
     f.querySelectorAll('.rpx').forEach(b=>b.onclick=close);
     const send=async body=>{ const bs=f.querySelectorAll('button'); bs.forEach(b=>b.disabled=true); err.textContent='送っています…';
       await new Promise(r=>setTimeout(r,Math.max(0,900-(Date.now()-t0))));   // 開いてすぐ（機械的な送信）と見分けるため、少しだけ待つ
       try{ const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,a:F[ai][1],b:F[bi][1],hp:$('#rphp').value,ms:Date.now()-t0,client:clientId()})});
         const d=await r.json().catch(()=>({}));
         if(r.ok&&d.ok){ const b=st.btn, m=st.mode; close(); const ok=d.dup?'同じ報告を受け付け済みです':'受け付けました。ありがとうございます';
-          if(m==='num'){ b.dataset.done=1; b.classList.add('done'); b.insertAdjacentHTML('beforeend','<span class="fxok">　'+(d.dup?'受け付け済み':'受け付けました')+'</span>'); } else { msg.textContent=ok+'。確かめたうえで対応します。'; document.querySelectorAll('[data-rt]').forEach(x=>x.disabled=true); } err.textContent=''; }
+          if(m==='num'){ b.dataset.done=1; b.classList.add('done'); b.insertAdjacentHTML('beforeend','<span class="fxok">　'+(d.dup?'受け付け済み':'受け付けました')+'</span>'); } else { msg.textContent=ok+'。確かめたうえで対応します。'; if(bad) bad.disabled=true; } err.textContent=''; }
         else err.textContent=d.error||'送れませんでした。時間をおいてもう一度お願いします。'; }
       catch(_){ err.textContent='送れませんでした。通信の状態を確かめてください。'; }
       bs.forEach(b=>b.disabled=false); };
     f.onsubmit=e=>{ e.preventDefault(); if(!st||st.mode!=='num') return; if(st.side===null){ err.textContent='どちらの数字かを選んでください'; return; }
       const it=st.rp.it[st.side]; send({kind:'num',reason:'fact',target:it.t===F[ai][1]?'a':'b',fact:{n:it.t,k:st.rp.k,v:it.v},fix:$('#rpfix').value,url:$('#rpu').value}); };
-    f.querySelectorAll('[data-rr]').forEach(b=>b.onclick=()=>{ if(!st||st.mode!=='bad') return; const rr=b.dataset.rr, tx=$('#rptx').value.trim();
+    f.querySelectorAll('[data-rr]').forEach(b=>b.onclick=()=>{ if(!st||st.mode!=='bad') return; const rr=b.dataset.rr, tx=$('#rptx').value.trim(); if(!st.target){ err.textContent='どれについてかを選んでください'; return; }
       if(rr==='fact'&&!tx){ err.textContent='どこが違うか、ひとこと書いてから押してください（記事の事実は「2つの記事から分かること」の「違う？」からも送れます）'; $('#rptx').focus(); return; }
       send({kind:rr==='fact'?'num':'bad',reason:rr,target:st.target,text:tx}); }); }
 }
