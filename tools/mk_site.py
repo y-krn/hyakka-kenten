@@ -1349,6 +1349,32 @@ rep('<button type="submit" class="btn" disabled>挑戦する</button></form>',
     '<button type="submit" class="btn" disabled>挑戦する</button></form>\n  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>')
 rep(".meta{font-size:13px;color:var(--muted)}", ".meta{font-size:13px;color:var(--muted)}\n#throne .thn{font-size:12px;margin-top:6px}")
 
+# ---- 55. 試合後に「この試合で分かったこと」：勝負を決めた事実を2〜3個、出どころと時点を添えて並べる（勝敗は変えない） ----
+rep("const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n);", "const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n); an.kq=Q.map(x=>({...x,ia:ai,ib:bi}));")
+rep("const key=decW.find(d=>d.who===w);", r"""const key=decW.find(d=>d.who===w);
+  // この試合で分かったこと：試合で実際に使われた事実だけを、記録どおりの書き方で出す（言い換えたり、推し量ったりしない）
+  const facts=(()=>{ const nm=i=>F[i][0];
+    // 比べ合いの数字は、計算したときの左右（ia/ib）で名前を付ける。画面の左右と逆のことがあるため
+    if(an.kq) return an.kq.slice(0,3).map(x=>({who:null,t:(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)}));
+    const by={}; for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||x.mv[0]==='NAME'||x.mv[1]==='分身の術'||!x.mv[3]) continue; const k=x.side+'|'+x.mv[1]; (by[k]=by[k]||{side:x.side,mv:x.mv,d:0}).d+=x.d; }
+    const isKey=o=>key&&o.mv[1]===key.move&&(o.side===0?ai:bi)===w;
+    const arr=Object.values(by).sort((p,q)=>(isKey(q)-isKey(p))||q.d-p.d); const P3=arr.slice(0,3);
+    if(P3.length>=2&&P3.every(o=>o.side===P3[0].side)){ const o=arr.find(o=>o.side!==P3[0].side); if(o) P3[P3.length-1]=o; }   // 両者の事実が出るように
+    return P3.map(o=>{ const me=o.side===0?ai:bi, op=o.side===0?bi:ai; let t=o.mv[3];
+      if(/^相手の/.test(t)) return {who:null,t:nm(op)+'の'+t.slice(3)};   // 「相手の記事に〜」は、だれの記事かを書く
+      const c=t.match(/^(.+?)：(.+) 対 (.+)$/); if(c) return {who:null,t:c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3]};   // 比べ技は、どちらの数字かを書く
+      return {who:me,t}; }); })();
+  const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);""")
+rep('<div class="reads"><span>記事を読む</span>',
+    """${facts.length?`<div class="facts"><div class="fh">この試合で分かったこと</div><ul>${facts.map(f=>`<li>${f.who!==null?`<b>${esc(F[f.who][0])}</b>　`:''}${esc(f.t)}</li>`).join('')}</ul><div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
+    <div class="reads"><span>記事を読む</span>""")
+rep(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}",
+    ".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}\n"
+    ".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}\n"
+    ".facts .fh{font-weight:700;font-size:14px}\n"
+    ".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}\n"
+    ".facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
