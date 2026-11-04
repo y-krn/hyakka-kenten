@@ -1122,7 +1122,7 @@ function showResult(){
     </div>
     <input id="rphp" name="website" class="rhp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="rerr" id="rperr" aria-live="polite"></div>
-    <div class="rnote">名前やメールアドレスは送りません。送った内容は管理者だけが見て、確かめたうえで直します。</div>
+    <div class="rnote">送られるのは、この報告の内容と、続けて送られるのを防ぐための回線・ブラウザの番号（元に戻せない形に変えて保存）です。見るのは管理者だけです。</div>
   </form>`;
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
