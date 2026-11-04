@@ -125,6 +125,7 @@ if (process.argv[1] && process.argv[1].endsWith('numcheck.mjs') && !process.env.
     await sleep(1000);
   }
   writeFileSync(OUT, JSON.stringify(res, null, 1));
+  for (const r of res) console.log('NC\t' + JSON.stringify(r));   // 実行記録からも結果を取り出せるように（1行1項目）
   const cnt = {}; for (const r of res) { cnt[r.k] = cnt[r.k] || {}; cnt[r.k][r.st] = (cnt[r.k][r.st] || 0) + 1; }
   const sts = ['一致', '小さな差', '食い違い', '読み取り不確か', '日本語版に数字なし'];
   const M = [`# 数字の照合（よく読まれている順に ${T.length} 記事・${res.length} 項目）`, '', '| 項目 | ' + sts.join(' | ') + ' |', '|---|' + sts.map(() => '---|').join('')];
