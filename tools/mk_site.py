@@ -1385,6 +1385,49 @@ function register(rec){ const t=rec.f[1];
   { const fx=FIX&&FIX[t]; if(fx){ rec.qt={...(rec.qt||{})}; for(const [k,v] of Object.entries(fx)) if(FIXK[k]&&typeof v==='number') rec.qt[FIXK[k]]=v; } }""")
 rep("async function loadTitle(t){ t=String(t||'').trim(); if(!t) return -1;", "async function loadTitle(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1;")
 
+# ---- 57. 報告をページの中で受け付ける（GitHubのアカウントがなくても送れる）。送り先は百科拳典のサーバー（/api/report） ----
+rep('<div class="report" style="margin-top:10px"><span>この対戦の内容が不適切だと思ったら知らせる：</span><button type="button" data-rep="a">${esc(F[ai][0])}の記事</button><button type="button" data-rep="b">${esc(F[bi][0])}の記事</button><button type="button" data-rep="text">対戦の文面</button><span id="repmsg" aria-live="polite"></span></div>`;',
+    '''<div class="report" style="margin-top:10px"><span>気になる点を知らせる：</span><button type="button" data-rk="num">数字が違う</button><button type="button" data-rk="bad">内容が不適切</button><span id="repmsg" aria-live="polite"></span></div>
+  <form class="repf" id="repf" hidden>
+    <div class="rrow"><label for="rpt">どこ？</label><select id="rpt"><option value="a">${esc(F[ai][0])}の記事</option><option value="b">${esc(F[bi][0])}の記事</option><option value="text">実況の文面</option></select></div>
+    <textarea id="rptx" maxlength="200" rows="3" aria-label="気になった点"></textarea>
+    <input id="rpu" type="url" inputmode="url" maxlength="300" placeholder="出典のURL（任意）" aria-label="出典のURL">
+    <input id="rphp" name="website" class="rhp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div class="rgo"><button type="submit" class="btn small">送る</button><button type="button" class="btn small" id="rpx">やめる</button><a id="rpgh" target="_blank" rel="noopener">GitHubで詳しく書く</a></div>
+    <div class="rnote">名前やメールアドレスは送りません。送った内容は管理者だけが見て、確かめたうえで直します。</div>
+  </form>`;''')
+rep("""  document.querySelectorAll('[data-rep]').forEach(btn=>btn.onclick=()=>{ const kind=btn.dataset.rep;
+    const tgt=kind==='a'?F[ai][0]:kind==='b'?F[bi][0]:F[ai][0]+' 対 '+F[bi][0];
+    const title=(kind==='text'?'【文面】':'【記事】')+tgt;
+    const body='対戦：'+F[ai][0]+' 対 '+F[bi][0]+'\\n対象：'+(kind==='text'?'実況の文面':tgt+'の記事')+'\\n\\n気になった点（任意）：\\n';
+    window.open('https://github.com/y-krn/hyakka-kenten/issues/new?labels=report&title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener');
+    $('#repmsg').textContent='GitHubの報告ページを開きました（GitHubのアカウントが必要です）。確認して、必要なら収録から外します。'; });""",
+    r"""  { let kind=null, t0=0; const f=$('#repf'), msg=$('#repmsg');
+    const gh=()=>{ const tg=$('#rpt').value, tgt=tg==='a'?F[ai][0]:tg==='b'?F[bi][0]:F[ai][0]+' 対 '+F[bi][0];
+      $('#rpgh').href='https://github.com/y-krn/hyakka-kenten/issues/new?labels=report&title='+encodeURIComponent((kind==='num'?'【数字】':tg==='text'?'【文面】':'【記事】')+tgt)+'&body='+encodeURIComponent('対戦：'+F[ai][0]+' 対 '+F[bi][0]+'\n対象：'+(tg==='text'?'実況の文面':tgt+'の記事')+'\n\n'+$('#rptx').value); };
+    document.querySelectorAll('[data-rk]').forEach(btn=>btn.onclick=()=>{ kind=btn.dataset.rk; t0=Date.now(); f.hidden=false; msg.textContent='';
+      document.querySelectorAll('[data-rk]').forEach(x=>x.classList.toggle('on',x===btn));
+      $('#rptx').placeholder=kind==='num'?'どの数字が、どう違うか（例：富士山の標高は3,776mでは？）':'気になった点（任意）'; gh(); $('#rptx').focus(); });
+    $('#rpt').onchange=gh; $('#rptx').oninput=gh;
+    $('#rpx').onclick=()=>{ f.hidden=true; kind=null; document.querySelectorAll('[data-rk]').forEach(x=>x.classList.remove('on')); };
+    f.onsubmit=async e=>{ e.preventDefault(); const bt=f.querySelector('[type=submit]'); bt.disabled=true; msg.textContent='送っています…';
+      try{ const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,target:$('#rpt').value,a:F[ai][1],b:F[bi][1],text:$('#rptx').value,url:$('#rpu').value,hp:$('#rphp').value,ms:Date.now()-t0,client:clientId()})});
+        const d=await r.json().catch(()=>({}));
+        if(r.ok&&d.ok){ f.hidden=true; msg.textContent='受け付けました。ありがとうございます。確かめたうえで直します。'; document.querySelectorAll('[data-rk]').forEach(x=>x.disabled=true); }
+        else msg.textContent=d.error||'送れませんでした。時間をおいてもう一度お願いします。'; }
+      catch(_){ msg.textContent='送れませんでした。通信の状態を確かめてください。'; }
+      bt.disabled=false; }; }""")
+rep(".report button{all:unset;cursor:pointer;text-decoration:underline}",
+    ".report button{all:unset;cursor:pointer;text-decoration:underline;padding:8px 2px}\n.report button.on{color:var(--ink);font-weight:700}.report button:disabled{opacity:.5;cursor:default}\n"
+    ".repf{margin-top:6px;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}\n"
+    ".repf .rrow{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}\n"
+    ".repf select,.repf textarea,.repf input{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);box-sizing:border-box;max-width:100%}\n"
+    ".repf textarea{width:100%;resize:vertical}.repf input[type=url]{width:100%}\n"
+    ".repf .rhp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}\n"
+    ".repf .rgo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.repf .rgo a{font-size:12px;color:var(--muted)}\n"
+    ".repf .rnote{font-size:11px;color:var(--muted)}\n"
+    "#famdlg .repf[hidden],.repf[hidden]{display:none}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
