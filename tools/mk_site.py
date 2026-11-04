@@ -1188,7 +1188,7 @@ function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7), tod
     cells.push(`<div class="hd${d===today?' now':''}"><span class="dn">${KANJI(d)}</span><span class="mk ${c}">${mk}</span></div>`); }
   const rank=(BANZUKE.find(b=>W>=b[0])||[])[1];
   const kachi=W>L&&W+L>=8;
-  return `<details class="tdcal" open><summary>星取表</summary><div class="hoshi">
+  return `<details class="tdcal"><summary>星取表　${MON[m]}月場所 ${KANJI(W)}勝${KANJI(L)}敗・${rank}</summary><div class="hoshi">
     <div class="hh"><div class="ht">百科拳典<br><b>${MON[m]}月場所</b></div><div class="hr">今場所の番付<b>${rank}</b></div></div>
     <div class="hg">${cells.join('')}</div>
     <div class="hf"><b>${KANJI(W)}勝${KANJI(L)}敗</b>${Y?`<span>${KANJI(Y)}休</span>`:''}${K?`<span>観戦のみ ${KANJI(K)}</span>`:''}</div>
