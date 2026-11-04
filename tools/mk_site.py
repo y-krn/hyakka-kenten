@@ -1524,8 +1524,16 @@ rep("""<div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　�
 # ---- 59. 訂正表で、誤った数字を「消す」こともできるように（値を null にする）。末尾の説明を実際の扱いに合わせる ----
 rep("for(const [k,v] of Object.entries(fx)) if(FIXK[k]&&typeof v==='number') rec.qt[FIXK[k]]=v; } }",
     "const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};\n"
-    "    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number') rec.qt[q]=v; else if(v===null){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } }")
+    "    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number'&&v>0) rec.qt[q]=v; else if(v===null||typeof v==='number'){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } }")
 rep("Wikidataと日本語版の記事で数値が食い違うものは日本語版に合わせています。", "Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。")
+
+# ---- 60. 自動の訂正表（data/fixa/<番号>.json）：日本語版の情報欄から確実に読めた数字に合わせる（tools/check/numcheck.mjs で作る）。手で書く訂正表（fix.json）のほうが優先 ----
+#   記事ごとに必要な分だけ読む（256に分けてある）。書き方は fix.json と同じ {"記事名": {"人口": 32862000}}
+rep("function register(rec){ const t=rec.f[1];", """const FXNB=256, FXA={}, FXAP={};
+function fixAuto(t){ const k=fnv(t)%FXNB; return FXAP[k]||(FXAP[k]=fetch('data/fixa/'+k+'.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(o=>{ Object.assign(FXA,o); })); }
+function register(rec){ const t=rec.f[1];""")
+rep("{ const fx=FIX&&FIX[t]; if(fx){", "{ const fx=(FIX&&FIX[t])||FXA[t]; if(fx){")
+rep("async function loadTitle(t){ await fixLoad(); t=String(t||'').trim();", "async function loadTitle(t){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]);")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
@@ -1538,13 +1546,13 @@ js = s[s.index('<script>') + 8:s.rindex('</script>')]
 a = js[:js.index('/* ---------- 記録（この端末だけ）')]
 b = js[js.index('/* ---------- 保留・通報・確認'):js.index('function setCount()')]
 a = a.replace("const $=s=>document.querySelector(s);", "")
-eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/', FETCH=u=>fetch(u);\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'").replace("fetch(DATA_BASE+'a/'", "FETCH(DATA_BASE+'a/'") + b.replace("fetch('data/fix.json?t='+Date.now(),{cache:'no-store'})", "FETCH(DATA_BASE+'fix.json')") + r"""
+eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/', FETCH=u=>fetch(u);\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'").replace("fetch(DATA_BASE+'a/'", "FETCH(DATA_BASE+'a/'") + b.replace("fetch('data/fix.json?t='+Date.now(),{cache:'no-store'})", "FETCH(DATA_BASE+'fix.json')").replace("fetch('data/fixa/'+k+'.json')", "FETCH(DATA_BASE+'fixa/'+k+'.json')") + r"""
 /* ---------- サーバー用：1記事だけを取り出して登録する（全体を解析しないので軽い） ---------- */
 const TXT={};
 function pickRec(txt,t){ const key=JSON.stringify(t)+':{'; let i=txt.indexOf(key); if(i<0) return null; i+=key.length-1; let d=0,inS=false;
   for(let j=i;j<txt.length;j++){ const c=txt.charCodeAt(j); if(inS){ if(c===92){ j++; continue; } if(c===34) inS=false; continue; }
     if(c===34) inS=true; else if(c===123) d++; else if(c===125){ d--; if(!d) return JSON.parse(txt.slice(i,j+1)); } } return null; }
-async function loadOne(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
+async function loadOne(t){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
   if(!TXT[k]){ const r=await FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER); if(!r.ok) throw new Error('data '+r.status);
     TXT[k]=await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); }
   const rec=pickRec(TXT[k],t); return rec?register(rec):-1; }

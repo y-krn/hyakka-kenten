@@ -12,6 +12,7 @@ def doubtful(r):
     if raw.startswith('|') or re.search(r'\|\s*[^|=\s]+\s*=', raw): return '情報欄の別の項目が混ざっている'
     if "''M''" in raw or '±' in raw or re.search(r'M\s*[J☉⊕]|木星質量|太陽質量', raw): return '天体の単位'
     if '千' in raw: return '千の付いた書き方'
+    if r['k'] == 'p' and re.match(r'^\D{0,3}\d{1,3}\.\d{3}(?!\d)', raw) and not re.search('[万億]', raw): return '人口に小数点（欧州の桁区切りの疑い）'
     if wd and jp and (max(abs(wd), abs(jp)) / max(min(abs(wd), abs(jp)), 1e-12) > 300): return '300倍を超えるずれ（万人単位などの読み違いの疑い）'
     if len(UNIT.findall(raw)) >= 2 and not re.search(r'[（(]約?\s*[\d,.]+\s*(km/h|m|ft|km)', raw): return '数字が複数ある'
     return None
@@ -36,7 +37,7 @@ for path in sys.argv[1:]:
         if r['st'] not in ('小さな差', '食い違い') or r.get('fixed') or r['t'] in hand: continue
         if doubtful(r): continue
         v = r.get('jp')
-        if not isinstance(v, (int, float)) or v != v: continue
+        if not isinstance(v, (int, float)) or v != v or v <= 0 and r['k'] != 'e': continue   # 0 以下（標高を除く）は比べ合いで割り算が壊れるので入れない
         out[fnv(r['t']) % NB].setdefault(r['t'], {})[LAB[r['k']]] = float(f'{v:.6g}'); n += 1
 d = os.path.join(root, 'data', 'fixa'); os.makedirs(d, exist_ok=True)
 for k in range(NB):
