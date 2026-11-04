@@ -1031,17 +1031,22 @@ function showResult(){
   // この試合で分かったこと：試合で実際に使われた事実だけを、記録どおりの書き方で出す（言い換えたり、推し量ったりしない）
   // 記事そのものの数字（文字数・閲覧数・カテゴリやリンクの数・作成日など）は、読んでも知識が増えないので出さない。対象そのものについての事実だけ
   const META_MV=new Set(['文字数マウント','人脈マウント','閲覧数マウント','カテゴリ数マウント','見出し数マウント','画像数マウント','リンク数マウント','長文で殴る','リンク網','注目の視線','カテゴリ包囲','見出し連打','リンク乱打','画像攻撃','外部リンク渡り','要出典','書きかけ指摘','古参の貫禄','分身の術','名前で殴る','百科事典の権威','事典掲載マウント','肩書きマウント']);   // 数だけで中身の分からないもの（載っている事典の数・肩書きの数）も出さない
-  const facts=(()=>{ const nm=i=>F[i][0];
-    // 比べ合いの数字は、計算したときの左右（ia/ib）で名前を付ける。画面の左右と逆のことがあるため
-    if(an.kq) return an.kq.filter(x=>!['_sl','_pv','_ch','P106','P1343'].includes(x.k)).slice(0,3).map(x=>({who:null,t:(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)}));
-    const by={}; for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||x.mv[0]==='NAME'||META_MV.has(x.mv[1])||!x.mv[3]) continue; const k=x.side+'|'+x.mv[1]; (by[k]=by[k]||{side:x.side,mv:x.mv,d:0}).d+=x.d; }
-    const isKey=o=>key&&o.mv[1]===key.move&&(o.side===0?ai:bi)===w;
-    const arr=Object.values(by).sort((p,q)=>(isKey(q)-isKey(p))||q.d-p.d); const P3=arr.slice(0,3);
-    if(P3.length>=2&&P3.every(o=>o.side===P3[0].side)){ const o=arr.find(o=>o.side!==P3[0].side); if(o) P3[P3.length-1]=o; }   // 両者の事実が出るように
-    return P3.map(o=>{ const me=o.side===0?ai:bi, op=o.side===0?bi:ai; let t=o.mv[3];
-      if(/^相手の/.test(t)) return {who:null,t:nm(op)+'の'+t.slice(3)};   // 「相手の記事に〜」は、だれの記事かを書く
-      const c=t.match(/^(.+?)：(.+) 対 (.+)$/); if(c) return {who:null,t:c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3]};   // 比べ技は、どちらの数字かを書く
-      return {who:me,t}; }); })();
+  const facts=(()=>{ const nm=i=>F[i][0]; const out=[], seen=new Set(), per={};
+    const add=(who,t,cap)=>{ t=String(t||'').trim(); if(!t||seen.has(t)) return false; if(who!==null&&(per[who]||0)>=(cap||2)) return false; seen.add(t); out.push({who,t}); if(who!==null) per[who]=(per[who]||0)+1; return true; };
+    // 1. 試合で使われた比べ（どちらの数字かを書く）。比べ合いの数字は、計算したときの左右（ia/ib）で名前を付ける。画面の左右と逆のことがあるため
+    if(an.kq) an.kq.filter(x=>!['_sl','_pv','_ch','P106','P1343'].includes(x.k)).slice(0,2).forEach(x=>add(null,(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)));
+    else for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||META_MV.has(x.mv[1])||!x.mv[3]) continue; const me=x.side===0?ai:bi, op=x.side===0?bi:ai; const t=x.mv[3];
+      if(/^相手の/.test(t)) continue;
+      const c=t.match(/^(.+?)：(.+) 対 (.+)$/); if(c&&out.filter(o=>o.who===null).length<1) add(null,c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3]); }
+    // 2. それぞれの記事の、対象そのものについての事実（技の候補全体から、中身の分かるものを順番に）
+    const pri=m=>{ const t=m[3]||''; if(META_MV.has(m[1])&&m[1]!=='カテゴリ包囲') return 99; if(/^\S*\d[\d,]*件$/.test(t)) return 99;   // 「登録作品13件」のように数だけのものは出さない
+      if(/^職業：/.test(t)) return 1; if(/^(生まれた場所|所在地|活動地)：/.test(t)) return 2; if(/^受賞：/.test(t)) return 3; if(/^(主要作品|代表作)/.test(t)) return 4;
+      if(/^所属/.test(t)) return 5; if(/^(生みの親|名前の由来|着想を得たもの|元ネタ)：/.test(t)) return 6; if(PLAIN.some(p=>p[1]===m[1])) return 7; if(/^構成要素：/.test(t)) return 8;
+      if(m[1]==='カテゴリ包囲') return /（.+など）/.test(t)?9:99; if(m[0]==='SENIORITY') return 10; if(/^Wikidataでの分類：ヒト$/.test(t)) return 99; if(m[0]==='NAME'||/：.*対/.test(t)) return 99; return 8.5; };
+    const prof=i=>(POOL[i]||[]).map(m=>({m,p:pri(m)})).filter(o=>o.p<99).sort((x,y)=>x.p-y.p).map(o=>{ const t=o.m[3];
+      if(o.m[1]==='カテゴリ包囲'){ const c=t.match(/（(.+?)など）/); return c?'カテゴリ：'+c[1]:''; } return t; });
+    const A=prof(ai), B=prof(bi); for(let k=0;k<6&&out.length<4;k++){ if(A[k]) add(ai,A[k]); if(out.length>=4) break; if(B[k]) add(bi,B[k]); }
+    return out.slice(0,4); })();
   const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);
   let title=w===null?'引き分け':`${F[w][0]}の勝ち`;
   if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; if(M.replay) title='【記録】'+title; }
@@ -1064,7 +1069,7 @@ function showResult(){
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
-    ${facts.length?`<div class="facts"><div class="fh">この試合で分かったこと</div><ul>${facts.map(f=>`<li>${f.who!==null?`<b>${esc(F[f.who][0])}</b>　`:''}${esc(f.t)}</li>`).join('')}</ul><div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
+    ${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div><ul>${facts.map(f=>`<li>${f.who!==null?`<b>${esc(F[f.who][0])}</b>　`:''}${esc(f.t)}</li>`).join('')}</ul><div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
