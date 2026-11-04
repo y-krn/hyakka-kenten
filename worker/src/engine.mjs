@@ -450,7 +450,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
   /* ---------- 比べ合い ---------- */
   if(type==='kurabe'){ const R=rounds(ai,bi); const pri=x=>PHYS.includes(x.k)?0:PCNT.includes(x.k)?1:x.k==='yr'?2:3;
     const pick=[...R].sort((x,y)=>pri(x)-pri(y)||(hash(K0+x.k)%7)-(hash(K0+y.k)%7)).slice(0,5);
-    const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n); let sa=0,sb=0; const hp=[r.max[0],r.max[1]]; const need=Math.ceil(n/2)+1;
+    const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n); an.kq=Q.map(x=>({...x,ia:ai,ib:bi})); let sa=0,sb=0; const hp=[r.max[0],r.max[1]]; const need=Math.ceil(n/2)+1;
     const step=[Math.ceil(r.max[0]/need),Math.ceil(r.max[1]/need)];
     const log=[sys(P(['【比べ合い】本日、殴り合いは行わない。両者の数字を、厳正に比べる。','【比べ合い】両者、拳を収める。ここからは数字の格闘技だ。','【比べ合い】審判団が入場する。手にしているのは物差しと電卓である。'])),
       sys(P(['全{n}番勝負。数字の大きいほうが一本を取る。それ以上でも以下でもない。','全{n}番勝負。勝敗は、すでにWikipediaに書いてある。'],{n}))];

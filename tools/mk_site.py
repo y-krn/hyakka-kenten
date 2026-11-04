@@ -1349,6 +1349,44 @@ rep('<button type="submit" class="btn" disabled>挑戦する</button></form>',
     '<button type="submit" class="btn" disabled>挑戦する</button></form>\n  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>')
 rep(".meta{font-size:13px;color:var(--muted)}", ".meta{font-size:13px;color:var(--muted)}\n#throne .thn{font-size:12px;margin-top:6px}")
 
+# ---- 55. 試合後に「この試合で分かったこと」：勝負を決めた事実を2〜3個、出どころと時点を添えて並べる（勝敗は変えない） ----
+rep("const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n);", "const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n); an.kq=Q.map(x=>({...x,ia:ai,ib:bi}));")
+rep("const key=decW.find(d=>d.who===w);", r"""const key=decW.find(d=>d.who===w);
+  // この試合で分かったこと：試合で実際に使われた事実だけを、記録どおりの書き方で出す（言い換えたり、推し量ったりしない）
+  // 記事そのものの数字（文字数・閲覧数・カテゴリやリンクの数・作成日など）は、読んでも知識が増えないので出さない。対象そのものについての事実だけ
+  const META_MV=new Set(['文字数マウント','人脈マウント','閲覧数マウント','カテゴリ数マウント','見出し数マウント','画像数マウント','リンク数マウント','長文で殴る','リンク網','注目の視線','カテゴリ包囲','見出し連打','リンク乱打','画像攻撃','外部リンク渡り','要出典','書きかけ指摘','古参の貫禄','分身の術','名前で殴る','百科事典の権威','事典掲載マウント','肩書きマウント']);   // 数だけで中身の分からないもの（載っている事典の数・肩書きの数）も出さない
+  const facts=(()=>{ const nm=i=>F[i][0]; const out=[], seen=new Set(), per={};
+    const add=(who,t,cap)=>{ t=String(t||'').trim(); if(!t||seen.has(t)) return false; if(who!==null&&(per[who]||0)>=(cap||2)) return false; seen.add(t); out.push({who,t}); if(who!==null) per[who]=(per[who]||0)+1; return true; };
+    // 1. 試合で使われた比べ（どちらの数字かを書く）。比べ合いの数字は、計算したときの左右（ia/ib）で名前を付ける。画面の左右と逆のことがあるため
+    if(an.kq) an.kq.filter(x=>!['_sl','_pv','_ch','P106','P1343'].includes(x.k)).slice(0,2).forEach(x=>add(null,(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)));
+    else for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||META_MV.has(x.mv[1])||!x.mv[3]) continue; const me=x.side===0?ai:bi, op=x.side===0?bi:ai; const t=x.mv[3];
+      if(/^相手の/.test(t)) continue;
+      const c=t.match(/^(.+?)：(.+) 対 (.+)$/); if(c&&out.filter(o=>o.who===null).length<1) add(null,c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3]); }
+    // 2. それぞれの記事の、対象そのものについての事実（技の候補全体から、中身の分かるものを順番に）
+    const pri=m=>{ const t=m[3]||''; if(META_MV.has(m[1])&&m[1]!=='カテゴリ包囲') return 99; if(/^\S*\d[\d,]*件$/.test(t)) return 99;   // 「登録作品13件」のように数だけのものは出さない
+      if(/^職業：/.test(t)) return 1; if(/^(生まれた場所|所在地|活動地)：/.test(t)) return 2; if(/^受賞：/.test(t)) return 3; if(/^(主要作品|代表作)/.test(t)) return 4;
+      if(/^所属/.test(t)) return 5; if(/^(生みの親|名前の由来|着想を得たもの|元ネタ)：/.test(t)) return 6; if(PLAIN.some(p=>p[1]===m[1])) return 7; if(/^構成要素：/.test(t)) return 8;
+      if(m[1]==='カテゴリ包囲') return /（.+など）/.test(t)?9:99; if(m[0]==='SENIORITY') return 10; if(/^Wikidataでの分類：ヒト$/.test(t)) return 99; if(m[0]==='NAME'||/：.*対/.test(t)) return 99; return 8.5; };
+    const prof=i=>(POOL[i]||[]).map(m=>({m,p:pri(m)})).filter(o=>o.p<99).sort((x,y)=>x.p-y.p).map(o=>{ const t=o.m[3];
+      if(o.m[1]==='カテゴリ包囲'){ const c=t.match(/（(.+?)など）/); return c?'カテゴリ：'+c[1]:''; }
+      // 場所は、名前だけだと分かりにくいことがある（「7区」など）。Wikidataの説明文を添える（「日本の都道府県」「〜の国」のように自明なものは省く）
+      const pl=t.match(/^(所在地|活動地|生まれた場所)：(.+)$/), tg=Array.isArray(o.m[7])&&o.m[7][0];
+      if(pl&&tg&&tg[0]===pl[2]&&tg[1]&&!/[都道府県国]$/.test(pl[2])&&!/^(日本の都道府県|.*の国|国|都市|市)$/.test(tg[1])) return t+'（'+tg[1]+'）'; return t; });
+    const A=prof(ai), B=prof(bi); A.slice(0,4).forEach(t=>add(ai,t)); B.slice(0,4).forEach(t=>add(bi,t));   // 1記事2つまで（add の上限）
+    return out; })();
+  const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);""")
+rep('<div class="reads"><span>記事を読む</span>',
+    """${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div>${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
+      return (cmp.length?`<ul>${cmp.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
+    <div class="reads"><span>記事を読む</span>""")
+rep(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}",
+    ".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}\n"
+    ".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}\n"
+    ".facts .fh{font-weight:700;font-size:14px}\n"
+    ".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}\n"
+    ".facts .fwho{font-weight:700;font-size:13px;margin-top:8px}.facts .fwho+ul{margin-top:2px}\n"
+    ".facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}")
+
 # ---- 56. 数値の訂正表（data/fix.json）：Wikidata の明らかな誤りを、出どころを確かめたうえで百科拳典の側で直す ----
 #   書き方：{"記事名": {"標高": 3776.12, "出典": "…", "確認日": "YYYY-MM-DD"}}。数字の項目名は FIXK のもの
 #   記事を読み込むとき（register）に、収録データの数字（qt）を上書きする。技の説明文（「標高◯m」）も、この数字から作り直される
