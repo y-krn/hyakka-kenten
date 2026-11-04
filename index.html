@@ -323,7 +323,28 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .fgo{display:flex;gap:8px;justify-content:flex-end}
 .mtype{font-size:13px;color:var(--muted);margin-bottom:6px}.mtype b{color:var(--ink)}
 .report{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.report button{all:unset;cursor:pointer;text-decoration:underline}
+.report button{all:unset;cursor:pointer;text-decoration:underline;padding:6px 2px}
+.report button.on{color:var(--ink);font-weight:700}.report button:disabled{opacity:.5;cursor:default}
+.facts .fxgo{all:unset;cursor:pointer;text-decoration:underline;padding:8px 4px;margin:-8px 0 -8px 4px;white-space:nowrap}
+.facts .fxhint{font-size:12px;font-weight:700;margin-top:6px}
+.facts.pick li[data-fi]:not([data-done]){cursor:pointer;text-decoration:underline dashed;text-underline-offset:4px}
+.facts.pick li[data-fi].on{text-decoration:underline solid}
+.facts li .fxok{font-size:12px;opacity:.7}
+.repf{margin-top:6px;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.facts .repf{margin:8px 0 4px}.result .repf .btn{border-color:var(--ink);color:var(--ink);background:var(--paper)}.result .repf .btn:hover{background:var(--ink);color:var(--paper)}
+.repf .rhd{font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.repf .rnum,.repf .rbad{display:flex;flex-direction:column;gap:8px}
+.repf textarea,.repf input{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);box-sizing:border-box;width:100%}
+.repf textarea{resize:vertical}
+.repf .rchips{display:flex;flex-wrap:wrap;gap:8px}
+.repf .rchips button{font:inherit;font-size:14px;padding:9px 12px;border:1px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);cursor:pointer}
+.repf .rchips button.on{background:var(--ink);color:var(--paper)}.repf .rchips button:disabled{opacity:.5}
+.repf .rlab{font-size:12px;color:var(--muted)}
+.repf .rhp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.repf .rgo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.repf .rerr{font-size:13px;color:var(--ink)}.repf .rerr:empty{display:none}
+.repf .rnote{font-size:11px;color:var(--muted)}
+.repf[hidden],.repf [hidden]{display:none!important}
 #review{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 #review h3{margin:0;font-size:15px}
 #review .note{font-size:12px;color:var(--muted)}
@@ -1024,12 +1045,12 @@ function showResult(){
   // 記事そのものの数字（文字数・閲覧数・カテゴリやリンクの数・作成日など）は、読んでも知識が増えないので出さない。対象そのものについての事実だけ
   const META_MV=new Set(['文字数マウント','人脈マウント','閲覧数マウント','カテゴリ数マウント','見出し数マウント','画像数マウント','リンク数マウント','長文で殴る','リンク網','注目の視線','カテゴリ包囲','見出し連打','リンク乱打','画像攻撃','外部リンク渡り','要出典','書きかけ指摘','古参の貫禄','分身の術','名前で殴る','百科事典の権威','事典掲載マウント','肩書きマウント']);   // 数だけで中身の分からないもの（載っている事典の数・肩書きの数）も出さない
   const facts=(()=>{ const nm=i=>F[i][0]; const out=[], seen=new Set(), per={};
-    const add=(who,t,cap)=>{ t=String(t||'').trim(); if(!t||seen.has(t)) return false; if(who!==null&&(per[who]||0)>=(cap||2)) return false; seen.add(t); out.push({who,t}); if(who!==null) per[who]=(per[who]||0)+1; return true; };
+    const add=(who,t,cap,rp)=>{ t=String(t||'').trim(); if(!t||seen.has(t)) return false; if(who!==null&&(per[who]||0)>=(cap||2)) return false; seen.add(t); out.push({who,t,rp}); if(who!==null) per[who]=(per[who]||0)+1; return true; };
     // 1. 試合で使われた比べ（どちらの数字かを書く）。比べ合いの数字は、計算したときの左右（ia/ib）で名前を付ける。画面の左右と逆のことがあるため
-    if(an.kq) an.kq.filter(x=>!['_sl','_pv','_ch','P106','P1343'].includes(x.k)).slice(0,2).forEach(x=>add(null,(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)));
+    if(an.kq) an.kq.filter(x=>!['_sl','_pv','_ch','P106','P1343'].includes(x.k)).slice(0,2).forEach(x=>add(null,(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b),0,{k:RLAB[x.k]||x.k,it:[{t:F[x.ia][1],n:nm(x.ia),v:fmtR(x.k,x.a)},{t:F[x.ib][1],n:nm(x.ib),v:fmtR(x.k,x.b)}]}));
     else for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||META_MV.has(x.mv[1])||!x.mv[3]) continue; const me=x.side===0?ai:bi, op=x.side===0?bi:ai; const t=x.mv[3];
       if(/^相手の/.test(t)) continue;
-      const c=t.match(/^(.+?)：(.+) 対 (.+)$/); if(c&&out.filter(o=>o.who===null).length<1) add(null,c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3]); }
+      const c=t.match(/^(.+?)：(.+) 対 (.+)$/); if(c&&out.filter(o=>o.who===null).length<1) add(null,c[1]+'：'+nm(me)+' '+c[2]+' ／ '+nm(op)+' '+c[3],0,{k:c[1],it:[{t:F[me][1],n:nm(me),v:c[2]},{t:F[op][1],n:nm(op),v:c[3]}]}); }
     // 2. それぞれの記事の、対象そのものについての事実（技の候補全体から、中身の分かるものを順番に）
     const pri=m=>{ const t=m[3]||''; if(META_MV.has(m[1])&&m[1]!=='カテゴリ包囲') return 99; if(/^\S*\d[\d,]*件$/.test(t)) return 99;   // 「登録作品13件」のように数だけのものは出さない
       if(/^職業：/.test(t)) return 1; if(/^(生まれた場所|所在地|活動地)：/.test(t)) return 2; if(/^受賞：/.test(t)) return 3; if(/^(主要作品|代表作)/.test(t)) return 4;
@@ -1040,8 +1061,10 @@ function showResult(){
       // 場所は、名前だけだと分かりにくいことがある（「7区」など）。Wikidataの説明文を添える（「日本の都道府県」「〜の国」のように自明なものは省く）
       const pl=t.match(/^(所在地|活動地|生まれた場所)：(.+)$/), tg=Array.isArray(o.m[7])&&o.m[7][0];
       if(pl&&tg&&tg[0]===pl[2]&&tg[1]&&!/[都道府県国]$/.test(pl[2])&&!/^(日本の都道府県|.*の国|国|都市|市)$/.test(tg[1])) return t+'（'+tg[1]+'）'; return t; });
-    const A=prof(ai), B=prof(bi); A.slice(0,4).forEach(t=>add(ai,t)); B.slice(0,4).forEach(t=>add(bi,t));   // 1記事2つまで（add の上限）
+    const A=prof(ai), B=prof(bi); const rp1=(i,t)=>{ const m=t.match(/^(.+?)：(.+)$/); return {k:m?m[1]:'',it:[{t:F[i][1],n:nm(i),v:m?m[2]:t}]}; };
+    A.slice(0,4).forEach(t=>add(ai,t,2,rp1(ai,t))); B.slice(0,4).forEach(t=>add(bi,t,2,rp1(bi,t)));   // 1記事2つまで（add の上限）
     return out; })();
+  const fxa=f=>API&&f.rp?' data-fi="'+facts.indexOf(f)+'"':'';
   const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);
   let title=w===null?'引き分け':`${F[w][0]}の勝ち`;
   if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; if(M.replay) title='【記録】'+title; }
@@ -1060,12 +1083,12 @@ function showResult(){
   $('#res').innerHTML=`
   <div class="result">
     <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>
-    <div class="sub">${w===null?'':esc(how)+(r.kind==='比べ合い'?'':'　／　残りHP '+wHP)}${upset?`　／　能力値だけなら${an.baseW===null?'引き分けの':esc(nm(an.baseW))+'が勝つ'}組み合わせ`:''}${streak.n>=2?`　／　${esc(F[w][0])} ${streak.n}連勝中`:''}</div>
+    ${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中</div>`:''}
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
     ${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div>${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
-      return (cmp.length?`<ul>${cmp.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
+      return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div></div>`:''}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
@@ -1082,7 +1105,25 @@ function showResult(){
     </div>
   </div>
   ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
-  <div class="report" style="margin-top:10px"><span>この対戦の内容が不適切だと思ったら知らせる：</span><button type="button" data-rep="a">${esc(F[ai][0])}の記事</button><button type="button" data-rep="b">${esc(F[bi][0])}の記事</button><button type="button" data-rep="text">対戦の文面</button><span id="repmsg" aria-live="polite"></span></div>`;
+  <div class="report" style="margin-top:10px"><span>気になる点を知らせる：</span><button type="button" data-rt="a">${esc(F[ai][0])}の記事</button><button type="button" data-rt="b">${esc(F[bi][0])}の記事</button><button type="button" data-rt="text">実況の文面</button><span id="repmsg" aria-live="polite"></span></div>
+  <form class="repf" id="repf" hidden novalidate>
+    <div class="rhd" id="rphd"></div>
+    <div class="rchips" id="rpside" hidden></div>
+    <div class="rnum" id="rpnum" hidden>
+      <input id="rpfix" maxlength="60" autocomplete="off" placeholder="正しい値（分かれば）" aria-label="正しい値（分かれば）">
+      <input id="rpu" type="url" inputmode="url" maxlength="300" autocomplete="off" placeholder="出典のURL（分かれば）" aria-label="出典のURL（分かれば）">
+      <div class="rgo"><button type="submit" class="btn small" id="rpgo">送る</button><button type="button" class="btn small rpx">やめる</button></div>
+    </div>
+    <div class="rbad" id="rpbad" hidden>
+      <textarea id="rptx" maxlength="200" rows="2" placeholder="ひとこと（任意）" aria-label="ひとこと（任意）"></textarea>
+      <div class="rlab">理由を押すと送ります</div>
+      <div class="rchips"><button type="button" data-rr="fact">数字や事実が違う</button><button type="button" data-rr="dis">差別的・攻撃的</button><button type="button" data-rr="subj">扱いがふさわしくない題材</button><button type="button" data-rr="other">その他</button></div>
+      <div class="rgo"><button type="button" class="btn small rpx">やめる</button></div>
+    </div>
+    <input id="rphp" name="website" class="rhp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div class="rerr" id="rperr" aria-live="polite"></div>
+    <div class="rnote">送られるのは、この報告の内容と、続けて送られるのを防ぐための回線・ブラウザの番号（元に戻せない形に変えて保存）です。見るのは管理者だけです。</div>
+  </form>`;
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
@@ -1093,12 +1134,46 @@ function showResult(){
   { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }
   if($('#again')) $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
-  document.querySelectorAll('[data-rep]').forEach(btn=>btn.onclick=()=>{ const kind=btn.dataset.rep;
-    const tgt=kind==='a'?F[ai][0]:kind==='b'?F[bi][0]:F[ai][0]+' 対 '+F[bi][0];
-    const title=(kind==='text'?'【文面】':'【記事】')+tgt;
-    const body='対戦：'+F[ai][0]+' 対 '+F[bi][0]+'\n対象：'+(kind==='text'?'実況の文面':tgt+'の記事')+'\n\n気になった点（任意）：\n';
-    window.open('https://github.com/y-krn/hyakka-kenten/issues/new?labels=report&title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener');
-    $('#repmsg').textContent='GitHubの報告ページを開きました（GitHubのアカウントが必要です）。確認して、必要なら収録から外します。'; });
+  { const f=$('#repf'), msg=$('#repmsg'), err=$('#rperr'), rb=$('#res .report'); let st=null, t0=0;
+    const all=()=>document.querySelectorAll('#res .facts li[data-fi],[data-rt]'), fb=$('#res .facts'), go=$('#res .fxgo');
+    // 「違う点を知らせる」を押すと、事実の行が押せるようになる（ふだんは行に何も出さない）
+    const pick=on=>{ if(!fb) return; fb.classList.toggle('pick',on); if(go){ go.textContent=on?'やめる':'違う点を知らせる'; go.setAttribute('aria-pressed',on); } fb.querySelector('.fxhint').hidden=!on;
+      fb.querySelectorAll('li[data-fi]').forEach(li=>{ if(on&&!li.dataset.done){ li.tabIndex=0; li.setAttribute('role','button'); } else { li.removeAttribute('tabindex'); li.removeAttribute('role'); } }); };
+    const close=()=>{ f.hidden=true; const was=st&&st.mode==='num'; st=null; all().forEach(x=>x.classList.remove('on')); if(was) pick(false); };
+    if(go) go.onclick=()=>{ const on=!fb.classList.contains('pick'); if(st&&st.mode==='num'){ f.hidden=true; st=null; all().forEach(x=>x.classList.remove('on')); } pick(on); };
+    const open=(s,btn,where)=>{ st=s; t0=Date.now(); err.textContent=''; msg.textContent=''; all().forEach(x=>x.classList.toggle('on',x===btn));
+      where.after(f); f.hidden=false; $('#rpnum').hidden=s.mode!=='num'; $('#rpbad').hidden=s.mode!=='bad';
+      f.querySelector('[data-rr="subj"]').hidden=s.target==='text';   // 実況の文面には「題材」は当てはまらない
+      f.scrollIntoView({behavior:'smooth',block:'nearest'}); };
+    // 事実の行の「違う？」：どの記事のどの事実かは、こちらで入れる
+    const pickLine=btn=>{ if(!fb.classList.contains('pick')||btn.dataset.done) return; const fc=facts[+btn.dataset.fi]; if(!fc||!fc.rp) return; const rp=fc.rp;
+      if(st&&st.btn===btn){ f.hidden=true; st=null; btn.classList.remove('on'); return; }
+      open({mode:'num',btn,rp,side:rp.it.length===1?0:null},btn,btn.closest('ul'));
+      const side=$('#rpside'), hd=$('#rphd');
+      const head=()=>{ const it=st.side===null?null:rp.it[st.side]; hd.textContent=it?'「違う」と知らせる：'+it.n+'の'+(rp.k?rp.k+' ':'')+it.v:'どちらの数字が違いますか？'; };
+      side.hidden=rp.it.length<2; side.innerHTML=rp.it.length<2?'':rp.it.map((it,k)=>`<button type="button" data-sd="${k}">${esc(it.n)}　${esc(it.v)}</button>`).join('');
+      side.querySelectorAll('[data-sd]').forEach(b=>b.onclick=()=>{ st.side=+b.dataset.sd; side.querySelectorAll('[data-sd]').forEach(x=>x.classList.toggle('on',x===b)); err.textContent=''; head(); $('#rpfix').focus({preventScroll:true}); });
+      $('#rpfix').value=''; $('#rpu').value=''; head(); };
+    document.querySelectorAll('#res .facts li[data-fi]').forEach(li=>{ li.onclick=()=>pickLine(li); li.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pickLine(li); } }; });
+    // 下の「気になる点を知らせる」：どれについてかを選ぶと、理由のボタンが出る（押すと送る）
+    document.querySelectorAll('[data-rt]').forEach(btn=>btn.onclick=()=>{ if(st&&st.btn===btn){ close(); return; } const t=btn.dataset.rt;
+      open({mode:'bad',btn,target:t},btn,rb); $('#rpside').hidden=true;
+      $('#rphd').textContent=(t==='text'?'実況の文面':(t==='a'?F[ai][0]:F[bi][0])+'の記事')+'について'; $('#rptx').value=''; });
+    f.querySelectorAll('.rpx').forEach(b=>b.onclick=close);
+    const send=async body=>{ const bs=f.querySelectorAll('button'); bs.forEach(b=>b.disabled=true); err.textContent='送っています…';
+      await new Promise(r=>setTimeout(r,Math.max(0,900-(Date.now()-t0))));   // 開いてすぐ（機械的な送信）と見分けるため、少しだけ待つ
+      try{ const r=await fetch(API+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,a:F[ai][1],b:F[bi][1],hp:$('#rphp').value,ms:Date.now()-t0,client:clientId()})});
+        const d=await r.json().catch(()=>({}));
+        if(r.ok&&d.ok){ const b=st.btn, m=st.mode; close(); const ok=d.dup?'同じ報告を受け付け済みです':'受け付けました。ありがとうございます';
+          if(m==='num'){ b.dataset.done=1; b.classList.add('done'); b.insertAdjacentHTML('beforeend','<span class="fxok">　'+(d.dup?'受け付け済み':'受け付けました')+'</span>'); } else { msg.textContent=ok+'。確かめたうえで対応します。'; document.querySelectorAll('[data-rt]').forEach(x=>x.disabled=true); } err.textContent=''; }
+        else err.textContent=d.error||'送れませんでした。時間をおいてもう一度お願いします。'; }
+      catch(_){ err.textContent='送れませんでした。通信の状態を確かめてください。'; }
+      bs.forEach(b=>b.disabled=false); };
+    f.onsubmit=e=>{ e.preventDefault(); if(!st||st.mode!=='num') return; if(st.side===null){ err.textContent='どちらの数字かを選んでください'; return; }
+      const it=st.rp.it[st.side]; send({kind:'num',reason:'fact',target:it.t===F[ai][1]?'a':'b',fact:{n:it.t,k:st.rp.k,v:it.v},fix:$('#rpfix').value,url:$('#rpu').value}); };
+    f.querySelectorAll('[data-rr]').forEach(b=>b.onclick=()=>{ if(!st||st.mode!=='bad') return; const rr=b.dataset.rr, tx=$('#rptx').value.trim();
+      if(rr==='fact'&&!tx){ err.textContent='どこが違うか、ひとこと書いてから押してください（記事の事実は「2つの記事から分かること」の「違う？」からも送れます）'; $('#rptx').focus(); return; }
+      send({kind:rr==='fact'?'num':'bad',reason:rr,target:st.target,text:tx}); }); }
 }
 
 /* 初期表示：見本の対戦カード */
@@ -1273,7 +1348,8 @@ const jstDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slic
 const mdJ=d=>(+d.slice(5,7))+'月'+(+d.slice(8,10))+'日';
 function tdStreak(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.hit) n++; else if(k===0&&!(x&&x.done)) continue; else break; } return n; }
 // 組み合わせ：日付から決める。人気の記事（POPULAR）と、収録記事からくじ引きした「埋もれた記事」
-async function todayPair(day){ const nr=await fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).then(a=>new Set(a)).catch(()=>new Set());
+let HOLDS=null; function holdsGet(){ return HOLDS||(HOLDS=API?fetch(API+'/api/holds').then(r=>r.ok?r.json():{}).then(o=>Array.isArray(o.titles)?o.titles:[]).catch(()=>[]):Promise.resolve([])); }
+async function todayPair(day){ const nr=await Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>new Set([...a,...h]));
   for(let k=0;k<30&&!THRONE;k++) await new Promise(r=>setTimeout(r,100));   // 王者は出さないので、王座の情報を少し待つ
   // みんなに同じものを出して𝕏にも流れるので、政治家や、宗教・民族・事件などの題材は避ける
   const NGc=/宗教|民族|人種|性的|犯罪|事件|戦争|紛争|兵器|武器|テロ|災害|病|死刑/;
@@ -1470,7 +1546,7 @@ renderRec();
 (async()=>{ try{
   const [m,ex]=await Promise.all([fetch('data/meta.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()), fetch('data/exclude.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():[]).catch(()=>[])]);
   N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount(); famToday(); mineInit(); todayInit();
-  const nrP=fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).then(a=>{ NORAND=new Set(a); }).catch(()=>{});
+  const nrP=Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>{ NORAND=new Set([...a,...h]); }).catch(()=>{});
   if(await openShared()) return;
   const [x,y]=await Promise.all([rnd([]),rnd([])]); await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す
   sel[0]=NORAND.has(F[x][1])?await rnd([y]):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]]):y;

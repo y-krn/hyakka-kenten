@@ -1,6 +1,8 @@
 // 百科拳典 王座戦API（Cloudflare Workers + D1）
 //   GET  /api/throne            … いまの王者・最近の挑戦・歴代王者・最長防衛
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
+//   POST /api/report            … {reason, a, b, target, fact?, fix?, text?, url?} 利用者からの報告（数字や事実の誤り・内容が不適切）
+//   GET  /api/holds             … 報告を受けて、確かめるまで今日の一戦とランダムに出さない記事
 //   POST /api/plays             … {n, client} 自由対戦の対戦数（ブラウザでまとめて数えたもの）を足す
 //   GET  /og/c/番号.jpg          … 王座戦の試合ごとの共有画像
 //   GET  /api/og/pending        … 画像がまだない挑戦の一覧（管理用。GitHub Actions が使う）
@@ -299,6 +301,87 @@ async function page(req, env, u) {
     .transform(res);
 }
 
+// 利用者からの報告（数字や事実の誤り・内容が不適切）。GitHubのアカウントがなくても送れる。名前やメールアドレスは集めない
+//   いたずら・連続送信の対策：同じ回線・同じブラウザごとの回数の上限、同じ人の同じ報告は1回だけ、全体の1日の上限、
+//   画面を開いてすぐの送信（機械的な送信）と、人には見えない欄が埋まった送信（ロボット）は受け付けない、ほかのサイトからの送信は受け付けない
+//   管理者の手間を減らす：
+//     - 「内容が不適切」だけ、すぐスマホに知らせる。数字や事実の誤りは急がないので、週1回のアクセスレポートにまとめる
+//     - 同じもの（同じ記事の同じ事実、同じ記事への不適切の報告）は1つにまとめて数える。通知は最初の1回と、記事を一時的に外したときだけ
+//     - 違う回線の2人以上から「内容が不適切」と知らされた記事は、確かめるまで今日の一戦とランダムに出さない（/api/holds）。
+//       確かめたら status を 'ok'（問題なし）か 'done'（対応した）にすると、元に戻る
+const REP = { perIp10m: 3, perIpDay: 10, perClientDay: 10, allDay: 100, notifyDay: 30, holdBy: 2 };
+const REASON = { fact: '数字や事実が違う', dis: '差別的・攻撃的', subj: '扱いがふさわしくない題材', other: 'その他' };
+const HOLDS_KEY = 'https://hyakkakenten.com/__cache/holds';
+async function repTable(env) {
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, iphash TEXT NOT NULL, client TEXT, kind TEXT NOT NULL, a TEXT, b TEXT, target TEXT, text TEXT, url TEXT, status TEXT NOT NULL DEFAULT \'new\', reason TEXT, title TEXT, fk TEXT, fv TEXT, fix TEXT, rkey TEXT)').run();
+  try { await env.DB.prepare('SELECT rkey FROM reports LIMIT 0').run(); }
+  catch (_) { for (const c of ['reason', 'title', 'fk', 'fv', 'fix', 'rkey']) { try { await env.DB.prepare('ALTER TABLE reports ADD COLUMN ' + c + ' TEXT').run(); } catch (_) {} } }   // 先に作った表に、あとから足した列
+  // 索引：回数の上限を数えるたびに表全体を読まないように（D1の無料枠は「読んだ行数」で数える）
+  await env.DB.batch(['CREATE INDEX IF NOT EXISTS rep_key ON reports(rkey, status)', 'CREATE INDEX IF NOT EXISTS rep_at ON reports(at)',
+    'CREATE INDEX IF NOT EXISTS rep_cl ON reports(client, at)', 'CREATE INDEX IF NOT EXISTS rep_hold ON reports(kind, status, title)'].map(q => env.DB.prepare(q)));
+}
+async function report(env, req, ctx) {
+  const origin = req.headers.get('Origin') || '';
+  if (origin && !/^https:\/\/(hyakkakenten\.com|preview-hyakka-kenten-api\.y-krn\.workers\.dev)$/.test(origin) && !/^http:\/\/localhost(:\d+)?$/.test(origin)) return json(env, req, { error: 'forbidden' }, 403);
+  let b; try { b = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
+  if (b.hp) return json(env, req, { ok: true });                       // 人には見えない欄が埋まっている：受け付けたふりをして捨てる
+  if (!(Number(b.ms) >= 800)) return json(env, req, { error: '少し時間をおいてから送ってください' }, 400);   // 開いて1秒足らずの送信
+  const reason = REASON[b.reason] ? b.reason : b.kind === 'num' ? 'fact' : b.kind === 'bad' ? 'other' : null;
+  const kind = reason === 'fact' ? 'num' : 'bad';
+  const target = ['a', 'b', 'text'].includes(b.target) ? b.target : null;
+  const clean = (x, n) => String(x || '').normalize('NFKC').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, n);
+  const a = clean(b.a, 200), bb = clean(b.b, 200), text = clean(b.text, 200), url = clean(b.url, 300), fix = clean(b.fix, 60);
+  const fc = b.fact && typeof b.fact === 'object' ? b.fact : {};
+  const fk = clean(fc.k, 40), fv = clean(fc.v, 120);
+  if (!reason || !target || !a || !bb) return json(env, req, { error: 'bad' }, 400);
+  const title = target === 'a' ? a : target === 'b' ? bb : '';
+  if (kind === 'num' && !fv && text.length < 2) return json(env, req, { error: 'どこが違うか、ひとこと書いてください' }, 400);
+  if (url && !/^https?:\/\/[^\s]+$/.test(url)) return json(env, req, { error: '出典のURLは https:// から書いてください' }, 400);
+  // まとめる単位：数字や事実は「記事＋項目」、不適切は「記事」（実況の文面は「対戦」）
+  const rkey = kind === 'num' ? (fv ? 'n|' + title + '|' + fk + '|' + fv : 'n|' + a + '|' + bb + '|' + target + '|' + text.slice(0, 40))
+    : target === 'text' ? 'b|text|' + a + '|' + bb : 'b|' + title;
+  await repTable(env);
+  const ih = await ipHash(env, req);
+  const cl = /^[a-z0-9]{16,40}$/.test(String(b.client || '')) ? await ipHash(env, { headers: { get: () => 'client:' + b.client } }) : null;
+  const t10 = new Date(Date.now() - 600000).toISOString(), t1d = new Date(Date.now() - 86400000).toISOString();
+  const [q1, q2, q3, q4, q5, q6] = await env.DB.batch([
+    env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE iphash = ? AND at > ?').bind(ih, t10),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE iphash = ? AND at > ?').bind(ih, t1d),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE client = ? AND at > ?').bind(cl || '-', t1d),
+    env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE at > ?').bind(t1d),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM reports WHERE (iphash = ? OR client = ?) AND rkey = ? AND status = 'new'").bind(ih, cl || '-', rkey),
+    env.DB.prepare("SELECT COUNT(DISTINCT iphash) AS n FROM reports WHERE rkey = ? AND status = 'new'").bind(rkey),
+  ]);
+  const n = r => r.results[0].n;
+  if (n(q5) > 0) return json(env, req, { ok: true, dup: true });   // 同じ人の同じ報告は1回だけ（2回目以降は受け付けたことにして記録しない）
+  if (n(q1) >= REP.perIp10m || n(q2) >= REP.perIpDay || n(q3) >= REP.perClientDay) return json(env, req, { error: '短い時間にたくさん送られたため、いまは受け付けられません。時間をおいてください' }, 429);
+  if (n(q4) >= REP.allDay) return json(env, req, { error: 'きょうは報告が多いため、受け付けを止めています。明日もう一度お願いします' }, 429);
+  await env.DB.prepare('INSERT INTO reports (at, iphash, client, kind, a, b, target, text, url, reason, title, fk, fv, fix, rkey) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(now(), ih, cl, kind, a, bb, target, text, url, reason, title, fk, fv, fix, rkey).run();
+  const people = n(q6) + 1;   // この報告を入れた人数（違う回線の数）
+  const held = kind === 'bad' && title && people === REP.holdBy;
+  if (held) { try { await caches.default.delete(HOLDS_KEY); } catch (_) {} }
+  if (kind === 'bad' && (people === 1 || held) && env.NTFY_TOPIC && n(q4) < REP.notifyDay) {   // 管理者のスマホに届ける：最初の1回と、一時的に外したときだけ
+    const who = target === 'text' ? '実況の文面（' + a + ' 対 ' + bb + '）' : title;
+    const page = SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(bb);
+    const p = fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      topic: env.NTFY_TOPIC, title: (held ? '一時的に外しました：' : '内容の報告：') + who, tags: [held ? 'no_entry' : 'warning'], click: page,
+      message: (held ? `違う回線の${people}人から報告があったため、今日の一戦とランダムに出さないようにしました（検索では選べます）。確かめて、問題がなければ戻してください\n` : '')
+        + `理由：${REASON[reason]}\n対戦：${a} 対 ${bb}${text ? '\nひとこと：' + text : ''}` }) }).catch(() => {});
+    if (ctx) ctx.waitUntil(p); else await p;
+  }
+  return json(env, req, { ok: true });
+}
+// 一時的に外している記事（今日の一戦とランダムに出さない）。ページが読み込みのたびに聞くので、5分だけ使い回す
+async function holds(env, req, ctx) {
+  try { const hit = await caches.default.match(HOLDS_KEY); if (hit) return json(env, req, await hit.json()); } catch (_) {}
+  let titles = [];
+  try { titles = (await env.DB.prepare("SELECT title FROM reports WHERE kind = 'bad' AND status = 'new' AND title <> '' GROUP BY title HAVING COUNT(DISTINCT iphash) >= ?").bind(REP.holdBy).all()).results.map(r => r.title); } catch (_) {}
+  const body = { titles };
+  try { const put = caches.default.put(HOLDS_KEY, new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } })); if (ctx) ctx.waitUntil(put); } catch (_) {}
+  return json(env, req, body);
+}
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -315,6 +398,8 @@ export default {
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
+      if (u.pathname === '/api/report' && req.method === 'POST') return await report(env, req, ctx);
+      if (u.pathname === '/api/holds' && req.method === 'GET') return await holds(env, req, ctx);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);
       const m = u.pathname.match(/^\/api\/challenge\/(\d{1,9})$/); if (m && req.method === 'GET') return await getChallenge(env, req, +m[1]);
       return json(env, req, { error: 'not found' }, 404);

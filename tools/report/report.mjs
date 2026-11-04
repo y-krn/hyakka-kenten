@@ -82,6 +82,22 @@ L.push('', '## 王座');
 if (changes.length) L.push(`- 今週の王座交代 ${changes.length}回：` + changes.map(r => r.display + who(r.holder)).join(' → '));
 else L.push('- 今週の王座交代はありませんでした');
 if (champ.id) L.push(`- いまの王者：${champ.display}${who(champ.holder)} 防衛${champ.defenses}回、${md(new Date(champ.started_at))}から`);
+// ---------- 未対応の報告（数字や事実の誤りは、ここにまとめて載せる。不適切の報告は届いたときにも通知済み） ----------
+let reps = null;
+try {
+  reps = await q("SELECT kind, reason, title, a, b, target, fk, fv, GROUP_CONCAT(DISTINCT NULLIF(fix, '')) AS fix, GROUP_CONCAT(DISTINCT NULLIF(url, '')) AS url, GROUP_CONCAT(DISTINCT NULLIF(text, '')) AS text, COUNT(DISTINCT iphash) AS people, MIN(at) AS first FROM reports WHERE status = 'new' GROUP BY rkey ORDER BY kind DESC, people DESC, first");
+} catch (_) {}   // 報告の表がまだない
+const RS = { fact: '数字や事実', dis: '差別的・攻撃的', subj: '扱いがふさわしくない題材', other: 'その他' };
+if (reps && reps.length) {
+  L.push('', `## 未対応の報告 ${reps.length}件`);
+  for (const r of reps) {
+    const who = r.target === 'text' ? `実況の文面（${r.a} 対 ${r.b}）` : r.title || r.a;
+    const ppl = r.people > 1 ? `（${r.people}人）` : '';
+    if (r.kind === 'num') L.push(`- 数字：${who}｜${r.fk || '—'}｜${r.fv || '—'} → ${r.fix || '（正しい値の記入なし）'}${ppl}${r.url ? ' 出典：' + r.url : ''}${r.text ? ' ひとこと：' + r.text : ''}`);
+    else L.push(`- 内容：${who}｜${RS[r.reason] || 'その他'}${ppl}${r.people >= 2 && r.target !== 'text' ? '｜一時的に外し中' : ''}${r.text ? ' ひとこと：' + r.text : ''}`);
+  }
+  L.push('', '直すときは「報告を反映して」と頼めば、出典を確かめて訂正表（data/fix.json）に足します。問題がなかったものは status を ok に');
+}
 L.push('', `累計：自由対戦 ${n(tot.plays)}戦・王座戦 ${n(tot.ch)}回・歴代王者 ${n(tot.reigns)}代`);
 const md_ = L.join('\n');
 console.log(md_);
@@ -95,6 +111,7 @@ if (NTFY_TOPIC) {
     `自由対戦 ${n(pw.n)}戦 ${diff(pw.n, pp.n)}`,
     `王座戦 ${n(cw.n)}回・王座交代 ${changes.length}回`,
     champ.id ? `王者：${champ.display}（防衛${champ.defenses}回）` : '',
+    reps && reps.length ? `未対応の報告 ${reps.length}件` : '',
   ].filter(Boolean).join('\n') + (RUN_URL ? '\n\nタップすると詳しいレポートが開きます' : '');
   const r = await fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
     topic: NTFY_TOPIC, title: `百科拳典 週間レポート ${range}`, message: msg, tags: ['bar_chart'], ...(RUN_URL ? { click: RUN_URL } : {}) }) });

@@ -47,7 +47,9 @@ jobs:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           IP_SALT: ${{ secrets.IP_SALT }}
           GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
           echo "$ADMIN_TOKEN" | npx wrangler secret put ADMIN_TOKEN
           echo "$IP_SALT" | npx wrangler secret put IP_SALT
           if [ -n "$GH_DISPATCH_TOKEN" ]; then echo "$GH_DISPATCH_TOKEN" | npx wrangler secret put GH_DISPATCH_TOKEN; fi
+          if [ -n "$NTFY_TOPIC" ]; then echo "$NTFY_TOPIC" | npx wrangler secret put NTFY_TOPIC; fi   # 利用者からの報告を管理者に届ける

@@ -18,6 +18,9 @@ jobs:
       - name: 調査を動かす
         env:
           SCRIPT: ${{ inputs.script }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_ID: ${{ vars.D1_DATABASE_ID }}
         run: |
           case "$SCRIPT" in *[!A-Za-z0-9_.-]*|"") echo "スクリプト名が不正です"; exit 1;; esac
           node "tools/check/$SCRIPT"
