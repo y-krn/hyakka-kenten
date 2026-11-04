@@ -1349,6 +1349,16 @@ rep('<button type="submit" class="btn" disabled>挑戦する</button></form>',
     '<button type="submit" class="btn" disabled>挑戦する</button></form>\n  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>')
 rep(".meta{font-size:13px;color:var(--muted)}", ".meta{font-size:13px;color:var(--muted)}\n#throne .thn{font-size:12px;margin-top:6px}")
 
+# ---- 56. 数値の訂正表（data/fix.json）：Wikidata の明らかな誤りを、出どころを確かめたうえで百科拳典の側で直す ----
+#   書き方：{"記事名": {"標高": 3776.12, "出典": "…", "確認日": "YYYY-MM-DD"}}。数字の項目名は FIXK のもの
+#   記事を読み込むとき（register）に、収録データの数字（qt）を上書きする。技の説明文（「標高◯m」）も、この数字から作り直される
+rep("function register(rec){ const t=rec.f[1];", r"""const FIXK={'標高':'e','高さ':'h','重さ':'m','面積':'a','人口':'p','長さ':'l','深さ':'d','速さ':'s'};
+let FIX=null, FIXP=null;
+function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=fetch('data/fix.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(o=>{ FIX=o||{}; }).catch(()=>{ FIX={}; })); }
+function register(rec){ const t=rec.f[1];
+  { const fx=FIX&&FIX[t]; if(fx){ rec.qt={...(rec.qt||{})}; for(const [k,v] of Object.entries(fx)) if(FIXK[k]&&typeof v==='number') rec.qt[FIXK[k]]=v; } }""")
+rep("async function loadTitle(t){ t=String(t||'').trim(); if(!t) return -1;", "async function loadTitle(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1;")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
@@ -1360,13 +1370,13 @@ js = s[s.index('<script>') + 8:s.rindex('</script>')]
 a = js[:js.index('/* ---------- 記録（この端末だけ）')]
 b = js[js.index('/* ---------- 保留・通報・確認'):js.index('function setCount()')]
 a = a.replace("const $=s=>document.querySelector(s);", "")
-eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/', FETCH=u=>fetch(u);\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'").replace("fetch(DATA_BASE+'a/'", "FETCH(DATA_BASE+'a/'") + b + r"""
+eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/', FETCH=u=>fetch(u);\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'").replace("fetch(DATA_BASE+'a/'", "FETCH(DATA_BASE+'a/'") + b.replace("fetch('data/fix.json?t='+Date.now(),{cache:'no-store'})", "FETCH(DATA_BASE+'fix.json')") + r"""
 /* ---------- サーバー用：1記事だけを取り出して登録する（全体を解析しないので軽い） ---------- */
 const TXT={};
 function pickRec(txt,t){ const key=JSON.stringify(t)+':{'; let i=txt.indexOf(key); if(i<0) return null; i+=key.length-1; let d=0,inS=false;
   for(let j=i;j<txt.length;j++){ const c=txt.charCodeAt(j); if(inS){ if(c===92){ j++; continue; } if(c===34) inS=false; continue; }
     if(c===34) inS=true; else if(c===123) d++; else if(c===125){ d--; if(!d) return JSON.parse(txt.slice(i,j+1)); } } return null; }
-async function loadOne(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
+async function loadOne(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
   if(!TXT[k]){ const r=await FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER); if(!r.ok) throw new Error('data '+r.status);
     TXT[k]=await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); }
   const rec=pickRec(TXT[k],t); return rec?register(rec):-1; }
