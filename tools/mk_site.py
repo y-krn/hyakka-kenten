@@ -1372,17 +1372,19 @@ rep("const key=decW.find(d=>d.who===w);", r"""const key=decW.find(d=>d.who===w);
       // 場所は、名前だけだと分かりにくいことがある（「7区」など）。Wikidataの説明文を添える（「日本の都道府県」「〜の国」のように自明なものは省く）
       const pl=t.match(/^(所在地|活動地|生まれた場所)：(.+)$/), tg=Array.isArray(o.m[7])&&o.m[7][0];
       if(pl&&tg&&tg[0]===pl[2]&&tg[1]&&!/[都道府県国]$/.test(pl[2])&&!/^(日本の都道府県|.*の国|国|都市|市)$/.test(tg[1])) return t+'（'+tg[1]+'）'; return t; });
-    const A=prof(ai), B=prof(bi); for(let k=0;k<6&&out.length<4;k++){ if(A[k]) add(ai,A[k]); if(out.length>=4) break; if(B[k]) add(bi,B[k]); }
-    return out.slice(0,4); })();
+    const A=prof(ai), B=prof(bi); A.slice(0,4).forEach(t=>add(ai,t)); B.slice(0,4).forEach(t=>add(bi,t));   // 1記事2つまで（add の上限）
+    return out; })();
   const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);""")
 rep('<div class="reads"><span>記事を読む</span>',
-    """${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div><ul>${facts.map(f=>`<li>${f.who!==null?`<b>${esc(F[f.who][0])}</b>　`:''}${esc(f.t)}</li>`).join('')}</ul><div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
+    """${facts.length?`<div class="facts"><div class="fh">2つの記事から分かること</div>${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
+      return (cmp.length?`<ul>${cmp.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。記録そのものの誤りや、その後の書き換えがあるかもしれません。確かめるときは記事へ。</div></div>`:''}
     <div class="reads"><span>記事を読む</span>""")
 rep(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}",
     ".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}\n"
     ".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}\n"
     ".facts .fh{font-weight:700;font-size:14px}\n"
     ".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}\n"
+    ".facts .fwho{font-weight:700;font-size:13px;margin-top:8px}.facts .fwho+ul{margin-top:2px}\n"
     ".facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}")
 
 # ---- 56. 数値の訂正表（data/fix.json）：Wikidata の明らかな誤りを、出どころを確かめたうえで百科拳典の側で直す ----
