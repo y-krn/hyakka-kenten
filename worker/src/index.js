@@ -316,7 +316,9 @@ async function repTable(env) {
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, iphash TEXT NOT NULL, client TEXT, kind TEXT NOT NULL, a TEXT, b TEXT, target TEXT, text TEXT, url TEXT, status TEXT NOT NULL DEFAULT \'new\', reason TEXT, title TEXT, fk TEXT, fv TEXT, fix TEXT, rkey TEXT)').run();
   try { await env.DB.prepare('SELECT rkey FROM reports LIMIT 0').run(); }
   catch (_) { for (const c of ['reason', 'title', 'fk', 'fv', 'fix', 'rkey']) { try { await env.DB.prepare('ALTER TABLE reports ADD COLUMN ' + c + ' TEXT').run(); } catch (_) {} } }   // 先に作った表に、あとから足した列
-  await env.DB.prepare('CREATE INDEX IF NOT EXISTS rep_key ON reports(rkey, status)').run();
+  // 索引：回数の上限を数えるたびに表全体を読まないように（D1の無料枠は「読んだ行数」で数える）
+  await env.DB.batch(['CREATE INDEX IF NOT EXISTS rep_key ON reports(rkey, status)', 'CREATE INDEX IF NOT EXISTS rep_at ON reports(at)',
+    'CREATE INDEX IF NOT EXISTS rep_cl ON reports(client, at)', 'CREATE INDEX IF NOT EXISTS rep_hold ON reports(kind, status, title)'].map(q => env.DB.prepare(q)));
 }
 async function report(env, req, ctx) {
   const origin = req.headers.get('Origin') || '';
