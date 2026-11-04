@@ -24,7 +24,8 @@ const FIELDS = {
 function clean(v) {
   return v.replace(/<!--[\s\S]*?-->/g, '').replace(/<ref[^>]*\/>/g, '').replace(/<ref[^>]*>[\s\S]*?<\/ref>/g, '')
     .replace(/\{\{\s*(?:convert|convert2|cvt)\s*\|\s*([\d.,]+)\s*\|\s*([^|}]+)[^}]*\}\}/gi, '$1 $2')
-    .replace(/\{\{\s*val\s*\|\s*([\d.,]+)\s*\|\s*(?:ul|u)\s*=\s*([^|}]+)[^}]*\}\}/gi, '$1 $2')
+    .replace(/\{\{\s*val\s*\|\s*([\d.,]+)((?:\|[^}]*)?)\}\}/gi, (_, n, rest) => { const u = (rest.match(/\|\s*ul?\s*=\s*([^|}]+)/) || [])[1] || ''; return n + ' ' + u; })
+    .replace(/\{\{\s*e\s*\|\s*(-?\d+)\s*\}\}/gi, 'e$1')
     .replace(/\{\{\s*(?:R|efn|efn2|Sfn|refnest|要出典)[^}]*\}\}/gi, '').replace(/\{\{sup\|2\}\}/gi, '2')
     .replace(/<sup>2<\/sup>/gi, '2').replace(/<small>([\d]+)<\/small>/gi, '$1').replace(/<[^>]+>/g, ' ')
     .replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -34,9 +35,20 @@ const KNOT = 1.852;
 function readNum(raw, key, def) {
   const v = clean(raw);
   if (/^(約|およそ)?\s*$/.test(v)) return null;
+  const un = why => ({ unsure: why, raw: v.slice(0, 80) });
+  if (/^\{\{|\{\{(?!\s*0)/.test(v)) return un('テンプレートで書かれている');
+  if (/☉|M_?sun|太陽質量|地球質量/.test(v)) return un('天体の単位');
+  // 「1億2281万1000」のような書き方
+  const jp = v.match(/^\D{0,4}?(\d[\d,]*(?:\.\d+)?)\s*億\s*(?:(\d[\d,]*)\s*万)?\s*(\d[\d,]*)?|^\D{0,4}?(\d[\d,]*(?:\.\d+)?)\s*万\s*(\d[\d,]*)?/);
+  if (jp) { const f = x => +(String(x || '0').replace(/,/g, '')); const n = jp[1] !== undefined ? f(jp[1]) * 1e8 + f(jp[2]) * 1e4 + f(jp[3]) : f(jp[4]) * 1e4 + f(jp[5]); return { n, raw: v.slice(0, 80) }; }
+  // 範囲（「45 - 55 km/h」）や、区間ごとに複数の数字が並ぶもの（路線の距離など）は、どれと比べるか決められない
+  if (/\d\s*[-–〜~]\s*\d/.test(v.replace(/\d{4}年\s*[-–〜~]\s*\d{4}年/g, ''))) return un('範囲で書かれている');
+  const units = v.match(/\d[\d,.]*\s*(km|m|mm|kg|t|トン|ha|km2|人|ft|kn|ノット)(?![a-z])/gi) || [];
+  if (units.length >= 2 && !/[（(]約?\s*[\d,.]+\s*(km\/h|m|ft|km)/.test(v)) return un('数字が複数ある');
   const mm = v.match(/(-?\d[\d,]*(?:\.\d+)?)\s*(万|億)?\s*([a-zA-Zµ²/]+|メートル|キロメートル|平方キロメートル|ヘクタール|トン|キログラム|グラム|ノット|人|フィート)?/);
   if (!mm) return null;
   let n = parseFloat(mm[1].replace(/,/g, '')); if (!isFinite(n)) return null;
+  { const ex = v.slice(mm.index + mm[0].length - (mm[3] || '').length - 0).match(/^\s*e(-?\d+)/); if (ex) n *= 10 ** +ex[1]; }
   if (mm[2] === '万') n *= 1e4; if (mm[2] === '億') n *= 1e8;
   let u = (mm[3] || '').toLowerCase();
   const U = { メートル: 'm', キロメートル: 'km', 平方キロメートル: 'km2', ヘクタール: 'ha', トン: 't', キログラム: 'kg', グラム: 'g', ノット: 'kn', フィート: 'ft', 'km²': 'km2', 'km^2': 'km2', knot: 'kn', knots: 'kn', lt: 't', 'km/h': 'km/h', mph: 'mph' };
@@ -54,6 +66,7 @@ function readNum(raw, key, def) {
   }[key];
   // 単位が分からないときは、既定の単位とみなす（身長は値の大きさで cm か m かを決める）
   if (key === 'h' && def === 'cm?' && !conv[u]) u = n > 3 ? 'cm' : 'm';
+  if (!mm[3] && (key === 'h' && def !== 'cm?' || key === 'l')) return un('単位が書かれていない');
   if (!(u in conv)) { if (def.endsWith('?') || !u) u = d; else return null; }
   if (!(u in conv)) return null;
   return { n: n * conv[u], raw: v.slice(0, 80) };
@@ -103,6 +116,8 @@ if (process.argv[1] && process.argv[1].endsWith('numcheck.mjs') && !process.env.
       for (const [k, v] of Object.entries(x.q)) {
         const g = got[k]; const fixed = FIX[x.t] && LAB[k] in FIX[x.t];
         if (!g) { res.push({ t: x.t, pv: x.pv, k, wd: v, st: '日本語版に数字なし', fixed }); continue; }
+        if (g.unsure) { res.push({ t: x.t, pv: x.pv, k, wd: v, st: '読み取り不確か', why: g.unsure, field: g.field, raw: g.raw, fixed }); continue; }
+        const lr = Math.log10(Math.abs(v / g.n)); if (Math.abs(lr) >= 1.9 && Math.abs(lr - Math.round(lr)) < 0.02) { res.push({ t: x.t, pv: x.pv, k, wd: v, jp: g.n, st: '読み取り不確か', why: '10の何乗倍のずれ（単位の読み違いの疑い）', field: g.field, raw: g.raw, fixed }); continue; }
         const [st, diff] = judge(k, v, g.n); res.push({ t: x.t, pv: x.pv, k, wd: v, jp: +g.n.toPrecision(8), st, diff: +diff.toFixed(4), field: g.field, raw: g.raw, fixed });
       }
     }
@@ -111,7 +126,7 @@ if (process.argv[1] && process.argv[1].endsWith('numcheck.mjs') && !process.env.
   }
   writeFileSync(OUT, JSON.stringify(res, null, 1));
   const cnt = {}; for (const r of res) { cnt[r.k] = cnt[r.k] || {}; cnt[r.k][r.st] = (cnt[r.k][r.st] || 0) + 1; }
-  const sts = ['一致', '小さな差', '食い違い', '日本語版に数字なし'];
+  const sts = ['一致', '小さな差', '食い違い', '読み取り不確か', '日本語版に数字なし'];
   const M = [`# 数字の照合（よく読まれている順に ${T.length} 記事・${res.length} 項目）`, '', '| 項目 | ' + sts.join(' | ') + ' |', '|---|' + sts.map(() => '---|').join('')];
   for (const k of Object.keys(LAB)) if (cnt[k]) M.push(`| ${LAB[k]} | ` + sts.map(s => cnt[k][s] || 0).join(' | ') + ' |');
   const bad = res.filter(r => r.st === '食い違い').sort((a, b) => b.pv - a.pv);
