@@ -1044,7 +1044,10 @@ function showResult(){
       if(/^所属/.test(t)) return 5; if(/^(生みの親|名前の由来|着想を得たもの|元ネタ)：/.test(t)) return 6; if(PLAIN.some(p=>p[1]===m[1])) return 7; if(/^構成要素：/.test(t)) return 8;
       if(m[1]==='カテゴリ包囲') return /（.+など）/.test(t)?9:99; if(m[0]==='SENIORITY') return 10; if(/^Wikidataでの分類：ヒト$/.test(t)) return 99; if(m[0]==='NAME'||/：.*対/.test(t)) return 99; return 8.5; };
     const prof=i=>(POOL[i]||[]).map(m=>({m,p:pri(m)})).filter(o=>o.p<99).sort((x,y)=>x.p-y.p).map(o=>{ const t=o.m[3];
-      if(o.m[1]==='カテゴリ包囲'){ const c=t.match(/（(.+?)など）/); return c?'カテゴリ：'+c[1]:''; } return t; });
+      if(o.m[1]==='カテゴリ包囲'){ const c=t.match(/（(.+?)など）/); return c?'カテゴリ：'+c[1]:''; }
+      // 場所は、名前だけだと分かりにくいことがある（「7区」など）。Wikidataの説明文を添える（「日本の都道府県」「〜の国」のように自明なものは省く）
+      const pl=t.match(/^(所在地|活動地|生まれた場所)：(.+)$/), tg=Array.isArray(o.m[7])&&o.m[7][0];
+      if(pl&&tg&&tg[0]===pl[2]&&tg[1]&&!/[都道府県国]$/.test(pl[2])&&!/^(日本の都道府県|.*の国|国|都市|市)$/.test(tg[1])) return t+'（'+tg[1]+'）'; return t; });
     const A=prof(ai), B=prof(bi); for(let k=0;k<6&&out.length<4;k++){ if(A[k]) add(ai,A[k]); if(out.length>=4) break; if(B[k]) add(bi,B[k]); }
     return out.slice(0,4); })();
   const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);
