@@ -11,8 +11,10 @@ const DISC = '※Wikipediaの記述をもとにした架空の試合です。実
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : { channel: 'chrome' });
 const page = await browser.newPage();
 await page.goto(SITE + '/', { waitUntil: 'domcontentloaded' });
-const has = await page.waitForSelector('#today:not([hidden])', { timeout: 45000 }).then(() => true).catch(() => false);
-if (!has) { console.log('このページには「今日の一戦」がありません（公開前？）。何もしません'); await browser.close(); process.exit(0); }
+// 「今日の一戦」の枠は、組み合わせが決まる前から「準備中」として出ているので、枠ではなく組み合わせ（TD）が決まるのを待つ
+if (!(await page.$('#today'))) { console.log('このページには「今日の一戦」がありません（公開前？）。何もしません'); await browser.close(); process.exit(0); }
+const ok = await page.waitForFunction(() => typeof TD !== 'undefined' && TD && TD.day, null, { timeout: 60000 }).then(() => true).catch(() => false);
+if (!ok) { console.error('今日の一戦の組み合わせが決まりませんでした（ページの読み込みに失敗？）'); await browser.close(); process.exit(1); }
 const td = await page.evaluate(() => ({ day: TD.day, a: F[TD.a][0], b: F[TD.b][0] }));
 await browser.close();
 
