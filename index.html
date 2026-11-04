@@ -1029,10 +1029,12 @@ function showResult(){
   const lastHit=[...r.log].reverse().find(x=>x.side>=0&&x.d>0); const lm=lastHit?(lastHit.s.match(/【(.+?)】/)||[])[1]:null;
   const key=decW.find(d=>d.who===w);
   // この試合で分かったこと：試合で実際に使われた事実だけを、記録どおりの書き方で出す（言い換えたり、推し量ったりしない）
+  // 記事そのものの数字（文字数・閲覧数・カテゴリやリンクの数・作成日など）は、読んでも知識が増えないので出さない。対象そのものについての事実だけ
+  const META_MV=new Set(['文字数マウント','人脈マウント','閲覧数マウント','カテゴリ数マウント','見出し数マウント','画像数マウント','リンク数マウント','長文で殴る','リンク網','注目の視線','カテゴリ包囲','見出し連打','リンク乱打','画像攻撃','外部リンク渡り','要出典','書きかけ指摘','古参の貫禄','分身の術','名前で殴る','百科事典の権威','事典掲載マウント','肩書きマウント']);   // 数だけで中身の分からないもの（載っている事典の数・肩書きの数）も出さない
   const facts=(()=>{ const nm=i=>F[i][0];
     // 比べ合いの数字は、計算したときの左右（ia/ib）で名前を付ける。画面の左右と逆のことがあるため
-    if(an.kq) return an.kq.slice(0,3).map(x=>({who:null,t:(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)}));
-    const by={}; for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||x.mv[0]==='NAME'||x.mv[1]==='分身の術'||!x.mv[3]) continue; const k=x.side+'|'+x.mv[1]; (by[k]=by[k]||{side:x.side,mv:x.mv,d:0}).d+=x.d; }
+    if(an.kq) return an.kq.filter(x=>!['_sl','_pv','_ch','P106','P1343'].includes(x.k)).slice(0,3).map(x=>({who:null,t:(RLAB[x.k]||x.k)+'：'+nm(x.ia)+' '+fmtR(x.k,x.a)+' ／ '+nm(x.ib)+' '+fmtR(x.k,x.b)}));
+    const by={}; for(const x of r.log){ if(!x.mv||x.side<0||!(x.d>0)||x.mv[0]==='NAME'||META_MV.has(x.mv[1])||!x.mv[3]) continue; const k=x.side+'|'+x.mv[1]; (by[k]=by[k]||{side:x.side,mv:x.mv,d:0}).d+=x.d; }
     const isKey=o=>key&&o.mv[1]===key.move&&(o.side===0?ai:bi)===w;
     const arr=Object.values(by).sort((p,q)=>(isKey(q)-isKey(p))||q.d-p.d); const P3=arr.slice(0,3);
     if(P3.length>=2&&P3.every(o=>o.side===P3[0].side)){ const o=arr.find(o=>o.side!==P3[0].side); if(o) P3[P3.length-1]=o; }   // 両者の事実が出るように
