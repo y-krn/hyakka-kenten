@@ -49,7 +49,7 @@ const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
 async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
     const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
-async function loadTitle(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t];
+async function loadTitle(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t];
   const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }
 
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -518,7 +518,11 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
 /* ---------- 保留・通報・確認（判定できない記事の扱い） ---------- */
 const HOLD={};            // 事件の疑いがあり、確認するまで対戦させない記事 {index: 理由}
 const QIX={};
-function register(rec){ const t=rec.f[1]; /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
+const FIXK={'標高':'e','高さ':'h','重さ':'m','面積':'a','人口':'p','長さ':'l','深さ':'d','速さ':'s'};
+let FIX=null, FIXP=null;
+function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=FETCH(DATA_BASE+'fix.json').then(r=>r.ok?r.json():{}).then(o=>{ FIX=o||{}; }).catch(()=>{ FIX={}; })); }
+function register(rec){ const t=rec.f[1];
+  { const fx=FIX&&FIX[t]; if(fx){ rec.qt={...(rec.qt||{})}; for(const [k,v] of Object.entries(fx)) if(FIXK[k]&&typeof v==='number') rec.qt[FIXK[k]]=v; } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
   F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
@@ -529,7 +533,7 @@ const TXT={};
 function pickRec(txt,t){ const key=JSON.stringify(t)+':{'; let i=txt.indexOf(key); if(i<0) return null; i+=key.length-1; let d=0,inS=false;
   for(let j=i;j<txt.length;j++){ const c=txt.charCodeAt(j); if(inS){ if(c===92){ j++; continue; } if(c===34) inS=false; continue; }
     if(c===34) inS=true; else if(c===123) d++; else if(c===125){ d--; if(!d) return JSON.parse(txt.slice(i,j+1)); } } return null; }
-async function loadOne(t){ t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
+async function loadOne(t){ await fixLoad(); t=String(t||'').trim(); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t]; const k=fnv(t)%NB;
   if(!TXT[k]){ const r=await FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER); if(!r.ok) throw new Error('data '+r.status);
     TXT[k]=await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); }
   const rec=pickRec(TXT[k],t); return rec?register(rec):-1; }
