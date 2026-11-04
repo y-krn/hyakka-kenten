@@ -24,3 +24,11 @@ jobs:
         run: |
           case "$SCRIPT" in *[!A-Za-z0-9_.-]*|"") echo "スクリプト名が不正です"; exit 1;; esac
           node "tools/check/$SCRIPT"
+      - name: 結果のファイルを残す（あれば）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-out
+          path: |
+            numcheck.json
+          if-no-files-found: ignore
