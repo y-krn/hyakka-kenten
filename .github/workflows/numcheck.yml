@@ -1,0 +1,30 @@
+# 調査：収録の数字（Wikidata）と、日本語版の記事の情報欄の数字を突き合わせる（照合だけ。何も書き換えない）
+#   よく読まれている順に、offset 番目から n 記事。Wikipedia への問い合わせは順番に1つずつ（同時に2つ動かさない）
+#   結果は実行結果ページ（Summary）と、実行記録の「NC」で始まる行（1行1項目）
+name: 数字の照合
+on:
+  workflow_dispatch:
+    inputs:
+      offset:
+        description: 何番目から（よく読まれている順）
+        default: '0'
+      n:
+        description: 何記事
+        default: '2000'
+concurrency:
+  group: numcheck
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 照合する
+        env:
+          OFFSET: ${{ inputs.offset }}
+          N: ${{ inputs.n }}
+        run: node tools/check/numcheck.mjs
