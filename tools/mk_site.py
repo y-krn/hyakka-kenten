@@ -1535,6 +1535,12 @@ function register(rec){ const t=rec.f[1];""")
 rep("{ const fx=FIX&&FIX[t]; if(fx){", "{ const fx=(FIX&&FIX[t])||FXA[t]; if(fx){")
 rep("async function loadTitle(t){ await fixLoad(); t=String(t||'').trim();", "async function loadTitle(t){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]);")
 
+# ---- 61. 「埋もれた」をやめる（記事を書いた人やファンにとって、見下されたように読める）。選ばれ方をそのまま書く ----
+rep('<small>埋もれた記事</small>', '<small>ランダムな記事</small>')
+rep('<span>Wikipediaに埋もれた記事を探して、戦わせる</span>', '<span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span>')
+rep('<p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す</p>', '<p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p>')
+s = s.replace('収録記事からくじ引きした「埋もれた記事」', '収録記事からランダムに選んだ記事')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

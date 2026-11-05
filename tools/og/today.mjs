@@ -21,7 +21,7 @@ await browser.close();
 const md = d => (+d.slice(5, 7)) + '月' + (+d.slice(8, 10)) + '日';
 const url = SITE + '/?today=1';
 const xlen = s => [...s].reduce((n, c) => n + (c.codePointAt(0) < 0x1100 ? 1 : 2), 0);   // Xの文字数の数え方（URLは別に23）
-let lines = [`【百科拳典 今日の一戦 ${md(td.day)}】`, `${td.a} vs ${td.b}`, '人気の記事と、埋もれた記事。どっちが勝つ？ 予想してから観戦しよう', '#百科拳典', DISC];
+let lines = [`【百科拳典 今日の一戦 ${md(td.day)}】`, `${td.a} vs ${td.b}`, '人気の記事に、ランダムに選ばれた記事が挑む。どっちが勝つ？ 予想してから観戦しよう', '#百科拳典', DISC];
 if (xlen(lines.join('\n')) > 280 - 24) lines.splice(2, 1);   // 長すぎるときは、説明の行を削る
 const text = lines.join('\n');
 console.log(text);
