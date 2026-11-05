@@ -33,9 +33,13 @@ console.log('テンプレートの項目', Object.keys(T).length, '人口の時�
 const res = [];
 for (const f of readdirSync('data/a')) { const B = JSON.parse(gunzipSync(readFileSync('data/a/' + f)));
   for (const [t, r] of Object.entries(B)) { if (!r.qt || !(r.qt.p > 0 || r.qt.a > 0)) continue;
-    const m = t.match(/^(.+?)(?:\s*\((.+?)\))?$/); const base = m[1], hint = m[2] || ''; const L = T[base]; if (!L) continue;
-    // どの都道府県のものか：題名の括弧（「川西町 (奈良県)」）、なければ1つだけのとき。複数あって決められないものは、面積がいちばん近いもの（2割以内）
-    let e = L.find(x => hint && hint.includes(x.pref)) || (L.length === 1 ? L[0] : null);
+    const m = t.match(/^(.+?)(?:\s*\((.+?)\))?$/); const base = m[1], hint = m[2] || '';
+    // 政令市の区は「大阪市北区」のように市の名前つきでテンプレートにある（「北区 (大阪市)」→「大阪市北区」）
+    const L = hint && T[hint + base] ? T[hint + base] : T[base]; if (!L) continue;
+    // どの都道府県のものか：題名の括弧（「川西町 (奈良県)」）。括弧があるのに合う都道府県がないもの（別の市の区など）は使わない
+    //   括弧がなく1つだけならそれ。複数あって決められないものは、面積がいちばん近いもの（2割以内）
+    let e = hint && T[hint + base] ? L[0] : hint ? L.find(x => hint.includes(x.pref)) : (L.length === 1 ? L[0] : null);
+    if (hint && !e) continue;
     if (!e && r.qt.a > 0) { const c = L.filter(x => x.a > 0).sort((x, y) => Math.abs(x.a - r.qt.a) - Math.abs(y.a - r.qt.a))[0]; if (c && Math.abs(c.a - r.qt.a) / r.qt.a <= 0.2) e = c; }
     if (!e) continue;
     const p = (r.ext || []).find(x => x[0] === '_m'); const pv = p ? p[5] : 0;
