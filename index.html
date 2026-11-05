@@ -390,7 +390,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 
   <section id="ring" class="ring" hidden></section>
 
-  <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaに埋もれた記事を探して、戦わせる</span></div>
+  <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
     <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
   <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
@@ -1352,7 +1352,7 @@ const tdSave=o=>{ try{ const ks=Object.keys(o).sort(); while(ks.length>60) delet
 const jstDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);
 const mdJ=d=>(+d.slice(5,7))+'月'+(+d.slice(8,10))+'日';
 function tdStreak(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.hit) n++; else if(k===0&&!(x&&x.done)) continue; else break; } return n; }
-// 組み合わせ：日付から決める。人気の記事（POPULAR）と、収録記事からくじ引きした「埋もれた記事」
+// 組み合わせ：日付から決める。人気の記事（POPULAR）と、収録記事からランダムに選んだ記事
 let HOLDS=null; function holdsGet(){ return HOLDS||(HOLDS=API?fetch(API+'/api/holds').then(r=>r.ok?r.json():{}).then(o=>Array.isArray(o.titles)?o.titles:[]).catch(()=>[]):Promise.resolve([])); }
 async function todayPair(day){ const nr=await Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>new Set([...a,...h]));
   for(let k=0;k<30&&!THRONE;k++) await new Promise(r=>setTimeout(r,100));   // 王者は出さないので、王座の情報を少し待つ
@@ -1403,7 +1403,7 @@ function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,
   else if(me.p===0||me.p===1||me.p===null) act=`<div class="tdrow">あなたの予想：<b>${me.p===null?'なし':esc(me.p===0?nm(a):nm(b))}</b><button type="button" class="btn" id="tdgo">観戦する</button></div>`;
   else act=`<div class="tdq">どっちが勝つ？ 予想してから観戦しよう</div><div class="tdbtn"><button type="button" class="btn pa" data-p="0">${esc(nm(a))}</button><button type="button" class="btn pb" data-p="1">${esc(nm(b))}</button></div><div class="tdrow"><button type="button" class="mlink" id="tdno">予想せずに観戦する</button></div>`;
   box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦。みんな同じ組み合わせで、毎日0時に入れ替わります</span></div>
-    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small>${esc(kind(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>埋もれた記事</small><b>${esc(nm(b))}</b><small>${esc(kind(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
+    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small>${esc(kind(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>ランダムな記事</small><b>${esc(nm(b))}</b><small>${esc(kind(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
   if($('#tdtmr')) tdTomorrow().then(x=>{ const e=$('#tdtmr'); if(!e) return; e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は明日のお楽しみ`:''; if(!x) e.remove(); });
   box.hidden=false;
   const go=()=>{ if(isChamp(a)||isChamp(b)){ todayDraw(); return; } TODAYF={day}; startBattle([a,b]); };
@@ -1425,7 +1425,7 @@ async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
     let k=hash('fam'+day), other=false; const draw=()=>{ const f=pickF(k); const g={k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]};
       z.querySelector('.today').innerHTML=`<button type="button" class="famcard" data-fam="${g.k}${esc(g.q)}"><small>${other?'こんな一門も':'今日の一門'}</small><b>${esc(FAMK[g.k](g.n))}</b><span>${g.c}記事 ›</span></button>`; z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
-    z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;
+    z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;
     z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); other=true; draw(); }; }
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
   const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\d+$/.test(q)) openFam(q); }
