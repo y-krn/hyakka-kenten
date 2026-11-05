@@ -3,6 +3,8 @@
 #   日本語版の情報欄から確実に読めて、Wikidata と違うもの（小さな差・食い違い）だけを、日本語版の値に合わせる
 #   手で書く訂正表（data/fix.json）にある記事は、そちらが優先なので入れない
 #   主要作品の並べ直し（tools/check/works.mjs の「WK」の行の JSON）も一緒に渡せる
+#   数字の選び直し（tools/check/latest.mjs の「LT」の行の JSON。複数ある値のうち新しい時点のもの）も渡せる。
+#     日本語版の情報欄で確かめられた項目（一致したもの・日本語版に合わせたもの）は、日本語版のほうを優先して、選び直しは使わない
 #   使い方: python3 tools/fixa_build.py 結果1.jsonl 結果2.jsonl ...
 import json, os, re, sys
 
@@ -30,6 +32,7 @@ def fnv(t):
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 hand = json.load(open(os.path.join(root, 'data', 'fix.json'), encoding='utf-8'))
 out = [dict() for _ in range(NB)]; n = 0
+LT = []; seen = set()   # seen：日本語版で確かめられた（記事, 項目）
 for path in sys.argv[1:]:
     for line in open(path, encoding='utf-8'):
         line = line.strip()
@@ -38,11 +41,19 @@ for path in sys.argv[1:]:
         if 'it' in r and 'st' not in r:   # 主要作品の並べ直し（tools/check/works.mjs の「WK」の行）
             if r['t'] not in hand: out[fnv(r['t']) % NB].setdefault(r['t'], {})['主要作品'] = r['it']; n += 1
             continue
+        if 'lt' in r: LT.append(r); continue   # 数字の選び直し（後でまとめて入れる）
+        if r['st'] == '一致' and not doubtful(r): seen.add((r['t'], r['k']))
         if r['st'] not in ('小さな差', '食い違い') or r.get('fixed') or r['t'] in hand: continue
         if doubtful(r): continue
         v = r.get('jp')
         if not isinstance(v, (int, float)) or v != v or v <= 0 and r['k'] != 'e': continue   # 0 以下（標高を除く）は比べ合いで割り算が壊れるので入れない
-        out[fnv(r['t']) % NB].setdefault(r['t'], {})[LAB[r['k']]] = float(f'{v:.6g}'); n += 1
+        out[fnv(r['t']) % NB].setdefault(r['t'], {})[LAB[r['k']]] = float(f'{v:.6g}'); n += 1; seen.add((r['t'], r['k']))
+nl = 0
+for r in LT:
+    t, k, v = r['t'], r['k'], r['lt']
+    if t in hand or (t, k) in seen or not isinstance(v, (int, float)) or v <= 0 and k != 'e': continue
+    out[fnv(t) % NB].setdefault(t, {})[LAB[k]] = float(f'{v:.6g}'); n += 1; nl += 1
+print('選び直し', nl, '/', len(LT))
 d = os.path.join(root, 'data', 'fixa'); os.makedirs(d, exist_ok=True)
 for k in range(NB):
     json.dump(dict(sorted(out[k].items())), open(os.path.join(d, f'{k}.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
