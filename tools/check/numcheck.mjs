@@ -93,7 +93,7 @@ function judge(k, wd, jp) {
   if (diff <= (k === 'p' ? 0.15 : 0.05)) return ['小さな差', diff];
   return ['食い違い', diff];
 }
-export { clean, readNum, infobox, judge };
+export { clean, readNum, infobox, judge, params };
 
 // ---------- 本体 ----------
 if (process.argv[1] && process.argv[1].endsWith('numcheck.mjs') && !process.env.NUMCHECK_LIB) {
