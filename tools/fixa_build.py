@@ -51,6 +51,8 @@ for path in sys.argv[1:]:
 nl = 0
 for r in LT:
     t, k, v = r['t'], r['k'], r['lt']
+    if k not in ('p', 'a') or not r.get('at') or r['at'] < '2000': continue   # 人口と面積の、2000年以降の時点の値だけ（昔の国の人口や記録の体重などは最大の値のまま）
+    if k == 'a' and max(v, r['old']) / max(min(v, r['old']), 1e-12) > 1.5: continue   # 面積が大きく違うものは、一部の区域（自然公園の特別地域など）の値の疑い
     if t in hand or (t, k) in seen or not isinstance(v, (int, float)) or v <= 0 and k != 'e': continue
     out[fnv(t) % NB].setdefault(t, {})[LAB[k]] = float(f'{v:.6g}'); n += 1; nl += 1
 print('選び直し', nl, '/', len(LT))
