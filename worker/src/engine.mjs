@@ -524,7 +524,8 @@ function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=FETCH(D
 const FXNB=256, FXA={}, FXAP={};
 function fixAuto(t){ const k=fnv(t)%FXNB; return FXAP[k]||(FXAP[k]=FETCH(DATA_BASE+'fixa/'+k+'.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(o=>{ Object.assign(FXA,o); })); }
 function register(rec){ const t=rec.f[1];
-  { const fx=(FIX&&FIX[t])||FXA[t]; if(fx){ rec.qt={...(rec.qt||{})}; const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};
+  { const fx=(FIX&&FIX[t])||FXA[t]?{...(FXA[t]||{}),...((FIX&&FIX[t])||{})}:null; if(fx){ rec.qt={...(rec.qt||{})}; const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};
+    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }
     if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }
     for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number'&&v>0) rec.qt[q]=v; else if(v===null||typeof v==='number'){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
   F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;

@@ -1554,6 +1554,10 @@ rep("  if(ok) setPend(pend()-n); }", "  if(ok){ setPend(pend()-n); const o2=pend
 rep("    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue;",
     "    if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }\n    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue;")
 
+# ---- 64. 自動の訂正表の「主要作品」：作品の記事がよく読まれている順に選び直した先頭2件で、Wikidata の登録順の2件を置き換える。手の訂正表とは項目ごとに合わせる ----
+rep("{ const fx=(FIX&&FIX[t])||FXA[t]; if(fx){", "{ const fx=(FIX&&FIX[t])||FXA[t]?{...(FXA[t]||{}),...((FIX&&FIX[t])||{})}:null; if(fx){")
+rep("    if('職業' in fx&&rec.gen){", "    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }\n    if('職業' in fx&&rec.gen){")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
