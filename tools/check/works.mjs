@@ -14,7 +14,7 @@ for (const f of readdirSync('data/a')) { const B = JSON.parse(gunzipSync(readFil
   for (const [t, r] of Object.entries(B)) { const m = (r.ext || []).find(e => e[0] === '_m'); PV[r.f[2]] = m ? m[5] || 0 : 0;
     const p = (r.ext || []).find(e => e[0] === 'P800'); if (p) L.push({ t, q: r.f[2], n: p[1], it: p[2] }); } }
 async function api(params) {
-  const u = 'https://www.wikidata.org/w/api.php?' + new URLSearchParams({ format: 'json', maxlag: 5, ...params });
+  const u = 'https://www.wikidata.org/w/api.php?' + new URLSearchParams({ format: 'json', ...params });
   for (let tr = 0; tr < 5; tr++) { let why = '';
     try { const res = await fetch(u, { headers: { 'User-Agent': UA, 'Api-User-Agent': UA } }); const tx = await res.text();
       try { const j = JSON.parse(tx); if (!j.error) return j; why = res.status + ' ' + JSON.stringify(j.error).slice(0, 200); } catch (_) { why = res.status + ' ' + tx.slice(0, 200); } }
