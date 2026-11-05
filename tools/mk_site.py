@@ -1541,6 +1541,15 @@ rep('<span>Wikipediaに埋もれた記事を探して、戦わせる</span>', '<
 rep('<p class="fsub">Wikipediaのつながりから、埋もれた仲間を探す</p>', '<p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p>')
 s = s.replace('収録記事からくじ引きした「埋もれた記事」', '収録記事からランダムに選んだ記事')
 
+# ---- 62. みんなの対戦数を、遊び方ごとにも数える（今日の一戦 t・あなたの代表戦 m・仲間図鑑から f。残りが自由対戦）。週間レポートに出す ----
+rep("function addPlay(){ setPend(pend()+1);", """const PENDK_KEY='hk-plays-k';
+function pendK(){ try{ const o=JSON.parse(localStorage.getItem(PENDK_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(_){ return {}; } }
+function setPendK(o){ try{ localStorage.setItem(PENDK_KEY,JSON.stringify(o)); }catch(_){} }
+function addPlay(){ setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } }""")
+rep("function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const body=JSON.stringify({n,client:clientId()}); let ok=false;",
+    "function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }\n  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;")
+rep("  if(ok) setPend(pend()-n); }", "  if(ok){ setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

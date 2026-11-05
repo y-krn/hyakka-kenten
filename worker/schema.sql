@@ -32,7 +32,10 @@ CREATE TABLE IF NOT EXISTS plays (
   n INTEGER NOT NULL,          -- まとめて送られてきた対戦数
   at TEXT NOT NULL,
   iphash TEXT NOT NULL,
-  client TEXT
+  client TEXT,
+  kt INTEGER NOT NULL DEFAULT 0,   -- うち今日の一戦
+  km INTEGER NOT NULL DEFAULT 0,   -- うちあなたの代表戦
+  kf INTEGER NOT NULL DEFAULT 0    -- うち仲間図鑑から
 );
 CREATE INDEX IF NOT EXISTS plays_client ON plays(client, at);
 CREATE INDEX IF NOT EXISTS plays_ip ON plays(iphash, at);

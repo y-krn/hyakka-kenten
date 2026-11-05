@@ -74,9 +74,18 @@ if (rum) {
   list('端末', rum.dev, 'deviceType');
 } else L.push(`- 取得できませんでした：${rumNote}`, '  - APIトークンに「Account Analytics：読み取り」の権限があるか確認してください');
 L.push('', '## 遊ばれ方（ゲームの記録）');
-L.push(`- 自由対戦 ${n(pw.n)}戦 ${diff(pw.n, pp.n)}、遊んだブラウザ ${n(pw.u)} ${diff(pw.u, pp.u)}`);
+L.push(`- 対戦（王座戦以外）  ${n(pw.n)}戦 ${diff(pw.n, pp.n)}、遊んだブラウザ ${n(pw.u)} ${diff(pw.u, pp.u)}`);
+// 遊び方ごとの内訳（2026年11月5日から数えている。内訳の列がまだなければ出さない）
+try {
+  const KQ = "SELECT COALESCE(SUM(kt),0) AS t, COALESCE(SUM(km),0) AS m, COALESCE(SUM(kf),0) AS f, COUNT(DISTINCT CASE WHEN kt > 0 THEN COALESCE(client, iphash) END) AS tu, COUNT(DISTINCT CASE WHEN km > 0 THEN COALESCE(client, iphash) END) AS mu, COUNT(DISTINCT CASE WHEN kf > 0 THEN COALESCE(client, iphash) END) AS fu FROM plays WHERE at >= ? AND at < ?";
+  const [kw, kp] = await Promise.all([one(KQ, W), one(KQ, P)]);
+  const free = pw.n - kw.t - kw.m - kw.f, freeP = pp.n - kp.t - kp.m - kp.f;
+  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}（${n(kw.tu)}ブラウザ）`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}（${n(kw.mu)}ブラウザ）`, `  - 仲間図鑑から ${n(kw.f)}戦 ${diff(kw.f, kp.f)}（${n(kw.fu)}ブラウザ）`, `  - 自由対戦 ${n(free)}戦 ${diff(free, freeP)}`);
+  if (start < new Date('2026-11-12T15:00:00Z')) L.push('  - ※内訳は11月5日夜から数え始めたので、この週と前の週の比べは参考になりません');
+  globalThis.KW = kw;
+} catch (_) {}
 L.push(`- 王座戦の挑戦 ${n(cw.n)}回 ${diff(cw.n, cp.n)}、挑んだブラウザ ${n(cw.u)}、王座奪取 ${n(cw.w)}回`);
-if (daily.length) L.push('- 日別の自由対戦：' + daily.map(r => `${+r.d.slice(5, 7)}/${+r.d.slice(8)} ${n(r.n)}`).join('、'));
+if (daily.length) L.push('- 日別の対戦（王座戦以外）：' + daily.map(r => `${+r.d.slice(5, 7)}/${+r.d.slice(8)} ${n(r.n)}`).join('、'));
 if (topCh.length) L.push('- よく挑まれた記事：' + topCh.map(r => `${r.display} ${r.n}回`).join('、'));
 L.push('', '## 王座');
 if (changes.length) L.push(`- 今週の王座交代 ${changes.length}回：` + changes.map(r => r.display + who(r.holder)).join(' → '));
@@ -98,7 +107,7 @@ if (reps && reps.length) {
   }
   L.push('', '直すときは「報告を反映して」と頼めば、出典を確かめて訂正表（data/fix.json）に足します。問題がなかったものは status を ok に');
 }
-L.push('', `累計：自由対戦 ${n(tot.plays)}戦・王座戦 ${n(tot.ch)}回・歴代王者 ${n(tot.reigns)}代`);
+L.push('', `累計：対戦（王座戦以外） ${n(tot.plays)}戦・王座戦 ${n(tot.ch)}回・歴代王者 ${n(tot.reigns)}代`);
 const md_ = L.join('\n');
 console.log(md_);
 if (GITHUB_STEP_SUMMARY) appendFileSync(GITHUB_STEP_SUMMARY, md_ + '\n');
@@ -108,7 +117,7 @@ if (NTFY_TOPIC) {
   const a = rum ? v(rum.tw) : null, b = rum ? v(rum.tp) : null;
   const msg = [
     a ? `訪問 ${n(a.visits)} ${diff(a.visits, b.visits)}` : '訪問数は取得できませんでした',
-    `自由対戦 ${n(pw.n)}戦 ${diff(pw.n, pp.n)}`,
+    `対戦 ${n(pw.n)}戦 ${diff(pw.n, pp.n)}` + (globalThis.KW ? `（今日の一戦 ${n(KW.t)}・代表戦 ${n(KW.m)}）` : ''),
     `王座戦 ${n(cw.n)}回・王座交代 ${changes.length}回`,
     champ.id ? `王者：${champ.display}（防衛${champ.defenses}回）` : '',
     reps && reps.length ? `未対応の報告 ${reps.length}件` : '',

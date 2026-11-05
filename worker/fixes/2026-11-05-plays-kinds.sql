@@ -1,0 +1,4 @@
+-- みんなの対戦数に、遊び方ごとの内訳の列を足す（今日の一戦・あなたの代表戦・仲間図鑑から。残りが自由対戦）
+ALTER TABLE plays ADD COLUMN kt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE plays ADD COLUMN km INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE plays ADD COLUMN kf INTEGER NOT NULL DEFAULT 0;

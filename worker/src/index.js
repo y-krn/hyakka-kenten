@@ -3,7 +3,7 @@
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
 //   POST /api/report            … {reason, a, b, target, fact?, fix?, text?, url?} 利用者からの報告（数字や事実の誤り・内容が不適切）
 //   GET  /api/holds             … 報告を受けて、確かめるまで今日の一戦とランダムに出さない記事
-//   POST /api/plays             … {n, client} 自由対戦の対戦数（ブラウザでまとめて数えたもの）を足す
+//   POST /api/plays             … {n, k:{t,m,f}, client} 自由対戦などの対戦数（ブラウザでまとめて数えたもの）を足す。k は遊び方ごとの内訳
 //   GET  /og/c/番号.jpg          … 王座戦の試合ごとの共有画像
 //   GET  /api/og/pending        … 画像がまだない挑戦の一覧（管理用。GitHub Actions が使う）
 //   PUT  /api/og/番号            … 作った画像を預ける（管理用）
@@ -184,10 +184,12 @@ async function plays(env, req) {
   const room = Math.min((cl ? PLAYS_CL_10MIN : PLAYS_MAX) - a.results[0].s, PLAYS_IP_10MIN - b.results[0].s);
   const add = Math.min(n, room);
   if (add <= 0) return json(env, req, { ok: false });
-  await env.DB.batch([
-    env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl),
-    env.DB.prepare("INSERT INTO stats (k, n) VALUES ('plays', ?) ON CONFLICT(k) DO UPDATE SET n = n + excluded.n").bind(add),
-  ]);
+  // 遊び方ごとの内訳（今日の一戦 t・あなたの代表戦 m・仲間図鑑から f。残りが自由対戦）。合わせて add を超えないように
+  const kk = body.k && typeof body.k === 'object' ? body.k : {}; let left = add; const K = {};
+  for (const x of ['t', 'm', 'f']) { const v = Math.min(left, Math.max(0, Math.floor(Number(kk[x]) || 0))); K[x] = v; left -= v; }
+  const st = env.DB.prepare("INSERT INTO stats (k, n) VALUES ('plays', ?) ON CONFLICT(k) DO UPDATE SET n = n + excluded.n").bind(add);
+  try { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client, kt, km, kf) VALUES (?,?,?,?,?,?,?)').bind(add, now(), ih, cl, K.t, K.m, K.f), st]); }
+  catch (_) { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl), st]); }   // 内訳の列がまだないとき
   return json(env, req, { ok: true, added: add });
 }
 
