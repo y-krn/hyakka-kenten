@@ -2,6 +2,7 @@
 #   入力：数字の照合（.github/workflows/numcheck.yml）の実行記録から取り出した結果（1行1項目の JSON。「NC\t」の後ろ）
 #   日本語版の情報欄から確実に読めて、Wikidata と違うもの（小さな差・食い違い）だけを、日本語版の値に合わせる
 #   手で書く訂正表（data/fix.json）にある記事は、そちらが優先なので入れない
+#   主要作品の並べ直し（tools/check/works.mjs の「WK」の行の JSON）も一緒に渡せる
 #   使い方: python3 tools/fixa_build.py 結果1.jsonl 結果2.jsonl ...
 import json, os, re, sys
 
@@ -34,6 +35,9 @@ for path in sys.argv[1:]:
         line = line.strip()
         if not line: continue
         r = json.loads(line)
+        if 'it' in r and 'st' not in r:   # 主要作品の並べ直し（tools/check/works.mjs の「WK」の行）
+            if r['t'] not in hand: out[fnv(r['t']) % NB].setdefault(r['t'], {})['主要作品'] = r['it']; n += 1
+            continue
         if r['st'] not in ('小さな差', '食い違い') or r.get('fixed') or r['t'] in hand: continue
         if doubtful(r): continue
         v = r.get('jp')

@@ -19,14 +19,16 @@ async function api(params) {
 }
 // 1. 作品が3件以上ある記事：作品の全件
 const many = L.filter(x => x.n > 2); const full = {};
-for (let i = 0; i < many.length; i += 50) {
-  const d = await api({ action: 'wbgetentities', props: 'claims', ids: many.slice(i, i + 50).map(x => x.q).join('|') });
+console.log('作品が3件以上', many.length);
+for (let i = 0; i < many.length; i += 25) {
+  if (i % 500 === 0) console.log('作品の全件', i, '/', many.length);
+  const d = await api({ action: 'wbgetentities', props: 'claims', ids: many.slice(i, i + 25).map(x => x.q).join('|') });
   if (d) for (const [q, e] of Object.entries(d.entities || {})) full[q] = (((e.claims || {}).P800) || []).filter(c => c.rank !== 'deprecated').map(c => c.mainsnak.datavalue && c.mainsnak.datavalue.value.id).filter(Boolean);
   await sleep(500);
 }
 // 作品の日本語の名前と説明（まだ知らないものだけ）
 const known = {}; for (const x of L) for (const [lab, desc, q] of x.it) known[q] = [lab, desc || '', q];
-const need = [...new Set(Object.values(full).flat())].filter(q => !known[q]);
+const need = [...new Set(Object.values(full).flat())].filter(q => !known[q]); console.log('名前を取り寄せる作品', need.length);
 for (let i = 0; i < need.length; i += 50) {
   const d = await api({ action: 'wbgetentities', props: 'labels|descriptions', languages: 'ja', ids: need.slice(i, i + 50).join('|') });
   if (d) for (const [q, e] of Object.entries(d.entities || {})) { const lab = e.labels && e.labels.ja && e.labels.ja.value; if (lab) known[q] = [lab, (e.descriptions && e.descriptions.ja && e.descriptions.ja.value) || '', q]; }
