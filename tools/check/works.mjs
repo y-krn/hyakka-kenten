@@ -7,6 +7,7 @@
 import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 const UA = 'hyakka-kenten-works (+https://github.com/y-krn)';
+let FAIL = 0;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const PV = {}; const L = [];
 for (const f of readdirSync('data/a')) { const B = JSON.parse(gunzipSync(readFileSync('data/a/' + f)));
@@ -14,11 +15,16 @@ for (const f of readdirSync('data/a')) { const B = JSON.parse(gunzipSync(readFil
     const p = (r.ext || []).find(e => e[0] === 'P800'); if (p) L.push({ t, q: r.f[2], n: p[1], it: p[2] }); } }
 async function api(params) {
   const u = 'https://www.wikidata.org/w/api.php?' + new URLSearchParams({ format: 'json', maxlag: 5, ...params });
-  for (let tr = 0; tr < 5; tr++) { try { const j = await (await fetch(u, { headers: { 'User-Agent': UA, 'Api-User-Agent': UA } })).json(); if (!j.error) return j; } catch (_) {} await sleep(5000 * (tr + 1)); }
+  for (let tr = 0; tr < 5; tr++) { let why = '';
+    try { const res = await fetch(u, { headers: { 'User-Agent': UA, 'Api-User-Agent': UA } }); const tx = await res.text();
+      try { const j = JSON.parse(tx); if (!j.error) return j; why = res.status + ' ' + JSON.stringify(j.error).slice(0, 200); } catch (_) { why = res.status + ' ' + tx.slice(0, 200); } }
+    catch (e) { why = String(e).slice(0, 200); }
+    if (FAIL++ < 10) console.log('失敗', tr, why);   // 失敗の理由を最初の10回だけ出す
+    await sleep(5000 * (tr + 1)); }
   return null;
 }
 // 1. 作品が3件以上ある記事：作品の全件
-const many = L.filter(x => x.n > 2); const full = {};
+const many = L.filter(x => x.n > 2).slice(0, +(process.env.N || 1e9)); const full = {};
 console.log('作品が3件以上', many.length);
 for (let i = 0; i < many.length; i += 25) {
   if (i % 500 === 0) console.log('作品の全件', i, '/', many.length);
