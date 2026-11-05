@@ -1550,6 +1550,10 @@ rep("function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) retu
     "function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }\n  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;")
 rep("  if(ok) setPend(pend()-n); }", "  if(ok){ setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }")
 
+# ---- 63. 訂正表で「職業」も直せるように（文字。null で職業そのものを出さない）。例：NMB48 は Wikidata で職業が「著作家」になっている ----
+rep("    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue;",
+    "    if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }\n    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue;")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
