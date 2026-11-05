@@ -25,7 +25,7 @@ for (const pf of PREF) for (const [kind, k] of [['人口', 'p'], ['面積', 'a']
   if (k === 'p') { const m = w.match(/\|\s*date\s*=\s*([^\n|]+)/); if (m && !date) date = m[1].trim(); }
   for (const m of w.matchAll(/^\s*\|\s*([^=|#\n]+?)\s*=\s*([\d,.]+)\s*$/gm)) {
     const name = m[1].trim(), v = parseFloat(m[2].replace(/,/g, '')); if (!isFinite(v)) continue;
-    const L = (T[name] ||= []); let e = L.find(x => x.pref === pf); if (!e) L.push(e = { pref: pf }); e[k] = v;
+    const L = (T[name] ||= []); let e = L.find(x => x.pref === pf); if (!e) L.push(e = { pref: pf }); if (k in e) e.dup = true; e[k] = v;   // 同じ都道府県に同じ名前が2つ（泊村など）は、どちらか決められないので使わない
   }
 }
 console.log('テンプレートの項目', Object.keys(T).length, '人口の時点', date);
@@ -40,6 +40,7 @@ for (const f of readdirSync('data/a')) { const B = JSON.parse(gunzipSync(readFil
     //   括弧がなく1つだけならそれ。複数あって決められないものは、面積がいちばん近いもの（2割以内）
     let e = hint && T[hint + base] ? L[0] : hint ? L.find(x => hint.includes(x.pref)) : (L.length === 1 ? L[0] : null);
     if (hint && !e) continue;
+    if (!e || e.dup || /\d/.test(hint)) continue;   // 「十島村 (鹿児島県大島郡1946年)」のような昔の自治体は使わない
     if (!e && r.qt.a > 0) { const c = L.filter(x => x.a > 0).sort((x, y) => Math.abs(x.a - r.qt.a) - Math.abs(y.a - r.qt.a))[0]; if (c && Math.abs(c.a - r.qt.a) / r.qt.a <= 0.2) e = c; }
     if (!e) continue;
     const p = (r.ext || []).find(x => x[0] === '_m'); const pv = p ? p[5] : 0;
