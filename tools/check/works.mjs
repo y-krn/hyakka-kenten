@@ -44,7 +44,7 @@ for (let i = 0; i < need.length; i += 50) {
 let changed = 0;
 for (const x of L) {
   const ids = x.n > 2 && full[x.q] ? full[x.q] : x.it.map(w => w[2]);
-  const ws = ids.map((q, k) => ({ q, k, pv: PV[q] || 0 })).filter(w => known[w.q]).sort((a, b) => b.pv - a.pv || a.k - b.k).slice(0, 2).map(w => known[w.q]);
+  const ws = ids.map((q, k) => ({ q, k, pv: PV[q] || 0 })).filter(w => known[w.q]).sort((a, b) => b.pv - a.pv || a.k - b.k).map(w => known[w.q]).filter((w, i, a) => a.findIndex(v => v[0] === w[0]) === i).slice(0, 2);   // 同じ名前の作品（番組の別の版など）は1つだけ
   if (!ws.length || ws.map(w => w[2]).join() === x.it.map(w => w[2]).join()) continue;
   changed++; console.log('WK\t' + JSON.stringify({ t: x.t, it: ws }));
 }
