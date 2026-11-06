@@ -51,11 +51,12 @@ const desJ=q=>{const d=E[q]&&E[q].d&&E[q].d.ja; return d&&!/ウィキメディ�
 const desAny=q=>desJ(q)||(E[q]&&E[q].d&&E[q].d.en?E[q].d.en+'（英語の説明のみ）':'');
 
 /* ---------- 扱わない題材の判定（judge6 相当＋保留） ---------- */
-const EV=/(事件|事故|災害|(?<![スアヘ])テロ(?![イーメップ])|虐殺|殺人|誘拐|水害|豪雨|震災|地震|津波|噴火|大火|火災|空襲|銃撃|乱射|暗殺|爆破|墜落|沈没|遭難|戦争$|の戦い$|紛争|内戦)/;
+const EV=/(事件|事故|災害|(?:(?<=サイバー|バイオ|ネット)|(?<![ァ-ヶー]))テロ(?:リスト|リズム)?(?![ァ-ヶー])|虐殺|殺人|誘拐|水害|豪雨|震災|地震|津波|噴火|大火|火災|空襲|銃撃|乱射|暗殺|爆破|墜落|沈没|遭難|戦争$|の戦い$|紛争|内戦)/;
 const NEG=/(題材|扱った|を描いた|作品|映画|フィクション|架空|ドラマ|小説|漫画|アニメ|楽曲|歌|ゲーム|学者|研究|学$|機関|組織|法$|法令|拠点|対策|防災|補償|予知|保険|医学|工学|シリーズ|病院|条約|アルカロイド)/;
+const CONCEPT=/^(気象災害|火災|災害情報|災害救助|災害復興)$/;   // 現象や仕組みを説明する記事のカテゴリ。これだけでは保留にしない（2026-11 の見直しで、ここに入る記事はすべて問題なかった）
 const PER=/(自殺した|殺害された|暗殺された|処刑された|死刑囚|殺人犯|テロリスト|犯罪者|被害者|犠牲者|スプリーキラー|シリアルキラー|連続殺人犯|事件の当事者)/;
-const TITLE=/(事件|事故|災害|大震災|地震|豪雨|水害|空襲|テロ|虐殺|乱射|墜落|沈没)(\s*\(.+\))?$/;
-const EVW=/(事件|事故|(?<![スアヘ])テロ(?![イーメップ])|虐殺|殺人|誘拐|大火|空襲|銃撃|乱射|暗殺|爆破|墜落|遭難|迫害|侵攻|ホロコースト|原爆|核実験|ミサイル発射|犠牲者|慰霊|大爆撃|難民)/;
+const TITLE=/(事件|事故|災害|大震災|地震|豪雨|水害|空襲|(?:(?<=サイバー|バイオ|ネット)|(?<![ァ-ヶー]))テロ|虐殺|乱射|墜落|沈没)(\s*\(.+\))?$/;
+const EVW=/(事件|事故|(?:(?<=サイバー|バイオ|ネット)|(?<![ァ-ヶー]))テロ(?:リスト|リズム)?(?![ァ-ヶー])|虐殺|殺人|誘拐|大火|空襲|銃撃|乱射|暗殺|爆破|墜落|遭難|迫害|侵攻|ホロコースト|原爆|核実験|ミサイル発射|犠牲者|慰霊|大爆撃|難民)/;
 const CUT=1900, NOW=2026;
 const yr1=(c,p)=>{const s=(c[p]||[]).find(s=>s.mainsnak.datavalue&&s.mainsnak.datavalue.value.time); return s?parseInt(s.mainsnak.datavalue.value.time):null;};
 function judge(a,e){ const title=a.t, cats=a.cats||[], c=e.c||{}, cls=(AUX.cls||{})[a.q]||[];
@@ -77,15 +78,15 @@ function judge(a,e){ const title=a.t, cats=a.cats||[], c=e.c||{}, cls=(AUX.cls||
  const t=[yr1(c,'P582'),yr1(c,'P585'),yr1(c,'P580'),yr1(c,'P571')].filter(x=>x!==null);
  const cys=cats.map(x=>{const m=x.match(/^(\d{3,4})年/); return m?+m[1]:null;}).filter(x=>x!==null);
  const last=t.length?Math.max(...t):(cys.length?Math.max(...cys):null);
- const ec=cats.filter(x=>EV.test(x)&&!NEG.test(x)); const ti=TITLE.test(title)&&!/一覧/.test(title);
+ const ec=cats.filter(x=>EV.test(x)&&!NEG.test(x)&&!CONCEPT.test(x)); const ti=TITLE.test(title)&&!/一覧/.test(title);
  const strong=cls.length||ti||ec.length>=2; const why=cls.length?'Wikidataの分類「'+cls[0]+'」':ti?'記事名':ec.length?'カテゴリ「'+ec[0]+'」':null;
  if(strong){ if(last!==null&&last<CUT) return ['配慮','歴史上の出来事（'+(last<0?'紀元前'+(-last):last)+'年）：'+why];
   if(last===null&&!cls.length&&!ti) return ['保留','事件系カテゴリ'+ec.length+'個（年不明）'];
   return ['除外',why+(last===null?'（年不明）':'（'+last+'年）')]; }
  if(last!==null&&last<CUT) return ['通常',''];
  if(ec.length===1) return ['保留','カテゴリ「'+ec[0]+'」'+(last!==null?'（'+last+'年）':'')];
- const pcs=cats.filter(x=>PER.test(x)&&!/(題材|扱った|を描いた|作品|映画|ドラマ|小説|漫画|アニメ)/.test(x)); if(pcs.length) return ['保留','カテゴリ「'+pcs[0]+'」'];
- const bt=title.replace(/\s*\(.+\)$/,''); const m=bt.match(EVW); const WORK=['Q11424','Q5398426','Q21198342','Q8274','Q7725634','Q8261','Q63952888','Q7889','Q482994','Q7366','Q571','Q1259759','Q24856','Q74262765','Q1107','Q47461344']; if(m&&!NEG.test(bt)&&!ids(c,'P31').some(x=>WORK.includes(x))) return ['保留','記事名に「'+m[1]+'」'];
+ const pcs=cats.filter(x=>PER.test(x)&&!/(題材|扱った|を描いた|作品|映画|ドラマ|小説|漫画|アニメ|架空|登場人物|キャラクター)/.test(x)); if(pcs.length) return ['保留','カテゴリ「'+pcs[0]+'」'];
+ const bt=title.replace(/\s*\(.+\)$/,''); const m=bt.match(EVW); const WORKL=/(番組|映画|ドラマ|小説|シリーズ|シングル|楽曲|曲$|ゲーム|舞台|バレエ|文学|作品|漫画|アニメ|アルバム)/; const WORK=['Q15416','Q506240','Q1667921','Q277759','Q7725310','Q134556','Q2188189','Q105543609','Q11424','Q5398426','Q21198342','Q8274','Q7725634','Q8261','Q63952888','Q7889','Q482994','Q7366','Q571','Q1259759','Q24856','Q74262765','Q1107','Q47461344']; if(m&&!NEG.test(bt)&&!ids(c,'P31').some(x=>WORK.includes(x)||WORKL.test(labJ(x)||''))) return ['保留','記事名に「'+m[1]+'」'];
  return ['通常','']; }
 
 /* ---------- 実行 ---------- */
