@@ -68,7 +68,7 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,44px);l
 .hl-plq .lk{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:13px}
 .hl-rec{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:0}
 .hl-rec dt{color:var(--muted);font-size:12px;padding-top:2px}.hl-rec dd{margin:0;overflow-wrap:anywhere}
-.hl-his{margin:0;padding-left:2.6em;font-size:14px}.hl-his li{margin:2px 0}.hl-his .who{font-size:12px;color:var(--muted)}
+.hl-his{margin:0;padding-left:2.6em;list-style:decimal;font-size:14px}.hl-his li{margin:2px 0}.hl-his .who{font-size:12px;color:var(--muted)}
 .hl-none{font-size:13px;color:var(--muted);margin:0 0 10px}
 #throne .champ{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,5vw,30px);line-height:1.2;overflow-wrap:anywhere}
 #throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}
@@ -1517,7 +1517,7 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   el.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); replayChallenge(+a.dataset.c); }); }
 // 王者の殿堂：防衛5回以上の王者を称える札と、記録、歴代王者
 const HALL_MIN=5;
-const span=(a,b)=>{ const m=Math.max(0,Math.round((new Date(b)-new Date(a))/60000)); if(m<60) return m+'分'; const h=Math.floor(m/60); if(h<24) return h+'時間'+(m%60?m%60+'分':''); const d=Math.floor(h/24); return d+'日'+(h%24?h%24+'時間':''); };
+const span=(a,b)=>{ const m=Math.max(0,Math.round((new Date(b)-new Date(a))/60000)); if(m<1) return '1分未満'; if(m<60) return m+'分'; const h=Math.floor(m/60); if(h<24) return h+'時間'+(m%60?m%60+'分':''); const d=Math.floor(h/24); return d+'日'+(h%24?h%24+'時間':''); };
 const ymd=s=>{ try{ const d=new Date(s); return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate(); }catch(_){ return ''; } };
 async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
   try{ d=await fetch(API+'/api/hall').then(r=>r.json()); }catch(_){ d=null; } if(!d||!d.reigns) return;
@@ -1541,7 +1541,7 @@ async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
   <div class="hl-sec"><h4>殿堂入り</h4>${fame.map(plq).join('')||`<p class="hl-none">まだ殿堂入りした王者はいません。</p>`}
     ${cur&&left>0?`<p class="hl-none">いまの王者 <b>${esc(cur.display)}</b> は、あと${left}回防衛すれば殿堂入り。</p>`:''}</div>
   ${rec.length?`<div class="hl-sec"><h4>記録</h4><dl class="hl-rec">${rec.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl></div>`:''}
-  <div class="hl-sec"><h4>歴代王者</h4><ol class="hl-his" reversed>${R.map(x=>`<li>${x.cid?rp(x.cid,nm(x)):nm(x)}${x.defenses>=HALL_MIN?' 🏛':''} <span class="who">防衛${x.defenses}回・${esc(span(x.started_at,end(x)))}${x.ended_at?'':'・在位中'}${x.ended_by?' ／ '+(x.lostcid?rp(x.lostcid,esc(x.ended_by)+'に敗れる'):esc(x.ended_by)+'に敗れる'):''}</span></li>`).join('')}</ol></div>
+  <div class="hl-sec"><h4>歴代王者</h4><ol class="hl-his">${R.map(x=>`<li value="${x.id}">${x.cid?rp(x.cid,nm(x)):nm(x)}${x.defenses>=HALL_MIN?' 🏛':''} <span class="who">防衛${x.defenses}回・${esc(span(x.started_at,end(x)))}${x.ended_at?'':'・在位中'}${x.ended_by?' ／ '+(x.lostcid?rp(x.lostcid,esc(x.ended_by)+'に敗れる'):esc(x.ended_by)+'に敗れる'):''}</span></li>`).join('')}</ol></div>
   <div class="fnote">試合の名前を押すと、その試合を見られます。🏛は殿堂入りの王者です。</div>`;
   $('#famx').onclick=()=>dlg.close();
   dlg.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); dlg.close(); replayChallenge(+a.dataset.c); });
