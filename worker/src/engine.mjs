@@ -519,11 +519,12 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
 const HOLD={};            // 事件の疑いがあり、確認するまで対戦させない記事 {index: 理由}
 const QIX={};
 const FIXK={'標高':'e','高さ':'h','重さ':'m','面積':'a','人口':'p','長さ':'l','深さ':'d','速さ':'s'};
-let FIX=null, FIXP=null;
-function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=FETCH(DATA_BASE+'fix.json').then(r=>r.ok?r.json():{}).then(o=>{ FIX=o||{}; }).catch(()=>{ FIX={}; })); }
+let FIX=null, FIXP=null, UNH=null;
+function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=Promise.all([FETCH(DATA_BASE+'fix.json').then(r=>r.ok?r.json():{}).catch(()=>({})),FETCH(DATA_BASE+'unhold.json').then(r=>r.ok?r.json():{}).catch(()=>({}))]).then(([o,u])=>{ UNH=u||{}; FIX=o||{}; })); }
+const unheld=(t,why)=>!!UNH&&(!!(UNH['記事']||{})[t]||!!(UNH['理由']||{})[String(why).replace(/（[^（）]*年[^（）]*）$/,'')]);   // 確かめて対戦に戻した記事
 const FXNB=256, FXA={}, FXAP={};
 function fixAuto(t){ const k=fnv(t)%FXNB; return FXAP[k]||(FXAP[k]=FETCH(DATA_BASE+'fixa/'+k+'.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(o=>{ Object.assign(FXA,o); })); }
-function register(rec){ const t=rec.f[1];
+function register(rec){ const t=rec.f[1]; if(rec.hold&&unheld(t,rec.hold)){ rec={...rec}; delete rec.hold; }
   { const fx=(FIX&&FIX[t])||FXA[t]?{...(FXA[t]||{}),...((FIX&&FIX[t])||{})}:null; if(fx){ rec.qt={...(rec.qt||{})}; const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};
     if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }
     if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }
