@@ -1597,6 +1597,9 @@ async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
 // 記録された挑戦を、その場で再生する""")
 rep("if(new URLSearchParams(location.search).has('me')) openMine();", "if(new URLSearchParams(location.search).has('me')) openMine(); if(new URLSearchParams(location.search).has('hall')) openHall();")
 
+# ---- 66. 王座戦の欄から「最長防衛ランキング」「歴代王者」を外す（王者の殿堂にまとめた）----
+rep_span("  <details><summary>最長防衛ランキング</summary>", "</ol></details></details>`;", "</details>`;")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
