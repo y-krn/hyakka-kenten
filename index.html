@@ -135,6 +135,7 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 /* リング */
 .ring{display:flex;flex-direction:column;gap:14px}
 .scoreboard{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+.scoreboard.done{position:relative}
 .sb{display:flex;flex-direction:column;gap:4px;min-width:0}
 .sb.B{text-align:right}
 .sb .nm{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -252,7 +253,9 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #throne .thx[open]>summary{margin-bottom:10px}
 #today .tdvs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
 #today .tdvs>div{display:flex;flex-direction:column;gap:2px;min-width:0}#today .tdvs>div:last-child{text-align:right;align-items:flex-end}
-#today .tdvs small{font-size:11px;color:var(--muted)}#today .tdvs b{font-size:20px;line-height:1.3;overflow-wrap:anywhere}
+#today .tdvs small{font-size:11px;color:var(--muted)}#today .tdvs b{font-size:20px;line-height:1.3;overflow-wrap:anywhere;word-break:auto-phrase;text-wrap:balance}
+.tdvs .tdk{line-height:1.4}
+.tdbtn .btn{word-break:auto-phrase;text-wrap:balance}
 #today .tdvs .tA b{color:var(--a)}#today .tdvs .tB b{color:var(--b)}#today .tdvs .tvx{font-family:var(--f-display);font-size:18px;color:var(--muted)}
 #today .tdq{font-size:13px;color:var(--muted);text-align:center}
 #today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -965,8 +968,8 @@ function setCount(){ try{ document.getElementById('eyebrow').textContent='ひゃ
 let sel=[null,null]; let streak={idx:null,n:0};
 // ランダム：半分は人気記事から、半分は全記事から（振り分けファイルを1つ引いて、その中から選ぶ）
 let NORAND=new Set();   // ランダムに出さない記事（tools/norand.py で作る）
-async function rnd(ex){ for(let k=0;k<12;k++){ let t;
-    if(Math.random()<0.5&&POPULAR.length) t=POPULAR[Math.floor(Math.random()*POPULAR.length)];
+async function rnd(ex,pop){ for(let k=0;k<12;k++){ let t;
+    if((pop||Math.random()<0.5)&&POPULAR.length) t=POPULAR[Math.floor(Math.random()*POPULAR.length)];
     else { const b=await bucket(Math.floor(Math.random()*NB)); const ks=Object.keys(b); if(!ks.length) continue; t=ks[Math.floor(Math.random()*ks.length)]; }
     if(NORAND.has(t)) continue;
     const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) return i; }
@@ -1034,8 +1037,9 @@ function startBattle(pair){
     if(an.type==='kurabe'){ const w=[0,0]; for(let k=0;k<=idx;k++){ const x=r.log[k]; if(x&&x.side>=0&&!x.kai) w[x.side]++; }
       ['A','B'].forEach((s,j)=>{ const ps=$('#pip'+s).children; for(let k=0;k<ps.length;k++) ps[k].classList.toggle('on',k<w[j]); $('#hpn'+s).textContent=w[j]+'本'; }); $('#tk').textContent=l.t; return; }
     $('#hpA').style.width=(l.hp[0]/r.max[0]*100)+'%'; $('#hpB').style.width=(l.hp[1]/r.max[1]*100)+'%'; $('#hpnA').textContent=l.hp[0]+' / '+r.max[0]; $('#hpnB').textContent=l.hp[1]+' / '+r.max[1]; $('#tk').textContent=l.t; };
-  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); k++; };
+  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));
   step(); timer=setInterval(step,reduce?350:1000);
   $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); };
 }
@@ -1294,7 +1298,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
   function keep(){ const v=cur(); mineSave($('#mkeep').checked&&(v.m||v.d||v.y||v.p||v.f)?v:null); }
   const bsub=x=>typeof x.y==='number'?ysJ(x.y)+'生まれ':'';
   function shareText(){ const r=ST.reps[ST.pick], why=$('#mwhy')&&$('#mwhy').checked;
-    return fitPost(`【百科拳典】私の代表は${r.x.n}${why?'（'+MB[r.k].why(ST.v)+'）':''}。きょう${td.m}月${td.d}日生まれの${ST.opp.n}と対決！ あなたの代表は？`)+'\n'+DISC; }
+    return fitPost(`【百科拳典】私の代表は${r.x.n}${why?'（'+MB[r.k].why(ST.v)+'）':''}。${+ST.v.m===td.m&&+ST.v.d===td.d?'同じ':'きょう'}${td.m}月${td.d}日生まれの${ST.opp.n}と対決！ あなたの代表は？`)+'\n'+DISC; }
   function draw(){ const {reps,pick,v,groups}=ST; const box=$('#mres');
     if(!reps.length){ box.innerHTML=''; return; }
     const r=reps[pick], opp=ST.opp; const sumL=[v.m&&v.d?v.m+'月'+v.d+'日':'',v.y?v.y+'年':'',v.p,v.f].filter(Boolean).join('・');
@@ -1302,7 +1306,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     <div class="mcard">
       ${reps.length>1?`<div class="mpick" role="group" aria-label="代表を選ぶ">${reps.map((x,k)=>`<button type="button" data-k="${k}" aria-pressed="${k===pick}">${esc(MB[x.k].lab)}</button>`).join('')}</div>`:''}
       <div class="mduel"><div class="ma"><small>あなたの代表・${esc(MB[r.k].lab)}</small><b>${esc(r.x.n)}</b><small>${esc(bsub(r.x))}</small></div><span class="mvx">vs</span>
-        <div class="mb"><small>きょう${td.m}月${td.d}日生まれ</small>${opp?`<b>${esc(opp.n)}</b><small>${esc(bsub(opp))}</small>${ST.opps.length>1?'<button type="button" class="mlink" id="mopp">相手を変える</button>':''}`:'<small>読み込めませんでした</small>'}</div></div>
+        <div class="mb"><small>${+v.m===td.m&&+v.d===td.d?'もう一人の':'きょう'}${td.m}月${td.d}日生まれ</small>${opp?`<b>${esc(opp.n)}</b><small>${esc(bsub(opp))}</small>${ST.opps.length>1?'<button type="button" class="mlink" id="mopp">相手を変える</button>':''}`:'<small>読み込めませんでした</small>'}</div></div>
       <div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>
       <div class="mshare" id="mshp" hidden>
         <label><input type="checkbox" id="mwhy">選ばれた理由（${esc(MB[r.k].why(v))}）も書く</label>
@@ -1393,6 +1397,12 @@ const tdTitle=n=>(TITLES.find(t=>n>=t[0])||[])[1]||'';
 const KANJI=n=>{ const d='〇一二三四五六七八九'; if(n<10) return d[n]; if(n<20) return '十'+(n%10?d[n%10]:''); return d[Math.floor(n/10)]+'十'+(n%10?d[n%10]:''); };
 const MON=['','一','二','三','四','五','六','七','八','九','十','十一','十二'];
 const BANZUKE=[[27,'世界王者'],[24,'世界ランカー'],[21,'東洋太平洋王者'],[18,'日本王者'],[15,'日本ランカー'],[12,'A級ボクサー'],[9,'B級ボクサー'],[6,'C級ボクサー'],[3,'プロテスト合格'],[0,'練習生']];
+const TDH={};   // 今日の一戦の記事の、ひとこと説明（記事名 → 文）
+async function tdHint(i,sel){ const t=F[i][1]; if(TDH[t]) return;
+  try{ const d=await fetch('https://ja.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(t.replace(/ /g,'_'))).then(r=>r.ok?r.json():null); if(!d) return;
+    let h=(d.description||'').trim();
+    if(!h&&d.extract){ h=d.extract.replace(/（[^（）]*）|\([^()]*\)/g,'').split('。')[0]; h=h.replace(/^.{1,40}?(とは|は)、/,''); }
+    h=h.trim(); if(!h) return; if(h.length>42) h=h.slice(0,40)+'…'; TDH[t]=h; const e=$(sel); if(e) e.textContent=h; }catch(_){} }
 function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7), today=+now.slice(8,10), days=new Date(Date.UTC(y,m,0)).getUTCDate();
   let W=0,L=0,K=0,Y=0; const first=Object.keys(o).filter(k=>k.slice(0,7)===now.slice(0,7)&&o[k].done).sort()[0]; const d0=first?+first.slice(8,10):today;
   const cells=[]; for(let d=1;d<=days;d++){ const k=now.slice(0,8)+String(d).padStart(2,'0'), x=o[k];
@@ -1411,7 +1421,7 @@ function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7), tod
 let TMR=null;   // 当てた人だけに見せる、明日の人気の記事
 async function tdTomorrow(){ if(TMR) return TMR; const d=jstDay(-1); try{ const x=await todayPair(d); TMR=x?{day:d,a:F[x.a][0]}:null; }catch(_){ TMR=null; } return TMR; }
 function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,b}=TD; const o=tdLoad(), me=o[day]||{};
-  const kind=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; }; const nm=i=>F[i][0];
+  const kind=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; }; const cats=i=>((GEN[i]||{}).cc||[]).slice(0,2).join('・'); const nm=i=>F[i][0];
   let act;
   if(me.done){ const w=me.w; const res=w===null?'引き分け':esc(w===0?nm(a):nm(b))+'の勝ち';
     const st=tdStreak(o);
@@ -1422,7 +1432,8 @@ function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,
   else if(me.p===0||me.p===1||me.p===null) act=`<div class="tdrow">あなたの予想：<b>${me.p===null?'なし':esc(me.p===0?nm(a):nm(b))}</b><button type="button" class="btn" id="tdgo">観戦する</button></div>`;
   else act=`<div class="tdq">どっちが勝つ？ 予想してから観戦しよう</div><div class="tdbtn"><button type="button" class="btn pa" data-p="0">${esc(nm(a))}</button><button type="button" class="btn pb" data-p="1">${esc(nm(b))}</button></div><div class="tdrow"><button type="button" class="mlink" id="tdno">予想せずに観戦する</button></div>`;
   box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦。みんな同じ組み合わせで、毎日0時に入れ替わります</span></div>
-    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small>${esc(kind(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>ランダムな記事</small><b>${esc(nm(b))}</b><small>${esc(kind(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
+    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small class="tdk" id="tdka">${esc(TDH[F[a][1]]||kind(a)||cats(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>ランダムな記事</small><b>${esc(nm(b))}</b><small class="tdk" id="tdkb">${esc(TDH[F[b][1]]||kind(b)||cats(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
+  tdHint(a,'#tdka'); tdHint(b,'#tdkb');
   if($('#tdtmr')) tdTomorrow().then(x=>{ const e=$('#tdtmr'); if(!e) return; e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は明日のお楽しみ`:''; if(!x) e.remove(); });
   box.hidden=false;
   const go=()=>{ if(isChamp(a)||isChamp(b)){ todayDraw(); return; } TODAYF={day}; startBattle([a,b]); };
@@ -1607,8 +1618,8 @@ renderRec();
   N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount(); famToday(); mineInit(); todayInit();
   const nrP=Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>{ NORAND=new Set([...a,...h]); }).catch(()=>{});
   if(await openShared()) return;
-  const [x,y]=await Promise.all([rnd([]),rnd([])]); await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す
-  sel[0]=NORAND.has(F[x][1])?await rnd([y]):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]]):y;
+  const [x,y]=await Promise.all([rnd([],1),rnd([],1)]); await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す
+  sel[0]=NORAND.has(F[x][1])?await rnd([y],1):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]],1):y;
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();
 </script>
