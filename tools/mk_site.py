@@ -1659,6 +1659,35 @@ repall("x.textContent=(+x.dataset.s===0?'青':'赤')+(on?'に決定':'へ');", "
 repall("textContent='青：'+(FP[0]?FP[0].n:'未選択');", "textContent='青コーナー：'+(FP[0]?FP[0].n:'未選択');")
 repall("textContent='赤：'+(FP[1]?FP[1].n:'未選択');", "textContent='赤コーナー：'+(FP[1]?FP[1].n:'未選択');")
 
+# ---- 69. 遊びやすさの見直し（2026-11-06 にスマホで遊んで見つけた点）----
+# 自由対戦の最初の組み合わせは、よく読まれている記事から（初めての人が知らない記事2つで戸惑わないように）。「おまかせで組む」はこれまでどおり半分は全記事から
+repall("async function rnd(ex){ for(let k=0;k<12;k++){ let t;\n    if(Math.random()<0.5&&POPULAR.length)", "async function rnd(ex,pop){ for(let k=0;k<12;k++){ let t;\n    if((pop||Math.random()<0.5)&&POPULAR.length)")
+repall("const [x,y]=await Promise.all([rnd([]),rnd([])]);", "const [x,y]=await Promise.all([rnd([],1),rnd([],1)]);")
+repall("sel[0]=NORAND.has(F[x][1])?await rnd([y]):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]]):y;", "sel[0]=NORAND.has(F[x][1])?await rnd([y],1):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]],1):y;")
+# 今日の一戦：記事の名前の下に、何の記事かを1行で（Wikipedia の記事の冒頭から。読み込めないときはカテゴリ）
+repall('<b>${esc(nm(a))}</b><small>${esc(kind(a))}</small>', '<b>${esc(nm(a))}</b><small class="tdk" id="tdka">${esc(TDH[F[a][1]]||kind(a)||cats(a))}</small>')
+repall('<b>${esc(nm(b))}</b><small>${esc(kind(b))}</small>', '<b>${esc(nm(b))}</b><small class="tdk" id="tdkb">${esc(TDH[F[b][1]]||kind(b)||cats(b))}</small>')
+repall("const kind=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; };", "const kind=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; }; const cats=i=>((GEN[i]||{}).cc||[]).slice(0,2).join('・');")
+repall("${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;\n", "${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;\n  tdHint(a,'#tdka'); tdHint(b,'#tdkb');\n")
+repall("function tdCal(o){", r"""const TDH={};   // 今日の一戦の記事の、ひとこと説明（記事名 → 文）
+async function tdHint(i,sel){ const t=F[i][1]; let h=TDH[t];
+  if(!h){ try{ const d=await fetch('https://ja.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(t.replace(/ /g,'_')),{headers:{'Api-User-Agent':'hyakka-kenten (+https://github.com/y-krn)'}}).then(r=>r.ok?r.json():null); if(!d) return;
+      h=(d.description||'').trim();   // 短い説明（Wikidata）。なければ記事の冒頭の一文（日本語版Wikipedia・CC BY-SA 4.0。記事へのリンクとページ下の注記で出どころを示す）
+      if(!h&&d.extract){ h=d.extract.replace(/（[^（）]*）|\([^()]*\)/g,'').split('。')[0]; h=h.replace(/^.{1,40}?(とは|は)、/,''); }
+      h=h.trim(); if(!h) return; if(h.length>42) h=h.slice(0,40)+'…'; TDH[t]=h; }catch(_){ return; } }
+  const e=$(sel); if(e) e.innerHTML='<a href="https://ja.wikipedia.org/wiki/'+encodeURIComponent(t.replace(/ /g,'_'))+'" target="_blank" rel="noopener">'+esc(h)+'</a>'; }
+function tdCal(o){""")
+repall(".tdvs b{font-size:20px;line-height:1.3;overflow-wrap:anywhere}", ".tdvs b{font-size:20px;line-height:1.3;overflow-wrap:anywhere;word-break:auto-phrase;text-wrap:balance}\n.tdvs .tdk{line-height:1.4}\n.tdvs .tdk a{color:inherit;text-decoration:underline dotted;text-underline-offset:2px}\n.tdbtn .btn{word-break:auto-phrase;text-wrap:balance}")
+# 観戦中は、新しい実況に合わせて画面を送る（自分でスクロールしたら、それ以降は送らない）
+repall("items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); k++;", "items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++;")
+repall("const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;", "const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;\n  let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));")
+# 決着したら、得点板を画面の上に張り付けない（結果・共有を読むときの邪魔になる）
+repall(".sb{display:flex;flex-direction:column;gap:4px;min-width:0}", ".scoreboard.done{position:relative}\n.sb{display:flex;flex-direction:column;gap:4px;min-width:0}")
+repall("Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。</span>", "Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。今日の一戦の記事のひとこと説明は、日本語版Wikipediaの記事の冒頭などから引いています（CC BY-SA 4.0、説明を押すと元の記事が開きます）。</span>")
+# 代表戦：誕生日がきょうなら、相手も同じ誕生日なので、そう書く
+repall('<div class="mb"><small>きょう${td.m}月${td.d}日生まれ</small>', '<div class="mb"><small>${+v.m===td.m&&+v.d===td.d?\'もう一人の\':\'きょう\'}${td.m}月${td.d}日生まれ</small>')
+repall("。きょう${td.m}月${td.d}日生まれの${ST.opp.n}と対決！", "。${+ST.v.m===td.m&&+ST.v.d===td.d?'同じ':'きょう'}${td.m}月${td.d}日生まれの${ST.opp.n}と対決！")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
