@@ -1559,12 +1559,12 @@ rep("{ const fx=(FIX&&FIX[t])||FXA[t]; if(fx){", "{ const fx=(FIX&&FIX[t])||FXA[
 rep("    if('職業' in fx&&rec.gen){", "    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }\n    if('職業' in fx&&rec.gen){")
 
 # ---- 65. 王者の殿堂（防衛5回以上の王者を称える。記録と歴代王者も）----
-rep("#throne .champ{", "#throne .hallgo{margin-top:6px}\n.hl-sub{font-size:12px;color:var(--muted);line-height:1.5}\n.hl-sec{padding:12px 16px 4px}.hl-sec h4{margin:0 0 8px;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:700}\n.hl-plq{border:1px solid var(--line);border-left:4px solid var(--hl);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--bg)}\n.hl-plq .nm{font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.25;overflow-wrap:anywhere}\n.hl-plq .sub{font-size:12px;color:var(--muted)}\n.hl-plq .lk{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:13px}\n.hl-rec{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:0}\n.hl-rec dt{color:var(--muted);font-size:12px;padding-top:2px}.hl-rec dd{margin:0;overflow-wrap:anywhere}\n.hl-his{margin:0;padding-left:2.6em;list-style:decimal;font-size:14px}.hl-his li{margin:2px 0}.hl-his .who{font-size:12px;color:var(--muted)}\n.hl-none{font-size:13px;color:var(--muted);margin:0 0 10px}\n#throne .champ{")
+rep("#throne .champ{", "#throne .hallgo{margin-top:6px}\n.hl-sub{font-size:12px;color:var(--muted);line-height:1.5}\n.hl-sec{padding:12px 16px 4px}.hl-sec h4{margin:0 0 8px;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:700}\n.hl-plq{border:1px solid var(--line);border-left:4px solid var(--hl);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--bg)}\n.hl-plq .nm{font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.25;overflow-wrap:anywhere}\n.hl-plq .sub{font-size:12px;color:var(--muted)}\n.hl-plq .lk{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:13px}\n.hl-rec{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:0}\n.hl-rec dt{color:var(--muted);font-size:12px;padding-top:2px}.hl-rec dd{margin:0;overflow-wrap:anywhere}\n.hl-his{margin:0;padding-left:2.6em;list-style:decimal;font-size:14px}.hl-his li{margin:2px 0}.hl-his .who{font-size:12px;color:var(--muted)}\n.hl-none{font-size:13px;color:var(--muted);margin:0 0 10px}\n.hl-plq.leg{border:2px solid #c9a227;background:linear-gradient(135deg,rgba(255,225,77,.28),rgba(201,162,39,.10))}\n.hl-plq .bdg{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:99px;margin-right:6px;background:var(--hl);color:var(--hl-ink)}\n#throne .champ{")
 rep("""  <details class="thx" id="thx\"""", """  <div class="hallgo"><button type="button" class="btn small" id="hallopen">王者の殿堂 ▶</button></div>
   <details class="thx" id="thx\"""")
 rep("  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; });", "  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall();")
 rep("// 記録された挑戦を、その場で再生する", r"""// 王者の殿堂：防衛5回以上の王者を称える札と、記録、歴代王者
-const HALL_MIN=5;
+const HALL_MIN=5, HALL_LEG=10;   // 防衛5回で殿堂入り、10回で伝説の王者
 const span=(a,b)=>{ const m=Math.max(0,Math.round((new Date(b)-new Date(a))/60000)); if(m<1) return '1分未満'; if(m<60) return m+'分'; const h=Math.floor(m/60); if(h<24) return h+'時間'+(m%60?m%60+'分':''); const d=Math.floor(h/24); return d+'日'+(h%24?h%24+'時間':''); };
 const ymd=s=>{ try{ const d=new Date(s); return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate(); }catch(_){ return ''; } };
 async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
@@ -1573,7 +1573,7 @@ async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
   const rp=(id,t)=>id?`<a class="rp" href="?c=${id}" data-c="${id}">${t}</a>`:'';
   const nm=x=>`<b>${esc(x.display)}</b>`;
   const fame=R.filter(x=>x.defenses>=HALL_MIN).sort((a,b)=>b.defenses-a.defenses||a.id-b.id);
-  const plq=x=>`<div class="hl-plq"><div class="sub">第${x.id}代王者${x.ended_at?'':'・在位中'}</div><div class="nm">${esc(x.display)}</div>
+  const plq=x=>`<div class="hl-plq${x.defenses>=HALL_LEG?' leg':''}"><div class="sub">${x.defenses>=HALL_LEG?'<span class="bdg">👑 伝説の王者</span>':''}第${x.id}代王者${x.ended_at?'':'・在位中'}</div><div class="nm">${esc(x.display)}</div>
     <div class="sub">防衛 <b>${x.defenses}</b>回 ／ 在位 ${esc(span(x.started_at,end(x)))}（${esc(ymd(x.started_at))}〜${x.ended_at?esc(ymd(x.ended_at)):''}） ／ 王座を取った人：${esc(x.holder)}</div>
     <div class="lk">${rp(x.cid,'王座を取った試合 ▶')}${x.ended_by?(x.lostcid?rp(x.lostcid,esc(x.ended_by)+'に敗れた試合 ▶'):'<span>'+esc(x.ended_by)+'に敗れる</span>'):''}</div></div>`;
   const best=[...R].sort((a,b)=>b.defenses-a.defenses||a.id-b.id)[0];
@@ -1583,14 +1583,14 @@ async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
     long?['最長在位',`${nm(long)} ${esc(span(long.started_at,end(long)))}${long.ended_at?'':'（在位中）'}`]:null,
     k&&k.n>1?['王者キラー',`<b>${esc(k.display)}</b> ${k.n}代の王者を倒す`]:null,
     mo&&mo.n>0?['最も挑まれた王者',`<b>${esc(mo.display)}</b> ${mo.n}回の挑戦を受ける`]:null].filter(Boolean);
-  const left=cur?HALL_MIN-cur.defenses:0;
+  const left=cur?(cur.defenses<HALL_MIN?HALL_MIN:HALL_LEG)-cur.defenses:0;
   dlg.setAttribute('aria-label','王者の殿堂');
-  dlg.innerHTML=`<div class="fhead"><div><h3>王者の殿堂</h3><div class="hl-sub">王座戦で防衛${HALL_MIN}回以上を果たした王者を、ここに称えます</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
+  dlg.innerHTML=`<div class="fhead"><div><h3>王者の殿堂</h3><div class="hl-sub">防衛${HALL_MIN}回で殿堂入り🏛、${HALL_LEG}回で伝説の王者👑</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <div class="hl-sec"><h4>殿堂入り</h4>${fame.map(plq).join('')||`<p class="hl-none">まだ殿堂入りした王者はいません。</p>`}
-    ${cur&&left>0?`<p class="hl-none">いまの王者 <b>${esc(cur.display)}</b> は、あと${left}回防衛すれば殿堂入り。</p>`:''}</div>
+    ${cur&&left>0?`<p class="hl-none">いまの王者 <b>${esc(cur.display)}</b> は、あと${left}回防衛すれば${cur.defenses<HALL_MIN?'殿堂入り':'伝説の王者'}。</p>`:''}</div>
   ${rec.length?`<div class="hl-sec"><h4>記録</h4><dl class="hl-rec">${rec.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl></div>`:''}
-  <div class="hl-sec"><h4>歴代王者</h4><ol class="hl-his">${R.map(x=>`<li value="${x.id}">${x.cid?rp(x.cid,nm(x)):nm(x)}${x.defenses>=HALL_MIN?' 🏛':''} <span class="who">防衛${x.defenses}回・${esc(span(x.started_at,end(x)))}${x.ended_at?'':'・在位中'}${x.ended_by?' ／ '+(x.lostcid?rp(x.lostcid,esc(x.ended_by)+'に敗れる'):esc(x.ended_by)+'に敗れる'):''}</span></li>`).join('')}</ol></div>
-  <div class="fnote">試合の名前を押すと、その試合を見られます。🏛は殿堂入りの王者です。</div>`;
+  <div class="hl-sec"><h4>歴代王者</h4><ol class="hl-his">${R.map(x=>`<li value="${x.id}">${x.cid?rp(x.cid,nm(x)):nm(x)}${x.defenses>=HALL_LEG?' 👑':x.defenses>=HALL_MIN?' 🏛':''} <span class="who">防衛${x.defenses}回・${esc(span(x.started_at,end(x)))}${x.ended_at?'':'・在位中'}${x.ended_by?' ／ '+(x.lostcid?rp(x.lostcid,esc(x.ended_by)+'に敗れる'):esc(x.ended_by)+'に敗れる'):''}</span></li>`).join('')}</ol></div>
+  <div class="fnote">試合の名前を押すと、その試合を見られます。🏛は殿堂入り、👑は伝説の王者です。</div>`;
   $('#famx').onclick=()=>dlg.close();
   dlg.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); dlg.close(); replayChallenge(+a.dataset.c); });
   if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
