@@ -1550,6 +1550,14 @@ rep("function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) retu
     "function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }\n  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;")
 rep("  if(ok) setPend(pend()-n); }", "  if(ok){ setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }")
 
+# ---- 63. 訂正表で「職業」も直せるように（文字。null で職業そのものを出さない）。例：NMB48 は Wikidata で職業が「著作家」になっている ----
+rep("    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue;",
+    "    if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }\n    for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue;")
+
+# ---- 64. 自動の訂正表の「主要作品」：作品の記事がよく読まれている順に選び直した先頭2件で、Wikidata の登録順の2件を置き換える。手の訂正表とは項目ごとに合わせる ----
+rep("{ const fx=(FIX&&FIX[t])||FXA[t]; if(fx){", "{ const fx=(FIX&&FIX[t])||FXA[t]?{...(FXA[t]||{}),...((FIX&&FIX[t])||{})}:null; if(fx){")
+rep("    if('職業' in fx&&rec.gen){", "    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }\n    if('職業' in fx&&rec.gen){")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

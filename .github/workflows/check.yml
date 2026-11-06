@@ -6,10 +6,16 @@ on:
       script:
         description: tools/check/ の中のスクリプト名
         required: true
+      n:
+        description: 試しに動かすときの件数（空なら全部。使うスクリプトだけが見る）
+        required: false
+      offset:
+        description: 試しに動かすときの開始位置（空なら最初から。使うスクリプトだけが見る）
+        required: false
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,6 +27,8 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           D1_ID: ${{ vars.D1_DATABASE_ID }}
+          N: ${{ inputs.n }}
+          OFFSET: ${{ inputs.offset }}
         run: |
           case "$SCRIPT" in *[!A-Za-z0-9_.-]*|"") echo "スクリプト名が不正です"; exit 1;; esac
           node "tools/check/$SCRIPT"
