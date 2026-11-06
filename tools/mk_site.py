@@ -1600,6 +1600,13 @@ rep("if(new URLSearchParams(location.search).has('me')) openMine();", "if(new UR
 # ---- 66. 王座戦の欄から「最長防衛ランキング」「歴代王者」を外す（王者の殿堂にまとめた）----
 rep_span("  <details><summary>最長防衛ランキング</summary>", "</ol></details></details>`;", "</details>`;")
 
+# ---- 67. 対戦に戻す一覧（data/unhold.json）：「確認中」（保留）の記事のうち、確かめて問題ないものを対戦に戻す ----
+#   {"記事": {"記事名": "確かめた理由（日付）"}, "理由": {"保留の理由（年の括弧を除く）": "確かめた理由（日付）"}}
+rep("let FIX=null, FIXP=null;", "let FIX=null, FIXP=null, UNH=null;")
+rep("function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=fetch('data/fix.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(o=>{ FIX=o||{}; }).catch(()=>{ FIX={}; })); }",
+    "function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=Promise.all([fetch('data/fix.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})),fetch('data/unhold.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))]).then(([o,u])=>{ UNH=u||{}; FIX=o||{}; })); }\nconst unheld=(t,why)=>!!UNH&&(!!(UNH['記事']||{})[t]||!!(UNH['理由']||{})[String(why).replace(/（[^（）]*年[^（）]*）$/,'')]);   // 確かめて対戦に戻した記事")
+rep("function register(rec){ const t=rec.f[1];", "function register(rec){ const t=rec.f[1]; if(rec.hold&&unheld(t,rec.hold)){ rec={...rec}; delete rec.hold; }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
@@ -1611,7 +1618,7 @@ js = s[s.index('<script>') + 8:s.rindex('</script>')]
 a = js[:js.index('/* ---------- 記録（この端末だけ）')]
 b = js[js.index('/* ---------- 保留・通報・確認'):js.index('function setCount()')]
 a = a.replace("const $=s=>document.querySelector(s);", "")
-eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/', FETCH=u=>fetch(u);\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'").replace("fetch(DATA_BASE+'a/'", "FETCH(DATA_BASE+'a/'") + b.replace("fetch('data/fix.json?t='+Date.now(),{cache:'no-store'})", "FETCH(DATA_BASE+'fix.json')").replace("fetch('data/fixa/'+k+'.json')", "FETCH(DATA_BASE+'fixa/'+k+'.json')") + r"""
+eng = "/* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */\nlet DATA_BASE='data/', FETCH=u=>fetch(u);\n" + a.replace("fetch('data/a/'", "fetch(DATA_BASE+'a/'").replace("fetch(DATA_BASE+'a/'", "FETCH(DATA_BASE+'a/'") + b.replace("fetch('data/fix.json?t='+Date.now(),{cache:'no-store'})", "FETCH(DATA_BASE+'fix.json')").replace("fetch('data/unhold.json?t='+Date.now(),{cache:'no-store'})", "FETCH(DATA_BASE+'unhold.json')").replace("fetch('data/fixa/'+k+'.json')", "FETCH(DATA_BASE+'fixa/'+k+'.json')") + r"""
 /* ---------- サーバー用：1記事だけを取り出して登録する（全体を解析しないので軽い） ---------- */
 const TXT={};
 function pickRec(txt,t){ const key=JSON.stringify(t)+':{'; let i=txt.indexOf(key); if(i<0) return null; i+=key.length-1; let d=0,inS=false;

@@ -1,5 +1,5 @@
 // 百科拳典 王座戦API（Cloudflare Workers + D1）
-//   GET  /api/throne            … いまの王者・最近の挑戦・歴代王者・最長防衛
+//   GET  /api/throne            … いまの王者・最近の挑戦
 //   GET  /api/hall              … 王者の殿堂：全部の王者と記録（王者キラー・最も挑まれた王者）
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
 //   POST /api/report            … {reason, a, b, target, fact?, fix?, text?, url?} 利用者からの報告（数字や事実の誤り・内容が不適切）
@@ -78,16 +78,14 @@ async function throne(env, req, ctx) {
 }
 async function throneBody(env) {
   const c = await current(env);
-  const [recent, best, hist] = await env.DB.batch([
+  const [recent] = await env.DB.batch([
     env.DB.prepare('SELECT c.id, c.reign_id, c.display, c.title, c.name, c.result, c.how, c.at, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id ORDER BY c.id DESC LIMIT 15'),
-    env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid FROM reigns ORDER BY defenses DESC, id ASC LIMIT 10"),
-    env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, ended_by, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid, (SELECT c.id FROM challenges c WHERE c.reign_id = reigns.id AND c.result = 'win' ORDER BY c.id LIMIT 1) AS lostcid FROM reigns ORDER BY id DESC LIMIT 10"),
   ]);
   const [pl, ch] = await env.DB.batch([
     env.DB.prepare("SELECT n FROM stats WHERE k = 'plays'"),
     env.DB.prepare('SELECT COUNT(*) AS n FROM challenges'),
   ]);
-  return { champ: c, reignNo: c.id, recent: recent.results, best: best.results, history: hist.results,
+  return { champ: c, reignNo: c.id, recent: recent.results,   // 最長防衛・歴代王者は /api/hall（王者の殿堂）へ移した
     count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } };
 }
 
