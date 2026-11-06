@@ -1607,6 +1607,58 @@ rep("function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=fe
     "function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=Promise.all([fetch('data/fix.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})),fetch('data/unhold.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({}))]).then(([o,u])=>{ UNH=u||{}; FIX=o||{}; })); }\nconst unheld=(t,why)=>!!UNH&&(!!(UNH['記事']||{})[t]||!!(UNH['理由']||{})[String(why).replace(/（[^（）]*年[^（）]*）$/,'')]);   // 確かめて対戦に戻した記事")
 rep("function register(rec){ const t=rec.f[1];", "function register(rec){ const t=rec.f[1]; if(rec.hold&&unheld(t,rec.hold)){ rec={...rec}; delete rec.hold; }")
 
+# ---- 68. 世界観をボクシング・プロレスにそろえる（大相撲・柔道の言葉を言い換える）----
+def repall(a, b):
+    global s
+    assert a in s, a[:60]
+    s = s.replace(a, b)
+# 今日の一戦の予想成績：星取表 → 戦績表、番付 → ボクサーの格付け
+repall("// 的中の記録は、大相撲の星取表にならう（当たり○・外れ●・予想なしの観戦は□・来なかった日は「や」）。番付は今月の勝ち星で決まる",
+       "// 的中の記録は、ボクサーの戦績表にならう（当たり○・外れ●・予想なしの観戦は□・来なかった日は「－」）。格付けは今月の当たりの数で決まる")
+repall("const BANZUKE=[[27,'横綱'],[24,'大関'],[21,'関脇'],[18,'小結'],[15,'前頭'],[12,'十両'],[9,'幕下'],[6,'三段目'],[3,'序二段'],[0,'序ノ口']];",
+       "const BANZUKE=[[27,'世界王者'],[24,'世界ランカー'],[21,'東洋太平洋王者'],[18,'日本王者'],[15,'日本ランカー'],[12,'A級ボクサー'],[9,'B級ボクサー'],[6,'C級ボクサー'],[3,'プロテスト合格'],[0,'練習生']];")
+repall("else if(d<today&&d>=d0){ mk='や'; c='y'; Y++; }", "else if(d<today&&d>=d0){ mk='－'; c='y'; Y++; }")
+repall('<span class="dn">${KANJI(d)}</span>', '<span class="dn">${d}</span>')
+repall("<summary>星取表　${MON[m]}月場所 ${KANJI(W)}勝${KANJI(L)}敗・${rank}</summary>", "<summary>戦績表　${m}月 ${W}勝${L}敗・${rank}</summary>")
+repall('<div class="hh"><div class="ht">百科拳典<br><b>${MON[m]}月場所</b></div><div class="hr">今場所の番付<b>${rank}</b></div></div>',
+       '<div class="hh"><div class="ht">百科拳典 予想戦績<br><b>${m}月</b></div><div class="hr">今月の格付け<b>${rank}</b></div></div>')
+repall('<div class="hf"><b>${KANJI(W)}勝${KANJI(L)}敗</b>${Y?`<span>${KANJI(Y)}休</span>`:\'\'}${K?`<span>観戦のみ ${KANJI(K)}</span>`:\'\'}</div>',
+       '<div class="hf"><b>${W}勝${L}敗</b>${Y?`<span>欠場 ${Y}</span>`:\'\'}${K?`<span>観戦のみ ${K}</span>`:\'\'}</div>')
+repall("${kachi?'<div class=\"seal\">勝ち<br>越し</div>':''}", "${kachi?'<div class=\"seal\">好調</div>':''}")
+repall("○当たり　●外れ　□予想なしで観戦　や休場（来なかった日）　番付は今月の当たりの数で上がります", "○当たり　●外れ　□予想なしで観戦　－欠場（来なかった日）　格付けは今月の当たりの数で上がります")
+repall("今日の一戦の星取表へ", "今日の一戦の戦績表へ")
+# 戦績表の見た目：明朝体・二重線（番付表ふう）→ ゴシック体・太い枠と黒い見出し帯（試合ポスターふう）
+repall("#today .hoshi{position:relative;margin-top:8px;border:3px double var(--ink);padding:12px 10px 10px;font-family:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;background:var(--paper)}",
+       "#today .hoshi{position:relative;margin-top:8px;border:3px solid var(--ink);border-radius:6px;padding:0 10px 10px;background:var(--paper);overflow:hidden}")
+repall("#today .hh{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:8px}",
+       "#today .hh{display:flex;justify-content:space-between;align-items:flex-end;background:var(--ink);color:var(--paper);margin:0 -10px 10px;padding:8px 12px}")
+repall("#today .ht b{font-size:22px;letter-spacing:.15em}", "#today .ht b{font-family:var(--f-display);font-weight:400;font-size:22px;letter-spacing:.05em}")
+repall("#today .hr b{font-size:24px;letter-spacing:.1em}", "#today .hr b{font-family:var(--f-display);font-weight:400;font-size:20px;letter-spacing:.02em;color:var(--hl)}")
+repall("#today .hf b{font-size:24px;letter-spacing:.1em}", "#today .hf b{font-family:var(--f-display);font-weight:400;font-size:24px;letter-spacing:.05em}")
+# 比べ合い（数字勝負）：「全三番勝負・第一番・旗・審判団」→ プロレスの「3本勝負・1本目」と、ボクシングのジャッジ
+repall("全{n}番勝負。数字の大きいほうが一本を取る。", "{n}本勝負。数字の大きいほうが1本を取る。")
+repall("全{n}番勝負。勝敗は、すでにWikipediaに書いてある。", "{n}本勝負。勝敗は、すでにWikipediaに書いてある。")
+repall("第{k}番、", "{k}本目、")
+repall("どれだけ読まれたかで殴る、最も現代的な一番。", "どれだけ読まれたかで殴る、最も現代的な1本。")
+repall("わずかな差で{W}に旗。", "わずかな差で{W}の手が上がる。")
+repall("審判団、協議の末、{W}に旗。", "ジャッジ陣、協議の末、{W}の手を挙げる。")
+repall("旗が上がる。{W}。", "レフェリーが{W}の手を挙げる。")
+repall("lab:RLAB[x.k],k:KANJI[k]};", "lab:RLAB[x.k],k:k+1};")
+repall("{W}の一本。", "{W}の1本。")
+repall("{W}、一本。", "{W}、1本。")
+repall("{W}、辛くも一本。", "{W}、辛くも1本。")
+repall("一本も取れませんでした。", "1本も取れませんでした。")
+repall("審判団", "ジャッジ陣")
+repall("審判も困っています", "ジャッジも困っています")
+repall("決まり手は【{lm}】。", "フィニッシュは【{lm}】。")
+repall("両者が同じ土俵に上がる日は来ないはずだった。", "両者が同じリングに上がる日は来ないはずだった。")
+# 自由対戦の青・赤は、ボクシングのコーナーの呼び方に
+repall("aria-pressed=\"false\">青へ</button>", "aria-pressed=\"false\">青コーナーへ</button>")
+repall("aria-pressed=\"false\">赤へ</button>", "aria-pressed=\"false\">赤コーナーへ</button>")
+repall("x.textContent=(+x.dataset.s===0?'青':'赤')+(on?'に決定':'へ');", "x.textContent=(+x.dataset.s===0?'青コーナー':'赤コーナー')+(on?'に決定':'へ');")
+repall("textContent='青：'+(FP[0]?FP[0].n:'未選択');", "textContent='青コーナー：'+(FP[0]?FP[0].n:'未選択');")
+repall("textContent='赤：'+(FP[1]?FP[1].n:'未選択');", "textContent='赤コーナー：'+(FP[1]?FP[1].n:'未選択');")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

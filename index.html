@@ -263,16 +263,16 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #today .tdttl{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:var(--hl);font-size:13px;font-weight:700}
 #today .tdtmr{font-size:13px;text-align:center;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}
 #today .tdcal summary{font-size:13px;color:var(--muted);cursor:pointer}
-#today .hoshi{position:relative;margin-top:8px;border:3px double var(--ink);padding:12px 10px 10px;font-family:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif;background:var(--paper)}
-#today .hh{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:8px}
-#today .ht{font-size:12px;line-height:1.4}#today .ht b{font-size:22px;letter-spacing:.15em}
-#today .hr{font-size:11px;text-align:right;display:flex;flex-direction:column}#today .hr b{font-size:24px;letter-spacing:.1em}
+#today .hoshi{position:relative;margin-top:8px;border:3px solid var(--ink);border-radius:6px;padding:0 10px 10px;background:var(--paper);overflow:hidden}
+#today .hh{display:flex;justify-content:space-between;align-items:flex-end;background:var(--ink);color:var(--paper);margin:0 -10px 10px;padding:8px 12px}
+#today .ht{font-size:12px;line-height:1.4}#today .ht b{font-family:var(--f-display);font-weight:400;font-size:22px;letter-spacing:.05em}
+#today .hr{font-size:11px;text-align:right;display:flex;flex-direction:column}#today .hr b{font-family:var(--f-display);font-weight:400;font-size:20px;letter-spacing:.02em;color:var(--hl)}
 #today .hg{display:grid;grid-template-columns:repeat(10,1fr);gap:0;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
 #today .hd{border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);display:flex;flex-direction:column;align-items:center;padding:2px 0 4px;min-width:0}
 #today .hd.now{background:color-mix(in srgb,var(--hl) 45%,transparent)}
 #today .hd .dn{font-size:9px;color:var(--muted);line-height:1.3;white-space:nowrap}
 #today .hd .mk{font-size:20px;line-height:1.1;height:1.1em}#today .mk.y{font-size:13px;color:var(--muted)}#today .mk.kk{color:var(--muted)}
-#today .hf{display:flex;gap:12px;align-items:baseline;justify-content:center;margin-top:10px}#today .hf b{font-size:24px;letter-spacing:.1em}#today .hf span{font-size:13px;color:var(--muted)}
+#today .hf{display:flex;gap:12px;align-items:baseline;justify-content:center;margin-top:10px}#today .hf b{font-family:var(--f-display);font-weight:400;font-size:24px;letter-spacing:.05em}#today .hf span{font-size:13px;color:var(--muted)}
 #today .hk{font-size:10px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.6}
 #today .seal{position:absolute;right:10px;bottom:34px;color:#c0392b;border:3px solid #c0392b;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.15;font-weight:700;transform:rotate(-14deg);opacity:.85;background:color-mix(in srgb,var(--paper) 70%,transparent)}
 .tdnote{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--hl) 25%,transparent);font-size:14px;text-align:center}
@@ -781,7 +781,7 @@ const MID=[
    '名前の長さで殴る。データが尽きたときの、最後の手段です','読み仮名が、ここで役に立つとは','Wikipediaのふりがなは、こういう時のためにあったんですね',
    n+'音。数えたのは私です','名前は、記事がある限り誰にでもある。平等な技です', '音の数で殴る。言語学者が見たら泣くでしょう','長い名前は、名乗るだけで一仕事です','名付けた人も、まさか殴るのに使われるとは' ]; }],
  [e=>e.mv&&e.mv[1]==='年功序列'&&e.d>0, e=>[ '年齢で殴る。古くからある、由緒正しい技です','先輩風は、Wikipediaの中でも吹きます','敬語を使うべき場面でした','生まれた年で殴る。本人の努力とは一切関係ありません','年上というだけで強い。理屈ではありません' ]],
- [e=>e.mv&&e.mv[1]==='年功序列'&&e.d===0, e=>[ '何も起きませんでした。それもまた、事実です','年齢不詳の相手に年功序列。審判も困っています','先輩風が吹いたつもりで、向かい風でした' ]],
+ [e=>e.mv&&e.mv[1]==='年功序列'&&e.d===0, e=>[ '何も起きませんでした。それもまた、事実です','年齢不詳の相手に年功序列。ジャッジも困っています','先輩風が吹いたつもりで、向かい風でした' ]],
  [e=>/足りなかった/.test(e.s), e=>[ '測量の世界では、誤差とは呼べない差です','挑む前に、相手の記事を読んでおくべきでした','数字で挑み、数字に負ける。美しい展開です','比べなければよかった。それが今の正直な気持ちでしょう' ]],
  [e=>e.mv&&e.mv[1]==='人海戦術', e=>[ num(e.mv[2])+'人以上が押し寄せる。全員、事情は知らされていません','人口で殴る。国勢調査の思わぬ使い道です','住民の皆さんは、今日が試合だと知っていたのでしょうか' ]],
  [e=>e.mv&&e.mv[1]==='標高落とし', e=>[ '標高から落ちてくる。物理的には、かなり危険です','海抜で殴る。登山家なら絶対にやらない技です' ]],
@@ -835,7 +835,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
   /* ---------- 因縁の対決 ---------- */
   if(type==='innen'){ const rv=rival(ai,bi);
     const log=[sys('【因縁の対決】'+rv+'。'),
-      sys(P(['この一点において、両者は決して相容れない。','この記述がある限り、両者が同じ土俵に上がる日は来ないはずだった。','長年、誰も触れずにきた因縁である。'])),
+      sys(P(['この一点において、両者は決して相容れない。','この記述がある限り、両者が同じリングに上がる日は来ないはずだった。','長年、誰も触れずにきた因縁である。'])),
       sys(P(['{A}と{B}、ついに相まみえる。','{A}、入場。{B}、入場。会場が静まり返る。','両者、目を合わせない。Wikidataに書いてあるからだ。'],{A,B})),
       ...midKai(r.log.filter(x=>x.side>=0),K0,ai,bi)];
     const W=r.w===null?null:F[r.w][0], L=r.w===null?null:F[r.w===ai?bi:ai][0];
@@ -870,29 +870,29 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     const pick=[...R].sort((x,y)=>pri(x)-pri(y)||(hash(K0+x.k)%7)-(hash(K0+y.k)%7)).slice(0,5);
     const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n); an.kq=Q.map(x=>({...x,ia:ai,ib:bi})); let sa=0,sb=0; const hp=[r.max[0],r.max[1]]; const need=Math.ceil(n/2)+1;
     const step=[Math.ceil(r.max[0]/need),Math.ceil(r.max[1]/need)];
-    const log=[sys(P(['【比べ合い】本日、殴り合いは行わない。両者の数字を、厳正に比べる。','【比べ合い】両者、拳を収める。ここからは数字の格闘技だ。','【比べ合い】審判団が入場する。手にしているのは物差しと電卓である。'])),
-      sys(P(['全{n}番勝負。数字の大きいほうが一本を取る。それ以上でも以下でもない。','全{n}番勝負。勝敗は、すでにWikipediaに書いてある。'],{n}))];
+    const log=[sys(P(['【比べ合い】本日、殴り合いは行わない。両者の数字を、厳正に比べる。','【比べ合い】両者、拳を収める。ここからは数字の格闘技だ。','【比べ合い】ジャッジ陣が入場する。手にしているのは物差しと電卓である。'])),
+      sys(P(['{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。','{n}本勝負。勝敗は、すでにWikipediaに書いてある。'],{n}))];
     const KANJI=['一','二','三','四','五'];
     Q.forEach((x,k)=>{ const aw=x.a>x.b; const W=aw?A:B, L=aw?B:A; const va=fmtR(x.k,x.a), vb=fmtR(x.k,x.b); const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);
-      const o={A,B,W,L,va,vb,lab:RLAB[x.k],k:KANJI[k]};
+      const o={A,B,W,L,va,vb,lab:RLAB[x.k],k:k+1};
       let intro;
-      if(x.k==='yr') intro=P(['第{k}番、古さ。{A}は{va}から、{B}は{vb}から存在していると申告する。','第{k}番、古さ。両者、戸籍に相当する資料を提出する。{A}、{va}。{B}、{vb}。'],o);
-      else if(x.k==='_sl') intro=P(['第{k}番、言語版の数。{A}、{va}分の翻訳者を引き連れて入場。{B}は{vb}。','第{k}番、言語版の数。両陣営、各国語版の名刺を並べる。{A}、{va}。{B}、{vb}。'],o);
-      else if(x.k==='_pv') intro=P(['第{k}番、1年間の閲覧数。両陣営、アクセス解析の結果を厳粛に提出する。{A}、{va}。{B}、{vb}。','第{k}番、閲覧数。どれだけ読まれたかで殴る、最も現代的な一番。{A}、{va}。{B}、{vb}。'],o);
-      else if(x.k==='_ch') intro=P(['第{k}番、記事の文字数。両者、記事を印刷して持ち込む。{A}は{va}、{B}は{vb}。','第{k}番、文字数。{A}の記事は{va}、{B}は{vb}。審判団は全文を読まずに数えた。'],o);
-      else intro=P(['第{k}番、{lab}。{A}、{va}の札を掲げる。{B}、{vb}の札で応じる。','第{k}番、{lab}。両者、己の{lab}を申告せよ。{A}、{va}。{B}、{vb}。','第{k}番、{lab}。{A}、{va}。{B}、{vb}。会場がどよめく。'],o);
+      if(x.k==='yr') intro=P(['{k}本目、古さ。{A}は{va}から、{B}は{vb}から存在していると申告する。','{k}本目、古さ。両者、戸籍に相当する資料を提出する。{A}、{va}。{B}、{vb}。'],o);
+      else if(x.k==='_sl') intro=P(['{k}本目、言語版の数。{A}、{va}分の翻訳者を引き連れて入場。{B}は{vb}。','{k}本目、言語版の数。両陣営、各国語版の名刺を並べる。{A}、{va}。{B}、{vb}。'],o);
+      else if(x.k==='_pv') intro=P(['{k}本目、1年間の閲覧数。両陣営、アクセス解析の結果を厳粛に提出する。{A}、{va}。{B}、{vb}。','{k}本目、閲覧数。どれだけ読まれたかで殴る、最も現代的な1本。{A}、{va}。{B}、{vb}。'],o);
+      else if(x.k==='_ch') intro=P(['{k}本目、記事の文字数。両者、記事を印刷して持ち込む。{A}は{va}、{B}は{vb}。','{k}本目、文字数。{A}の記事は{va}、{B}は{vb}。ジャッジ陣は全文を読まずに数えた。'],o);
+      else intro=P(['{k}本目、{lab}。{A}、{va}の札を掲げる。{B}、{vb}の札で応じる。','{k}本目、{lab}。両者、己の{lab}を申告せよ。{A}、{va}。{B}、{vb}。','{k}本目、{lab}。{A}、{va}。{B}、{vb}。会場がどよめく。'],o);
       if(aw) sa++; else sb++; const lo=aw?1:0; hp[lo]=Math.max(0,hp[lo]-step[lo]);
-      const res=ratio>=10?P(['測るまでもなかった。{W}の一本。','審判団、物差しを出しかけて、しまった。{W}。','{W}、一本。{L}陣営は数字を二度見した。'],o)
-        :ratio<1.1?P(['審判団、定規を三度当て直す。わずかな差で{W}に旗。','協議は長引いた。僅差で{W}の一本。','審判団、桁を数え直す。{W}、辛くも一本。'],o)
-        :P(['審判団、協議の末、{W}に旗。','{W}の一本。','旗が上がる。{W}。'],o);
+      const res=ratio>=10?P(['測るまでもなかった。{W}の1本。','ジャッジ陣、物差しを出しかけて、しまった。{W}。','{W}、1本。{L}陣営は数字を二度見した。'],o)
+        :ratio<1.1?P(['ジャッジ陣、定規を三度当て直す。わずかな差で{W}の手が上がる。','協議は長引いた。僅差で{W}の1本。','ジャッジ陣、桁を数え直す。{W}、辛くも1本。'],o)
+        :P(['ジャッジ陣、協議の末、{W}の手を挙げる。','{W}の1本。','レフェリーが{W}の手を挙げる。'],o);
       log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）'});
       if(ratio>=100) log.push(kai(P(['{lab}で{L}の'+ratioTxt(ratio)+'。比べる前から分かっていたことですが、比べました','この一番は、比べるという行為の意味を問いかけています','{L}陣営としては、この項目が選ばれた時点で覚悟していたでしょう','桁が違います。桁が違うものを比べるのも、比べ合いの醍醐味です','{W}の数字を読み上げるのに、少し時間がかかりました'],o),[hp[0],hp[1]]));
-      else if(ratio<1.05) log.push(kai(P(['僅差です。記事が一度編集されていれば、結果は逆だったかもしれません','この差は誤差ではありません。誤差なら審判団が困ります','ほぼ同じです。ほぼ同じですが、比べ合いに「ほぼ」はありません','審判団、メガネを拭いています','この差を見るために、我々はここに集まりました','{L}陣営、写真判定を要求しています。数字に写真はありません'],o),[hp[0],hp[1]])); });
+      else if(ratio<1.05) log.push(kai(P(['僅差です。記事が一度編集されていれば、結果は逆だったかもしれません','この差は誤差ではありません。誤差ならジャッジ陣が困ります','ほぼ同じです。ほぼ同じですが、比べ合いに「ほぼ」はありません','ジャッジ陣、メガネを拭いています','この差を見るために、我々はここに集まりました','{L}陣営、写真判定を要求しています。数字に写真はありません'],o),[hp[0],hp[1]])); });
     const w=sa>sb?ai:bi, W=F[w][0], L=w===ai?B:A; const lastW=[...Q].reverse().find(x=>(x.a>x.b)===(sa>sb)); an.tail='決勝点は【'+RLAB[lastW.k]+'】。';
     const o={W,L,s:Math.max(sa,sb),t:Math.min(sa,sb),lab:RLAB[lastW.k]};
     log.push(sys(fill('{W}、{s}勝{t}敗で比べ合いを制した。',o)+(o.t===0?'完封である。':''),[hp[0],hp[1]]));
-    log.push(kai(o.t===0?P(['{W}、数字の上では完勝です。数字の上では','{L}にとっては、どの項目を選んでも厳しい一日でした','一本も取れませんでした。{L}陣営は今夜、Wikipediaの加筆に励むことでしょう','全項目で上回る。比べ合いとして、これ以上なく正しい結果です'],o)
-      :P(['最後は{lab}が明暗を分けました。{L}陣営は今夜、{lab}を見直すことになるでしょう','互いに一歩も引かない、いい比べ合いでした。誰も殴られていませんが','{L}も健闘しました。数字が小さかっただけです','審判団の電卓が、今日も正確に仕事をしました','数字は変えられません。変えられるのは、次の項目選びだけです'],o),[hp[0],hp[1]]));
+    log.push(kai(o.t===0?P(['{W}、数字の上では完勝です。数字の上では','{L}にとっては、どの項目を選んでも厳しい一日でした','1本も取れませんでした。{L}陣営は今夜、Wikipediaの加筆に励むことでしょう','全項目で上回る。比べ合いとして、これ以上なく正しい結果です'],o)
+      :P(['最後は{lab}が明暗を分けました。{L}陣営は今夜、{lab}を見直すことになるでしょう','互いに一歩も引かない、いい比べ合いでした。誰も殴られていませんが','{L}も健闘しました。数字が小さかっただけです','ジャッジ陣の電卓が、今日も正確に仕事をしました','数字は変えられません。変えられるのは、次の項目選びだけです'],o),[hp[0],hp[1]]));
     an.r={...r,log,w,kind:'比べ合い',tick:n,hp,how:Math.max(sa,sb)+'勝'+Math.min(sa,sb)+'敗で勝利',summoned:[]}; an.dec=[]; an.upset=false; return an; }
 
   /* ---------- 泥仕合 ---------- */
@@ -904,16 +904,16 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     if(r.kind==='判定'){ const C=[['_ch','記事の文字数','文字数の多いほう'],['m0','名前の音の数','名前が長いほう']];
       const c=C[hash(K0)%C.length]; const va=c[0]==='m0'?F[ai][4]:dimv(ai,c[0]), vb=c[0]==='m0'?F[bi][4]:dimv(bi,c[0]);
       log.push({...last,side:-1,d:0,s:'15カウント終了。両者、まだ立っている。'});
-      log.push({...last,side:-1,d:0,s:P(['審判団、協議に入る。……協議は長引いている。','審判団、協議に入る。一人が「もう引き分けでいいのでは」と言い、却下された。'])});
+      log.push({...last,side:-1,d:0,s:P(['ジャッジ陣、協議に入る。……協議は長引いている。','ジャッジ陣、協議に入る。一人が「もう引き分けでいいのでは」と言い、却下された。'])});
       let w=r.w;
       if(va!==null&&vb!==null&&va!==vb){ w=va>vb?ai:bi; const W=F[w][0], L=w===ai?B:A; const fa=c[0]==='m0'?va+'音':unitv(c[0],va), fb=c[0]==='m0'?vb+'音':unitv(c[0],vb);
-        log.push({...last,side:-1,d:0,s:'審判団は苦渋の決断として、勝敗を「'+c[1]+'」で決めると発表した。'+A+'、'+fa+'。'+B+'、'+fb+'。'+c[2]+'、'+W+'の勝ち。'});
+        log.push({...last,side:-1,d:0,s:'ジャッジ陣は苦渋の決断として、勝敗を「'+c[1]+'」で決めると発表した。'+A+'、'+fa+'。'+B+'、'+fb+'。'+c[2]+'、'+W+'の勝ち。'});
         log.push({...last,side:-1,d:0,s:P(['{L}陣営から抗議の声が上がったが、受理されなかった。','{L}、判定に一礼する。納得はしていない。','{W}、勝ち名乗りを受ける。本人が一番驚いている。'],{W,L})});
         an.tail='泥仕合の末、判定基準は「'+c[1]+'」。'; }
-      else log.push({...last,side:-1,d:0,s:'審判団、残りHPの差で'+(w===null?'引き分け':F[w][0]+'の勝ち')+'を宣告。異論は出なかった。誰も見ていなかったからだ。'});
-      log.push(kai(P(['泥仕合でした。いい意味でも悪い意味でもなく、泥仕合でした','両者とも、記事がもう少し長ければ違う展開もあったでしょう','この試合で得たものは何か。我々は答えを持ち合わせていません','判定基準を決めた審判団の勇気を、まず称えたいと思います','記録上は決着です。記憶には、たぶん残りません']),last.hp));
+      else log.push({...last,side:-1,d:0,s:'ジャッジ陣、残りHPの差で'+(w===null?'引き分け':F[w][0]+'の勝ち')+'を宣告。異論は出なかった。誰も見ていなかったからだ。'});
+      log.push(kai(P(['泥仕合でした。いい意味でも悪い意味でもなく、泥仕合でした','両者とも、記事がもう少し長ければ違う展開もあったでしょう','この試合で得たものは何か。我々は答えを持ち合わせていません','判定基準を決めたジャッジ陣の勇気を、まず称えたいと思います','記録上は決着です。記憶には、たぶん残りません']),last.hp));
       an.r={...r,log,w,how:'泥仕合の末に判定勝ち'}; if(w!==r.w){ an.dec=[]; an.upset=false; } return an; }
-    log.push({...last,side:-1,d:0,s:r.w===null?'泥仕合の末、両者同時に倒れた。審判団は顔を見合わせた。':P(['泥仕合の末、{W}がかろうじて立っていた。理由は誰にも分からない。','{L}、ゆっくりと倒れる。{W}も倒れかけたが、踏みとどまった。','決着。{W}の勝ち。ただし、勝ったという実感は本人にもない。'],{W:F[r.w][0],L:F[r.w===ai?bi:ai][0]})});
+    log.push({...last,side:-1,d:0,s:r.w===null?'泥仕合の末、両者同時に倒れた。ジャッジ陣は顔を見合わせた。':P(['泥仕合の末、{W}がかろうじて立っていた。理由は誰にも分からない。','{L}、ゆっくりと倒れる。{W}も倒れかけたが、踏みとどまった。','決着。{W}の勝ち。ただし、勝ったという実感は本人にもない。'],{W:F[r.w][0],L:F[r.w===ai?bi:ai][0]})});
     log.push(kai(P(['泥仕合でした。いい意味でも悪い意味でもなく、泥仕合でした','記録上は{W}の勝ちです。記録に残す価値があるかは別として','両者、次は記事を育ててから来てほしいですね'],{W:r.w===null?'':F[r.w][0]}),last.hp));
     an.r={...r,log,how:'泥仕合を制してKO勝ち'}; return an; }
 
@@ -927,7 +927,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
       :r.kind==='判定'?['判定です。両者、記事の続きで巻き返してほしい','15カウントでは決着がつきませんでした。記事の長さが足りなかったのかもしれません','判定勝ち。勝った側も、少し申し訳なさそうです']
       :r.tick<=4?['{W}、{t}カウントで終わらせました。記事を読む時間もありませんでした','早い。{L}は自己紹介の途中でした','開始早々の決着。{L}の記事は、いまも静かに公開されています']
       :rem<0.1?['{W}、残りHPわずか。勝者も満身創痍です','紙一重でした。一行の加筆で結果は逆だったでしょう','{W}、立ってはいますが、記事の半分は持っていかれた気分でしょう']
-      :lm?['決まり手は【{lm}】。事実で殴るとは、こういうことです','最後は【{lm}】。{W}、記事に書いてあることを全部使い切りました','【{lm}】で決着。{L}も、書いてあることで精一杯戦いました','【{lm}】。この技を、記事の編集者は想定していなかったはずです']
+      :lm?['フィニッシュは【{lm}】。事実で殴るとは、こういうことです','最後は【{lm}】。{W}、記事に書いてあることを全部使い切りました','【{lm}】で決着。{L}も、書いてあることで精一杯戦いました','【{lm}】。この技を、記事の編集者は想定していなかったはずです']
       :['最後は普通に殴って決着。技を出し尽くしたあとは、記事の長さではなく気持ちです','技が尽きてからが本当の勝負でした。地味でしたが'];
     o.t=r.tick;
     an.r={...r,log:[...midKai(r.log,K0,ai,bi),kai(P(pool,o),last.hp)]}; }
@@ -1116,7 +1116,7 @@ function showResult(){
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${TDY?`
-      <button type="button" class="btn big" id="tdback">今日の一戦の星取表へ</button>
+      <button type="button" class="btn big" id="tdback">今日の一戦の戦績表へ</button>
       <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>`:M?`
       ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
@@ -1220,7 +1220,7 @@ const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'
 async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div>
   <div class="fsh"><a class="btn small" id="famtw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(famText(g))}&url=${encodeURIComponent(famURL(key))}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="famshare">共有</button>':'<button type="button" class="btn small" id="famcopy">URLをコピー</button>'}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
-  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb">${m[0]===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="0" aria-pressed="false">青へ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="1" aria-pressed="false">赤へ</button>`}</div></li>`).join('')}</ol>
+  <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb">${m[0]===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="1" aria-pressed="false">赤コーナーへ</button>`}</div></li>`).join('')}</ol>
   <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   // 選んでいる途中の組み合わせ（はじめは、いま自由対戦に入っている2記事）
@@ -1240,8 +1240,8 @@ Wikipediaのつながりから見つけた仲間たち`; }
 function famMark(){ const dlg=$('#famdlg'); if(!dlg) return;
   dlg.querySelectorAll('.flist li').forEach(li=>{ const b=li.querySelectorAll('[data-t]'); const t=b[0]?b[0].dataset.t:null;
     const a=!!(t&&FP[0]&&FP[0].t===t), r=!!(t&&FP[1]&&FP[1].t===t); li.classList.toggle('sa',a); li.classList.toggle('sb',r);
-    b.forEach(x=>{ const on=+x.dataset.s===0?a:r; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on); x.textContent=(+x.dataset.s===0?'青':'赤')+(on?'に決定':'へ'); }); });
-  dlg.querySelector('.ffoot .pa').textContent='青：'+(FP[0]?FP[0].n:'未選択'); dlg.querySelector('.ffoot .pb').textContent='赤：'+(FP[1]?FP[1].n:'未選択');
+    b.forEach(x=>{ const on=+x.dataset.s===0?a:r; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on); x.textContent=(+x.dataset.s===0?'青コーナー':'赤コーナー')+(on?'に決定':'へ'); }); });
+  dlg.querySelector('.ffoot .pa').textContent='青コーナー：'+(FP[0]?FP[0].n:'未選択'); dlg.querySelector('.ffoot .pb').textContent='赤コーナー：'+(FP[1]?FP[1].n:'未選択');
   $('#famgo').disabled=!(FP[0]&&FP[1]); }
 async function famApply(go){ const dlg=$('#famdlg');
   for(const s of [0,1]) if(FP[s]){ const i=await loadTitle(FP[s].t); if(i>=0) sel[s]=i; }
@@ -1389,25 +1389,25 @@ async function todayInit(){ const box=$('#today'); if(!box) return; if(!POPULAR.
   if(new URLSearchParams(location.search).has('today')) box.scrollIntoView({behavior:'smooth',block:'start'}); }
 const TITLES=[[30,'生ける出典'],[14,'歩く百科事典'],[7,'百科の予言者'],[3,'目利き']];   // 連続的中の日数と称号
 const tdTitle=n=>(TITLES.find(t=>n>=t[0])||[])[1]||'';
-// 的中の記録は、大相撲の星取表にならう（当たり○・外れ●・予想なしの観戦は□・来なかった日は「や」）。番付は今月の勝ち星で決まる
+// 的中の記録は、ボクサーの戦績表にならう（当たり○・外れ●・予想なしの観戦は□・来なかった日は「－」）。格付けは今月の当たりの数で決まる
 const KANJI=n=>{ const d='〇一二三四五六七八九'; if(n<10) return d[n]; if(n<20) return '十'+(n%10?d[n%10]:''); return d[Math.floor(n/10)]+'十'+(n%10?d[n%10]:''); };
 const MON=['','一','二','三','四','五','六','七','八','九','十','十一','十二'];
-const BANZUKE=[[27,'横綱'],[24,'大関'],[21,'関脇'],[18,'小結'],[15,'前頭'],[12,'十両'],[9,'幕下'],[6,'三段目'],[3,'序二段'],[0,'序ノ口']];
+const BANZUKE=[[27,'世界王者'],[24,'世界ランカー'],[21,'東洋太平洋王者'],[18,'日本王者'],[15,'日本ランカー'],[12,'A級ボクサー'],[9,'B級ボクサー'],[6,'C級ボクサー'],[3,'プロテスト合格'],[0,'練習生']];
 function tdCal(o){ const now=jstDay(), y=+now.slice(0,4), m=+now.slice(5,7), today=+now.slice(8,10), days=new Date(Date.UTC(y,m,0)).getUTCDate();
   let W=0,L=0,K=0,Y=0; const first=Object.keys(o).filter(k=>k.slice(0,7)===now.slice(0,7)&&o[k].done).sort()[0]; const d0=first?+first.slice(8,10):today;
   const cells=[]; for(let d=1;d<=days;d++){ const k=now.slice(0,8)+String(d).padStart(2,'0'), x=o[k];
     let mk='', c='';
     if(x&&x.done){ if(x.p===null||x.p===undefined){ mk='□'; c='kk'; K++; } else if(x.hit){ mk='○'; c='w'; W++; } else { mk='●'; c='l'; L++; } }
-    else if(d<today&&d>=d0){ mk='や'; c='y'; Y++; }   // 初めて来た日より前は数えない
-    cells.push(`<div class="hd${d===today?' now':''}"><span class="dn">${KANJI(d)}</span><span class="mk ${c}">${mk}</span></div>`); }
+    else if(d<today&&d>=d0){ mk='－'; c='y'; Y++; }   // 初めて来た日より前は数えない
+    cells.push(`<div class="hd${d===today?' now':''}"><span class="dn">${d}</span><span class="mk ${c}">${mk}</span></div>`); }
   const rank=(BANZUKE.find(b=>W>=b[0])||[])[1];
   const kachi=W>L&&W+L>=8;
-  return `<details class="tdcal"><summary>星取表　${MON[m]}月場所 ${KANJI(W)}勝${KANJI(L)}敗・${rank}</summary><div class="hoshi">
-    <div class="hh"><div class="ht">百科拳典<br><b>${MON[m]}月場所</b></div><div class="hr">今場所の番付<b>${rank}</b></div></div>
+  return `<details class="tdcal"><summary>戦績表　${m}月 ${W}勝${L}敗・${rank}</summary><div class="hoshi">
+    <div class="hh"><div class="ht">百科拳典 予想戦績<br><b>${m}月</b></div><div class="hr">今月の格付け<b>${rank}</b></div></div>
     <div class="hg">${cells.join('')}</div>
-    <div class="hf"><b>${KANJI(W)}勝${KANJI(L)}敗</b>${Y?`<span>${KANJI(Y)}休</span>`:''}${K?`<span>観戦のみ ${KANJI(K)}</span>`:''}</div>
-    ${kachi?'<div class="seal">勝ち<br>越し</div>':''}
-    <div class="hk">○当たり　●外れ　□予想なしで観戦　や休場（来なかった日）　番付は今月の当たりの数で上がります</div></div></details>`; }
+    <div class="hf"><b>${W}勝${L}敗</b>${Y?`<span>欠場 ${Y}</span>`:''}${K?`<span>観戦のみ ${K}</span>`:''}</div>
+    ${kachi?'<div class="seal">好調</div>':''}
+    <div class="hk">○当たり　●外れ　□予想なしで観戦　－欠場（来なかった日）　格付けは今月の当たりの数で上がります</div></div></details>`; }
 let TMR=null;   // 当てた人だけに見せる、明日の人気の記事
 async function tdTomorrow(){ if(TMR) return TMR; const d=jstDay(-1); try{ const x=await todayPair(d); TMR=x?{day:d,a:F[x.a][0]}:null; }catch(_){ TMR=null; } return TMR; }
 function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,b}=TD; const o=tdLoad(), me=o[day]||{};
