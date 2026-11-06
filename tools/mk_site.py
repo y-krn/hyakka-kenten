@@ -1684,6 +1684,11 @@ repall("const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-moti
 # 決着したら、得点板を画面の上に張り付けない（結果・共有を読むときの邪魔になる）
 repall(".sb{display:flex;flex-direction:column;gap:4px;min-width:0}", ".scoreboard.done{position:relative}\n.sb{display:flex;flex-direction:column;gap:4px;min-width:0}")
 repall("Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。</span>", "Wikidataの数値に誤りが見つかったものは、日本語版の記事などで確かめて直しています。今日の一戦の記事のひとこと説明は、日本語版Wikipediaの記事の冒頭などから引いています（CC BY-SA 4.0、説明を押すと元の記事が開きます）。</span>")
+# 戦績表の「好調」：和風のはんこ（表に重なる）をやめて、勝敗の横にチャンピオンベルトふうの帯
+repall("<div class=\"hf\"><b>${W}勝${L}敗</b>${Y?", "<div class=\"hf\"><b>${W}勝${L}敗</b>${kachi?'<em class=\"belt\">好調</em>':''}${Y?")
+repall("\n    ${kachi?'<div class=\"seal\">好調</div>':''}", "")
+repall("#today .seal{position:absolute;right:10px;bottom:34px;color:#c0392b;border:3px solid #c0392b;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.15;font-weight:700;transform:rotate(-14deg);opacity:.85;background:color-mix(in srgb,var(--paper) 70%,transparent)}",
+       "#today .belt{align-self:center;font-style:normal;font-family:var(--f-display);font-weight:400;font-size:14px;letter-spacing:.12em;color:#1b1b1b;background:linear-gradient(180deg,#ffe36b,#f2c230);border:2px solid #1b1b1b;border-radius:4px;padding:3px 14px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}")
 # 代表戦：誕生日がきょうなら、相手も同じ誕生日なので、そう書く
 repall('<div class="mb"><small>きょう${td.m}月${td.d}日生まれ</small>', '<div class="mb"><small>${+v.m===td.m&&+v.d===td.d?\'もう一人の\':\'きょう\'}${td.m}月${td.d}日生まれ</small>')
 repall("。きょう${td.m}月${td.d}日生まれの${ST.opp.n}と対決！", "。${+ST.v.m===td.m&&+ST.v.d===td.d?'同じ':'きょう'}${td.m}月${td.d}日生まれの${ST.opp.n}と対決！")
