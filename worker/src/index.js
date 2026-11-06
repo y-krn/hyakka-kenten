@@ -1,5 +1,6 @@
 // 百科拳典 王座戦API（Cloudflare Workers + D1）
 //   GET  /api/throne            … いまの王者・最近の挑戦・歴代王者・最長防衛
+//   GET  /api/hall              … 王者の殿堂：全部の王者と記録（王者キラー・最も挑まれた王者）
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
 //   POST /api/report            … {reason, a, b, target, fact?, fix?, text?, url?} 利用者からの報告（数字や事実の誤り・内容が不適切）
 //   GET  /api/holds             … 報告を受けて、確かめるまで今日の一戦とランダムに出さない記事
@@ -90,6 +91,21 @@ async function throneBody(env) {
     count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } };
 }
 
+// 王者の殿堂：全部の王者（殿堂入り・最長在位はページ側で計算）と、集計が要る記録。60秒だけ使い回す（挑戦があったら捨てる）
+const HALL_KEY = 'https://hyakkakenten.com/__cache/hall';
+async function hall(env, req, ctx) {
+  try { const hit = await caches.default.match(HALL_KEY); if (hit) return json(env, req, await hit.json()); } catch (_) {}
+  await current(env);
+  const [reigns, killer, most] = await env.DB.batch([
+    env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, ended_by, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid, (SELECT c.id FROM challenges c WHERE c.reign_id = reigns.id AND c.result = 'win' ORDER BY c.id LIMIT 1) AS lostcid FROM reigns ORDER BY id DESC LIMIT 2000"),
+    env.DB.prepare("SELECT title, MAX(display) AS display, COUNT(*) AS n FROM challenges WHERE result = 'win' GROUP BY title ORDER BY n DESC, MIN(id) ASC LIMIT 3"),
+    env.DB.prepare("SELECT r.id, r.display, r.title, COUNT(*) AS n FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.result != 'late' GROUP BY r.id ORDER BY n DESC, r.id ASC LIMIT 3"),
+  ]);
+  const body = { reigns: reigns.results, killer: killer.results, most: most.results, now: now() };
+  try { const put = caches.default.put(HALL_KEY, new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' } })); if (ctx) ctx.waitUntil(put); } catch (_) {}
+  return json(env, req, body);
+}
+
 async function challenge(env, req, ctx) {
   let body; try { body = await req.json(); } catch (_) { return json(env, req, { error: '送信内容を読めませんでした' }, 400); }
   const title = String(body.title || '').trim().slice(0, 200);
@@ -151,7 +167,7 @@ async function challenge(env, req, ctx) {
   } else {
     await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
   }
-  try { await caches.default.delete(TH_KEY); } catch (_) {}   // 使い回している王座戦の情報を捨てる（すぐ新しい結果が見えるように）
+  try { await caches.default.delete(TH_KEY); await caches.default.delete(HALL_KEY); } catch (_) {}   // 使い回している王座戦の情報を捨てる（すぐ新しい結果が見えるように）
   if (ctx) ctx.waitUntil(askImage(env, { id: ins.meta.last_row_id }));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
   return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
@@ -395,6 +411,7 @@ export default {
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req, ctx);
+      if (u.pathname === '/api/hall' && req.method === 'GET') return await hall(env, req, ctx);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);
       if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
