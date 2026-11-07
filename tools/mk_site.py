@@ -1700,6 +1700,9 @@ repall("function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) r
 repall("""<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "92aaad9660e1433f8d518c17a8ac2512"}'></script><!-- End Cloudflare Web Analytics -->""",
        """<!-- Cloudflare Web Analytics（「数えない」印のあるブラウザでは読み込まない） --><script>if(!NOSTAT){ const s=document.createElement('script'); s.type='module'; s.src='https://static.cloudflareinsights.com/beacon.min.js'; s.setAttribute('data-cf-beacon','{"token": "92aaad9660e1433f8d518c17a8ac2512"}'); document.body.appendChild(s); }</script><!-- End Cloudflare Web Analytics -->""")
 
+# ---- 71. 記事カードの「配慮：存命人物」などの札を出さない（遊ぶ人には役に立たず、「配慮」の言葉で誤解を招くため。文面を控えめにする仕組みはそのまま）----
+repall("\n  ${f[5]==='配慮'?`<div><span class=\"chip\">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}", "")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
