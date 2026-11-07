@@ -1,6 +1,7 @@
 /* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */
 let DATA_BASE='data/', FETCH=u=>fetch(u);
 
+const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
 const fnv=t=>{ let h=0x811c9dc5; for(let k=0;k<t.length;k++){ h^=t.charCodeAt(k); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; };

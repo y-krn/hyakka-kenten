@@ -423,6 +423,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 </div>
 
 <script>
+const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
 const fnv=t=>{ let h=0x811c9dc5; for(let k=0;k<t.length;k++){ h^=t.charCodeAt(k); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; };
@@ -1473,7 +1474,7 @@ function pendK(){ try{ const o=JSON.parse(localStorage.getItem(PENDK_KEY)||'{}')
 function setPendK(o){ try{ localStorage.setItem(PENDK_KEY,JSON.stringify(o)); }catch(_){} }
 function addPlay(){ setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
 function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
-function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
+function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
   const body=JSON.stringify({n,k,client:clientId()}); let ok=false;
   try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
     else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
@@ -1624,6 +1625,6 @@ renderRec();
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();
 </script>
-<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "92aaad9660e1433f8d518c17a8ac2512"}'></script><!-- End Cloudflare Web Analytics -->
+<!-- Cloudflare Web Analytics（「数えない」印のあるブラウザでは読み込まない） --><script>if(!NOSTAT){ const s=document.createElement('script'); s.type='module'; s.src='https://static.cloudflareinsights.com/beacon.min.js'; s.setAttribute('data-cf-beacon','{"token": "92aaad9660e1433f8d518c17a8ac2512"}'); document.body.appendChild(s); }</script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
