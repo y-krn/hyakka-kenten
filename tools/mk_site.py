@@ -1703,6 +1703,10 @@ repall("""<!-- Cloudflare Web Analytics --><script type='module' src='https://st
 # ---- 71. 記事カードの「配慮：存命人物」などの札を出さない（遊ぶ人には役に立たず、「配慮」の言葉で誤解を招くため。文面を控えめにする仕組みはそのまま）----
 repall("\n  ${f[5]==='配慮'?`<div><span class=\"chip\">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}", "")
 
+# ---- 72. 同じ表示名どうしの対戦（「冬将軍」と「冬将軍 (曲)」など）は、括弧つきの記事名で見分けられるようにする ----
+repall("function simulate(ai,bi,opt={}){\n", "// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）\nfunction disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }\nfunction simulate(ai,bi,opt={}){ disamb(ai,bi);\n")
+repall("function updateFight(){ ", "function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }\n  ")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

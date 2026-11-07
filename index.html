@@ -672,7 +672,9 @@ function pickMoves(i,j){
   return PICK[key]=bonus?out.map(m=>{ const c=[...m]; c[4]=Math.min(5,+(m[4]+bonus).toFixed(2)); return c; }):out;
 }
 const BIG=m=>m&&(m[0]==='SUMMON'||(m[0]==='STRIKE'&&m[4]>=4)||(m[0]==='MULTI'&&m[4]>=4));
-function simulate(ai,bi,opt={}){
+// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）
+function disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }
+function simulate(ai,bi,opt={}){ disamb(ai,bi);
   const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
     moves:opt.noMoves?[]:pickMoves(i,o).filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
   const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
@@ -1003,7 +1005,8 @@ function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=se
   el.querySelector('[data-rnd]').onclick=async()=>{ sel[side]=await rnd([sel[1-side]]); streak={idx:null,n:0}; renderPick(side); updateFight(); };
 }
 const pickOK=s=>{ const i=sel[s]; if(i===null) return false; const e=$('#in'+s); if(!e) return true; const v=e.value.trim(); return v===F[i][0]||v===F[i][1]; };   // 入力欄を書き換え中（選び直す途中）は未確定
-function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));
+function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }
+  $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));
   const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class="a">${n(0)}</span><span class="vs">VS</span><span class="b">${n(1)}</span>`; }
 $('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
 $('#fight').onclick=()=>startBattle();
