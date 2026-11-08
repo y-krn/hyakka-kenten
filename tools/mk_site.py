@@ -1777,7 +1777,7 @@ repall("  saveRec(); renderRec();\n  const nm=i=>i===null?'引き分け':F[i][0]
 repall("function nearBookBtn(){", "function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;\n  for(const [me,op] of [[a,b],[b,a]]){ const x=A.find(p=>p.t===F[me][1]); if(!x) continue; ch=true;\n    if(w===null) x.dr=(x.dr||0)+1; else if(w===me){ x.w=(x.w||0)+1; x.beat=[F[op][1],...(x.beat||[]).filter(t=>t!==F[op][1])].slice(0,30); } else x.l=(x.l||0)+1; }\n  if(ch) pickSave(A); }\nconst pickRec=x=>(x.w||x.l||x.dr)?`${x.w||0}勝${x.l||0}敗${x.dr?x.dr+'分':''}`:'まだ戦っていない';\nfunction nearBookBtn(){")
 repall("nearOpen(a.map(x=>({t:x.t,d:x.at?x.at+'で拾った':'',at:x.at})),{kick:'拾った選手',title:'拾った選手',sub:`${a.length}人（新しい順）`,book:true}); }",
        "nearOpen(a.map(x=>({t:x.t,d:pickRec(x)+(x.at?'・'+x.at+'で拾った':''),at:x.at})),{kick:'選手帳',title:'あなたの選手',sub:`${a.length}人（新しい順）。青コーナー・赤コーナーを選んで戦わせる`,book:true}); }")
-repall("b.textContent='拾った選手（'+n+'）'; }", "b.textContent='選手帳（'+n+'人）'; const sn=Object.keys(seenLoad()).length, z=$('#nearzukan'); if(z){ z.style.display=sn?'':'none'; z.textContent='図鑑（'+sn+'件）'; } }")
+repall("b.textContent='拾った選手（'+n+'）'; }", "b.textContent='選手帳（'+n+'人）'; seenSync(); const sn=Object.keys(seenLoad()).length, z=$('#nearzukan'); if(z){ z.style.display=sn?'':'none'; z.textContent='図鑑（'+sn+'件）'; } }")
 # 王座戦：挑戦は、選手帳の選手から選ぶ
 repall('<form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>',
        '<form id="chf"><select id="chT" aria-label="挑戦する選手"><option value="">${pickLoad().length?\'挑戦する選手を選ぶ\':\'選手がいません（上で拾ってください）\'}</option>${pickLoad().filter(x=>x.t!==c.title).map(x=>`<option value="${esc(x.t)}">${esc(dispT(x.t))}（${esc(pickRec(x))}）</option>`).join(\'\')}</select>')
@@ -1853,6 +1853,8 @@ async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L
 const seenLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-seen')||'{}'); }catch(_){ return {}; } };
 // 1件は [種類, 場所, 見つけた時刻]。種類は n（近くの記事）・s（舞台の作品）・y（ゆかりの人）
 function seenAdd(es){ const s=seenLoad(), now=Date.now(); let n=0; for(const [t,k,pl] of es) if(!s[t]){ s[t]=[k,pl,now]; n++; } if(n) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} return n; }
+// 選手帳の選手は、必ず図鑑にも入れる（図鑑ができる前に拾った選手も）。種類 p は「以前に拾った選手」
+function seenSync(){ const s=seenLoad(); let ch=false; for(const x of pickLoad()) if(!s[x.t]){ s[x.t]=['p',x.at||'',x.d||0]; ch=true; } if(ch) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} }
 // 図鑑で達成率を出す土地（s|記事名 は舞台の作品、y|市区町村 はゆかりの人）
 const landsLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-lands')||'{}'); }catch(_){ return {}; } };
 function landsAdd(ks){ const o=landsLoad(); let ch=false; for(const k of ks) if(!o[k]){ o[k]=1; ch=true; } if(ch) try{ localStorage.setItem('hk-lands',JSON.stringify(o)); }catch(_){} }
@@ -1861,7 +1863,7 @@ async function nearZukan(){ const sv=seenLoad(), E=Object.entries(sv).map(([t,v]
   const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'); if(!ol) return;
   const fn=dlg.querySelector('.fnote'); if(fn) fn.textContent='図鑑は、この端末の中だけに残ります。「現在地で探す」で一覧に出た記事は、拾わなくても図鑑に入ります。';
   const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:'土地ごとの達成率を数えています…'}); ol.append(box);
-  for(const [k,lab,dd] of [['s','舞台の作品',x=>x.pl+'が舞台'],['y','ゆかりの人',x=>x.pl+'生まれ'],['n','近くの記事',x=>x.pl?x.pl+'で見つけた':'']]){
+  for(const [k,lab,dd] of [['s','舞台の作品',x=>x.pl+'が舞台'],['y','ゆかりの人',x=>x.pl+'生まれ'],['n','近くの記事',x=>x.pl?x.pl+'で見つけた':''],['p','以前に拾った選手',x=>x.pl?x.pl+'で拾った':'']]){
     const a=E.filter(x=>x.k===k); if(a.length) nearAppend(ol,`${lab}（${a.length}件）`,a.map(x=>({t:x.t,d:dd(x),at:x.pl})),lab); }
   try{ const LD=landsLoad(), M=await stMeta(), rows=[];
     for(const key of Object.keys(LD)){ const k=key.slice(0,1), p=key.slice(2);
