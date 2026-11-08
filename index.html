@@ -377,14 +377,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:4px}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overflow-x:clip;max-width:100%}
-input,select,textarea{font-size:16px!important}
-#near.nearcard{padding:16px;display:flex;flex-direction:column;gap:10px}#near .trow{display:flex;gap:10px;flex-wrap:wrap}#near .fsub{margin:0;font-size:12px;color:var(--muted)}
-#throne select#chT{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-#find #nearmsg{margin-top:6px}
-#famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}
-#famdlg .flist li.nprog{font-weight:normal;font-size:13px;line-height:1.6;padding:10px 0}#famdlg .nprog .pg{display:inline-block;margin:4px 12px 0 0;white-space:nowrap}#famdlg .nprog b{font-weight:700}#famdlg .zk{padding:8px 16px 10px}#famdlg .zchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}#famdlg .zchips button{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink);cursor:pointer}#famdlg .zchips button span{color:var(--muted);margin-left:2px}#famdlg .zchips button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}#famdlg .zchips button.on span{color:inherit;opacity:.75}#famdlg details.zland{margin:0 0 12px;font-size:13px}#famdlg details.zland summary{cursor:pointer;color:var(--muted)}#famdlg .zlist{padding:6px 0;display:flex;flex-direction:column;gap:6px}#famdlg .zrow{display:grid;grid-template-columns:1fr 70px auto;gap:8px;align-items:center}#famdlg .zbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}#famdlg .zbar i{display:block;height:100%;background:var(--ink)}#famdlg .zgrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}#famdlg .zc{position:relative;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;min-height:86px}#famdlg .zno{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.04em}#famdlg .zc a{font-weight:700;line-height:1.3;word-break:break-word}#famdlg .zcat,#famdlg .zpl{font-size:11px;color:var(--muted);line-height:1.4}#famdlg .zpk{position:absolute;top:7px;right:8px;font-size:10px;background:var(--hl);color:var(--hl-ink);border-radius:4px;padding:0 5px}#famdlg .flist li[hidden]{display:none}#famdlg .flist li.nmore{text-align:center;padding:12px 0}#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
-#famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}
-   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
+input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
 </style>
 </head>
 <body>
@@ -401,10 +394,8 @@ input,select,textarea{font-size:16px!important}
 
   <section id="throne" class="card" hidden aria-live="polite"></section>
 
-  <section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button><button type="button" class="btn" id="nearzukan" style="display:none">図鑑</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></section>
-
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
-    <div class="sechead"><h2>自由対戦</h2><span>拾った選手どうしを戦わせる。勝ち負けは選手帳に残ります</span></div>
+    <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる。結果は記録に残りません</span></div>
     <div class="setup">
       <div class="card pick A" id="pickA"></div>
       <div class="vsmark">VS</div>
@@ -995,11 +986,9 @@ function fighterCard(i){ const f=F[i];
   <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
-  el.innerHTML=`<div class="row"><button type="button" class="btn small" data-book="${side}">${i===null?'選手帳から選ぶ':'選手を替える'}</button></div>
+  el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
   <div class="pmsg" aria-live="polite"></div>
-  ${i===null?'<div class="empty">'+(pickLoad().length?'選手帳から、拾った選手を選んでください。':'まだ選手がいません。上の「現在地で探す」で、近くの記事を拾ってください。')+'</div>':fighterCard(i)}`;
-  el.querySelector('[data-book]').onclick=()=>{ if(pickLoad().length) nearBook(); else { $('#near').scrollIntoView({behavior:'smooth',block:'center'}); nearMsg('まずは「現在地で探す」で、近くの記事を拾ってください。'); } };
-  if(!el.querySelector('input')) return;
+  ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
   famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, seq=0, OPT=new Set();
   inp.addEventListener('input',()=>{ updateFight(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==seq) return; OPT=new Set(list);
@@ -1019,9 +1008,7 @@ const pickOK=s=>{ const i=sel[s]; if(i===null) return false; const e=$('#in'+s);
 function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }
   $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));
   const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class="a">${n(0)}</span><span class="vs">VS</span><span class="b">${n(1)}</span>`; }
-$('#omakase').onclick=async()=>{ const a=pickLoad().map(x=>x.t).filter(t=>t!==champTitle()); if(a.length<2){ $('#near').scrollIntoView({behavior:'smooth',block:'center'}); nearMsg('選手が2人以上いると、おまかせで組めます。近くの記事を拾ってください。'); return; }
-  const k=Math.floor(Math.random()*a.length); let m=Math.floor(Math.random()*(a.length-1)); if(m>=k) m++;
-  const [x,y]=await Promise.all([loadTitle(a[k]),loadTitle(a[m])]); if(x<0||y<0) return; sel[0]=x; sel[1]=y; streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
+$('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
 $('#fight').onclick=()=>startBattle();
 
 /* ---------- 対戦 ---------- */
@@ -1069,7 +1056,7 @@ function showResult(){
   const M=current.mode;
   if(M) streak={idx:null,n:0};
   else if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};
-  saveRec(); renderRec(); if(!current.today&&!(M&&M.replay)) pickRecord(ai,bi,w);
+  saveRec(); renderRec();
   const nm=i=>i===null?'引き分け':F[i][0];
   const mv=(arr)=>arr.slice(0,3).map(d=>'【'+esc(d.move)+'】').join('')+(arr.length>3?'ほか'+(arr.length-3)+'つ':'');
   const decW=dec.filter(d=>d.alt!==w);   // 外すと勝者が変わるものだけ
@@ -1255,178 +1242,6 @@ async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg
   $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>{ ORIG={k:'fam',key}; famApply(true); };
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
 let FP=[null,null];
-// ---- この辺の記事 ----
-const NEAR_UA='hyakka-kenten (+https://github.com/y-krn)', WPAPI='https://ja.wikipedia.org/w/api.php';
-const pickLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-picked')||'[]'); }catch(_){ return []; } };
-const pickSave=a=>{ try{ localStorage.setItem('hk-picked',JSON.stringify(a)); }catch(_){} };
-const fmtD=m=>m<1000?Math.max(10,Math.round(m/10)*10)+'m':(m/1000).toFixed(1)+'km';
-const dispT=t=>t.replace(/\s*\([^()]*\)$/,'');
-function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;
-  for(const [me,op] of [[a,b],[b,a]]){ const x=A.find(p=>p.t===F[me][1]); if(!x) continue; ch=true;
-    if(w===null) x.dr=(x.dr||0)+1; else if(w===me){ x.w=(x.w||0)+1; x.beat=[F[op][1],...(x.beat||[]).filter(t=>t!==F[op][1])].slice(0,30); } else x.l=(x.l||0)+1; }
-  if(ch) pickSave(A); }
-const pickRec=x=>(x.w||x.l||x.dr)?`${x.w||0}勝${x.l||0}敗${x.dr?x.dr+'分':''}`:'まだ戦っていない';
-function nearBookBtn(){ const b=$('#nearbook'); if(!b) return; const n=pickLoad().length; b.style.display=n?'':'none'; b.textContent='選手帳（'+n+'人）'; seenSync(); const sn=Object.keys(seenLoad()).length, z=$('#nearzukan'); if(z){ z.style.display=sn?'':'none'; z.textContent='図鑑（'+sn+'件）'; } }
-function nearMsg(t){ const e=$('#nearmsg'); if(e) e.textContent=t||''; }
-async function wpq(p){ return fetch(WPAPI+'?'+new URLSearchParams({format:'json',origin:'*',...p}),{headers:{'Api-User-Agent':NEAR_UA}}).then(r=>r.json()); }
-// 近くの記事：1km → 3km → 10km と広げて、百科拳典に収録している記事が8つ以上見つかるまで（保留の記事は索引にないので出ない）
-async function nearFetch(lat,lon){ lat=Math.round(lat*1000)/1000; lon=Math.round(lon*1000)/1000; let L=[];
-  for(const r of [1000,3000,10000]){ const j=await wpq({action:'query',list:'geosearch',gscoord:lat+'|'+lon,gsradius:r,gslimit:80});
-    L=((j.query&&j.query.geosearch)||[]); const ok=await Promise.all(L.map(x=>inData(x.title))); L=L.filter((x,i)=>ok[i]&&x.title!==champTitle()); if(L.length>=8) break; }
-  return L.slice(0,40); }
-const nearLi=(m,P,book)=>m.mh?`<li class="mh">${esc(m.mh)}</li>`:`<li><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m.t)}" target="_blank" rel="noopener">${esc(dispT(m.t))}</a><span class="fdist">${esc(m.d)}</span></div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="1" aria-pressed="false">赤コーナーへ</button></div></li>`;
-function nearBind(root,book){
-  root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n}; if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s]; FP[s]=x; famMark(); });
-  root.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const t=b.dataset.pick; let a=pickLoad();
-    if(book||a.some(x=>x.t===t)){ a=a.filter(x=>x.t!==t); if(book){ b.closest('li').remove(); } else { b.classList.remove('on'); b.textContent='拾う'; } }
-    else { a.unshift({t,at:b.dataset.at||'',d:Date.now()}); b.classList.add('on'); b.textContent='拾った'; }
-    pickSave(a); nearBookBtn(); }); }
-function nearOpen(items,{kick,title,sub,book}){ const dlg=$('#famdlg'); if(!dlg) return; const P=new Set(pickLoad().map(x=>x.t));
-  dlg.setAttribute('aria-label',kick);
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">${esc(kick)}</div><h3>${esc(title)}</h3><div class="fc">${esc(sub)}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
-  <ol class="flist near">${items.map(m=>nearLi(m,P,book)).join('')}</ol>
-  <div class="fnote">${book?'拾った選手は、この端末の中だけに残ります。':'一覧に出た記事は、自動で拾って選手帳に入ります。Wikipediaに位置が書かれている記事から、百科拳典に収録しているものを近い順に出しています。位置は少しぼかしてWikipediaに問い合わせ、百科拳典には送りません。'}</div>
-  <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
-  FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
-  $('#famx').onclick=()=>dlg.close();
-  nearBind(dlg,book);
-  $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
-  famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
-// ゆかりの人：近くの記事の所在地を Wikidata でたどって市区町村を決め、そこで生まれた有名人（代表戦の出身地の索引）を出す
-async function wdq(p){ return fetch('https://www.wikidata.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',...p}),{headers:{'Api-User-Agent':NEAR_UA}}).then(r=>r.json()); }
-async function nearTown(titles){
-  const pp=await wpq({action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:titles.slice(0,5).join('|')});
-  const ids=Object.values((pp.query&&pp.query.pages)||{}).map(p=>p.pageprops&&p.pageprops.wikibase_item).filter(Boolean); if(!ids.length) return null;
-  const up=async qs=>{ const d=await wdq({action:'wbgetentities',ids:qs.join('|'),props:'claims|labels',languages:'ja'}); return d.entities||{}; };
-  const p131=e=>(((e.claims||{}).P131)||[]).filter(c=>c.rank!=='deprecated').map(c=>c.mainsnak.datavalue&&c.mainsnak.datavalue.value.id).filter(Boolean);
-  let E=await up(ids); const cnt={}; for(const e of Object.values(E)) for(const q of p131(e).slice(0,1)) cnt[q]=(cnt[q]||0)+1;
-  let q=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]; if(!q) return null; q=q[0];
-  const M=await bdMeta(); const has=async k=>{ const o=await bdFile('p/'+(fnv(k)%M.nbp)); return o[k]?k:null; };
-  for(let k=0;k<4&&q;k++){ E=await up([q]); const e=E[q]; if(!e) break; const lab=(e.labels&&e.labels.ja&&e.labels.ja.value)||'';
-    if(/[市区町村]$/.test(lab)&&await has(lab)) return lab; q=p131(e)[0]; }
-  return null; }
-async function nearYukari(L){ try{ const town=await nearTown(L.map(x=>x.title)); if(!town) return null;
-    const P=new Set(L.map(x=>x.title)); const ns=(await natives(town)).filter(x=>!P.has(x.t)&&x.t!==champTitle());
-    const list=ns; return list.length?{town,list}:null; }catch(_){ return null; } }   // 索引（tools/build_bd.py）は保留の記事を除いて作るので、1人ずつは確かめない
-// この辺が舞台の作品
-let STM=null; const stMeta=()=>STM||(STM=fetch('data/st/meta.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ STM=null; throw e; }));
-const STF={}; const stFile=p=>STF[p]||(STF[p]=gzj('data/st/'+p+'.json.gz?v='+VER).catch(e=>{ delete STF[p]; throw e; }));
-const hav=(a,b,c,d)=>{ const r=Math.PI/180, x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2; return 2*6371e3*Math.asin(Math.sqrt(x)); };
-// 近くの記事の所在地を、市区町村 → 都道府県とたどる（日本語版の記事名で）
-async function nearChain(titles){
-  const pp=await wpq({action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:titles.slice(0,5).join('|')});
-  const ids=Object.values((pp.query&&pp.query.pages)||{}).map(p=>p.pageprops&&p.pageprops.wikibase_item).filter(Boolean); if(!ids.length) return [];
-  const up=async qs=>((await wdq({action:'wbgetentities',ids:qs.join('|'),props:'claims|sitelinks',sitefilter:'jawiki'})).entities||{});
-  const p131=e=>(((e.claims||{}).P131)||[]).filter(c=>c.rank!=='deprecated').map(c=>c.mainsnak.datavalue&&c.mainsnak.datavalue.value.id).filter(Boolean);
-  const E=await up(ids); const cnt={}; for(const e of Object.values(E)) for(const q of p131(e).slice(0,1)) cnt[q]=(cnt[q]||0)+1;
-  let q=(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]||[])[0]; const out=[];
-  for(let k=0;k<5&&q&&q!=='Q17';k++){ const e=(await up([q]))[q]; if(!e) break; const t=e.sitelinks&&e.sitelinks.jawiki&&e.sitelinks.jawiki.title; if(t) out.push(t); q=p131(e)[0]; }
-  return out; }
-// 歩いた場所（約500m四方）ごとに、出会う顔ぶれを決める。同じ場所なら毎回同じ顔ぶれ。町を歩き回るほど図鑑が埋まる
-const cellOf=(lat,lon)=>Math.floor(lat/0.005)+':'+Math.floor(lon/0.006);
-const cellPick=(key,list,n)=>list.map((t,i)=>[t,i,fnv(key+'|'+t)]).sort((a,b)=>a[2]-b[2]).slice(0,n).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
-async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L.map(x=>x.title)), cell=cellOf(lat,lon);
-    const geo=(await stFile('geo')).map(([t,a,b])=>[t,hav(lat,lon,a,b)]).filter(x=>x[1]<=5000).sort((x,y)=>x[1]-y[1]).map(x=>x[0]);
-    const chain=await nearChain(L.map(x=>x.title)).catch(()=>[]);
-    const seen=new Set(), out=[], lands=[];   // 細かい土地から順に（浅草 → 台東区 → 東京都）。都道府県は4作品、それより細かい土地は6作品ずつ
-    for(const p of [...geo,...chain]){ const o=await stFile('p/'+(fnv(p)%M.nb)); const all=(o[p]||[]).filter(t=>t!==champTitle()); if(!all.length) continue;
-      lands.push({p,k:dispT(p)+'が舞台の作品',all});
-      for(const t of cellPick(cell+p,all,/[都道府県]$/.test(p)?4:6)){ if(seen.has(t)||near.has(t)) continue; seen.add(t); out.push({t,d:dispT(p)+'が舞台',at:dispT(p)}); } }
-    return {items:out,lands}; }catch(_){ return {items:[],lands:[]}; } }
-// 図鑑：これまでに見つけた記事（この端末の中だけ。localStorage hk-seen）
-const seenLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-seen')||'{}'); }catch(_){ return {}; } };
-// 1件は [種類, 場所, 見つけた時刻]。種類は n（近くの記事）・s（舞台の作品）・y（ゆかりの人）
-function seenAdd(es){ const s=seenLoad(), now=Date.now(); let n=0; for(const [t,k,pl] of es) if(!s[t]){ s[t]=[k,pl,now]; n++; } if(n) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} return n; }
-// 選手帳の選手は、必ず図鑑にも入れる（図鑑ができる前に拾った選手も）。種類 p は「以前に拾った選手」
-// 自動で拾う（まだ選手帳にない記事だけ、新しい順の先頭に足す）
-function pickAdd(es){ const a=pickLoad(), have=new Set(a.map(x=>x.t)), now=Date.now(), add=[]; for(const [t,at] of es) if(!have.has(t)){ have.add(t); add.push({t,at:at||'',d:now}); } if(add.length){ pickSave([...add,...a]); } return add.length; }
-function seenSync(){ const s=seenLoad(); let ch=false; for(const x of pickLoad()) if(!s[x.t]){ s[x.t]=['p',x.at||'',x.d||0]; ch=true; } if(ch) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} }
-// 図鑑で達成率を出す土地（s|記事名 は舞台の作品、y|市区町村 はゆかりの人）
-const landsLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-lands')||'{}'); }catch(_){ return {}; } };
-function landsAdd(ks){ const o=landsLoad(); let ch=false; for(const k of ks) if(!o[k]){ o[k]=1; ch=true; } if(ch) try{ localStorage.setItem('hk-lands',JSON.stringify(o)); }catch(_){} }
-// 図鑑の分類：Wikidata の「分類」（P31）の名前から、図鑑の部門を決める（上から順に当てはめる）
-const ZK=[['人物',/^ヒト$|人間|人物/],['映像',/映画|テレビ|アニメ|ドラマ|番組|ビデオ/],['本・漫画',/漫画|文学|小説|書籍|雑誌|詩|戯曲|ライトノベル|絵本/],['音楽',/シングル|アルバム|楽曲|音楽|歌/],['ゲーム',/ゲーム/],
-  ['生き物',/タクソン|^種$|ウマ|動物|植物|品種|犬|猫/],['作品',/作品|演劇|舞台|落語|歌舞伎|絵画|彫刻|シリーズ|フィクション/],['神社・寺',/神社|寺|仏教|教会|神宮|大社|稲荷|宗教|仏堂|祠|堂$|八幡|宮$|鳥居/],['学校',/学校|大学|高校|中学|学園|学院|幼稚園|中高一貫|校$/],
-  ['駅・交通',/駅|鉄道|路線|道路|国道|県道|街道|橋|トンネル|空港|港|バス|車両|車種|インターチェンジ|高速|停留所|踏切|線$/],['名所・建物',/城|建築|建物|ビル|タワー|施設|公園|博物館|美術館|図書館|庭園|史跡|遺跡|劇場|ホール|スタジアム|競技場|病院|ホテル|旅館|商店街|市場|記念碑|碑|像|墓|古墳|門|塔|館|場$|遊園地|寄席|御所|郵便局|警察署|消防署|役所|裁判所|屋敷|跡$/],
-  ['自然',/山|川|湖|島|滝|海|湾|岬|温泉|池|峠|谷|半島|森|樹|丘|浜|岩|洞窟|泉/],['組織・会社',/企業|会社|組織|団体|クラブ|チーム|グループ|協会|政党|銀行|店|ブランド|機関|事業|バー|営業所|興行|料理店|飲食店|喫茶/],['町・地域',/市|区|町|村|丁|大字|集落|地区|自治体|地域|郡|都|府|県|地名|商圏|街/]];
-const zkCat=(lab,k)=>{ if(k==='y') return '人物'; for(const [c,re] of ZK) if(lab&&re.test(lab)) return c; return k==='s'?'作品':'その他'; };
-// 記事名 → Wikidata の分類の名前（日本語）。50件ずつ問い合わせる
-async function zkClass(titles){ const out={};
-  for(let i=0;i<titles.length;i+=50){ const part=titles.slice(i,i+50);
-    try{ const pp=await wpq({action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:part.join('|'),redirects:1}); const q=pp.query||{}, back={};
-      for(const r of [...(q.normalized||[]),...(q.redirects||[])]) back[r.to]=r.from;
-      const qid={}; for(const pg of Object.values(q.pages||{})){ const id=pg.pageprops&&pg.pageprops.wikibase_item; if(!id) continue; let t=pg.title; for(let k=0;k<3&&back[t];k++) t=back[t]; qid[t]=id; }
-      const ids=[...new Set(Object.values(qid))], cls={};
-      if(ids.length){ const E=(await wdq({action:'wbgetentities',ids:ids.join('|'),props:'claims'})).entities||{};
-        for(const [t,id] of Object.entries(qid)){ const c=((((E[id]||{}).claims||{}).P31)||[]).filter(x=>x.rank!=='deprecated').map(x=>x.mainsnak.datavalue&&x.mainsnak.datavalue.value.id).filter(Boolean)[0]; if(c) cls[t]=c; } }
-      const cq=[...new Set(Object.values(cls))], LB={};
-      for(let j=0;j<cq.length;j+=50){ const e=(await wdq({action:'wbgetentities',ids:cq.slice(j,j+50).join('|'),props:'labels',languages:'ja'})).entities||{}; for(const [k,v] of Object.entries(e)) LB[k]=(v.labels&&v.labels.ja&&v.labels.ja.value)||''; }
-      for(const t of part) out[t]=cls[t]?(LB[cls[t]]||'?'):'?'; }
-    catch(_){} }
-  return out; }
-// 図鑑：見つけた順に番号を振り、部門ごとに見られるようにする。拾う・対戦はできない（選手帳から）
-async function nearZukan(){ const dlg=$('#famdlg'); if(!dlg) return; seenSync(); const sv=seenLoad();
-  const E=Object.entries(sv).map(([t,v])=>Array.isArray(v)?{t,k:v[0],pl:v[1],ts:v[2]||0,lab:v[3]}:{t,k:'n',pl:'',ts:0}).sort((a,b)=>a.ts-b.ts||(a.t<b.t?-1:1)); if(!E.length) return;
-  E.forEach((x,i)=>x.no=i+1); const PK=new Set(pickLoad().map(x=>x.t));
-  const day=ts=>{ if(!ts) return ''; const d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); };
-  const where=x=>x.k==='s'?x.pl+'が舞台':x.k==='y'?x.pl+'生まれ':x.k==='p'?(x.pl?x.pl+'で拾った':''):(x.pl||'');
-  dlg.setAttribute('aria-label','図鑑');
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">図鑑</div><h3>見つけた記事</h3><div class="fc">これまでに${E.length}件。見つけた順に番号が付く</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
-  <div class="zk"><div class="zchips" role="group" aria-label="部門"></div><details class="zland"><summary>土地ごとの達成率</summary><div class="zlist">数えています…</div></details><ol class="zgrid"></ol></div>
-  <div class="fnote">図鑑は、この端末の中だけに残ります。「現在地で探す」で一覧に出た記事は、自動で拾って図鑑と選手帳に入ります。</div>`;
-  $('#famx').onclick=()=>dlg.close(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0;
-  const grid=dlg.querySelector('.zgrid'), chips=dlg.querySelector('.zchips'); let cur='';
-  const draw=()=>{ const C={}; for(const x of E){ x.cat=zkCat(x.lab,x.k); C[x.cat]=(C[x.cat]||0)+1; }
-    const order=[...ZK.map(z=>z[0]),'作品','その他'].filter((c,i,a)=>C[c]&&a.indexOf(c)===i);
-    if(cur&&!C[cur]) cur='';
-    chips.innerHTML=[['',E.length,'すべて'],...order.map(c=>[c,C[c],c])].map(([c,n,l])=>`<button type="button" data-c="${esc(c)}" class="${c===cur?'on':''}" aria-pressed="${c===cur}">${esc(l)} <span>${n}</span></button>`).join('');
-    chips.querySelectorAll('button').forEach(b=>b.onclick=()=>{ cur=b.dataset.c; draw(); });
-    grid.innerHTML=E.filter(x=>!cur||x.cat===cur).slice().reverse().map(x=>`<li class="zc"><span class="zno">No.${x.no}</span>${''}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(x.t)}" target="_blank" rel="noopener">${esc(dispT(x.t))}</a><span class="zcat">${esc(x.cat)}${x.lab&&x.lab!=='?'&&x.lab!==x.cat?'・'+esc(x.lab):''}</span><span class="zpl">${esc([where(x),day(x.ts)].filter(Boolean).join('・'))}</span></li>`).join(''); };
-  draw();
-  // 分類がまだの記事は、Wikidata に問い合わせて図鑑に覚えておく
-  const need=E.filter(x=>x.lab===undefined&&x.k!=='y').map(x=>x.t);
-  if(need.length){ const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`これまでに${E.length}件。部門を調べています…`;
-    const got=await zkClass(need); const s2=seenLoad(); for(const x of E) if(got[x.t]!==undefined){ x.lab=got[x.t]; if(Array.isArray(s2[x.t])) s2[x.t][3]=got[x.t]; }
-    try{ localStorage.setItem('hk-seen',JSON.stringify(s2)); }catch(_){}
-    if(!dlg.open||!grid.isConnected) return; if(fc) fc.textContent=`これまでに${E.length}件。見つけた順に番号が付く`; draw(); }
-  // 土地ごとの達成率
-  const zl=dlg.querySelector('.zlist');
-  try{ const LD=landsLoad(), M=await stMeta(), rows=[];
-    for(const key of Object.keys(LD)){ const k=key.slice(0,1), p=key.slice(2);
-      const all=k==='s'?(((await stFile('p/'+(fnv(p)%M.nb)))[p])||[]):(await natives(p)).map(x=>x.t);
-      if(all.length) rows.push([k==='s'?dispT(p)+'が舞台の作品':p+'生まれの人',all.filter(t=>sv[t]).length,all.length]); }
-    rows.sort((a,b)=>b[1]/b[2]-a[1]/a[2]||b[2]-a[2]);
-    if(zl&&zl.isConnected) zl.innerHTML=rows.length?rows.map(([k,n,m])=>`<div class="zrow"><span>${esc(k)}</span><span class="zbar"><i style="width:${Math.max(2,Math.round(n/m*100))}%"></i></span><b>${n}/${m}${n===m?' 制覇':''}</b></div>`).join(''):'まだありません。「現在地で探す」で、舞台の作品やゆかりの人に出会うと、ここに出ます。'; }
-  catch(_){ if(zl) zl.textContent='数えられませんでした。'; } }
-// 近くの記事の一覧のあとに、見出しつきで足す。最初の20件だけ見せて、残りは「もっと見る」で開く
-function nearAppend(ol,head,items,label){ const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'), FIRST=20;
-  tmp.innerHTML=[{mh:head},...items].map(m=>nearLi(m,P,false)).join(''); nearBind(tmp,false);
-  const li=[...tmp.children]; li.forEach((e,k)=>{ if(k>FIRST) e.hidden=true; });
-  const more=items.length>FIRST?Object.assign(document.createElement('li'),{className:'mh nmore',innerHTML:`<button type="button" class="btn small">${label}をもっと見る（残り${items.length-FIRST}）</button>`}):null;
-  ol.append(...li); if(more){ ol.append(more); more.querySelector('button').onclick=()=>{ li.forEach(e=>e.hidden=false); more.remove(); }; } famMark(); }
-async function nearShow(lat,lon,label){ nearMsg('近くの記事を探しています…');
-  try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }
-    const YP=nearYukari(L), SP=nearStage(L,lat,lon);
-    const lm=dispT(L[0].title);   // 拾った場所は、いちばん近い記事の名前で覚える（「東京駅の近く」のように）
-    nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・舞台の作品とゆかりの人を探しています…`});
-    const NP=pickAdd(L.map(x=>[x.title,lm+'の近く'])); seenAdd(L.map(x=>[x.title,'n',lm+'の近く'])); nearBookBtn();   // 近くの記事は、一覧を開いた時点で拾う
-    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'); if(!ol) return; const live=()=>dlg.open&&ol.isConnected;
-    const S=await SP; if(!live()) return; if(S.items.length) nearAppend(ol,`この辺が舞台の作品（${S.items.length}作品）`,S.items,'舞台の作品');
-    const Y=await YP; if(!live()) return; const yk=new Set(Y?cellPick(cellOf(lat,lon)+Y.town,Y.list.map(x=>x.t),8):[]), YL=Y?Y.list.filter(x=>yk.has(x.t)):[];
-    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.items.length?`・舞台の作品${S.items.length}`:''}${YL.length?`・ゆかりの人${YL.length}`:''}`;
-    if(YL.length) nearAppend(ol,`ゆかりの人（${Y.town}生まれ）`,YL.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人');
-    const got=NP+pickAdd([...S.items.map(x=>[x.t,x.at]),...YL.map(x=>[x.t,Y.town])]); const neu=seenAdd([...L.map(x=>[x.title,'n',lm+'の近く']),...S.items.map(x=>[x.t,'s',x.at]),...YL.map(x=>[x.t,'y',Y.town])]), sv=seenLoad(); landsAdd([...S.lands.map(x=>'s|'+x.p),...(Y?['y|'+Y.town]:[])]);   // 一覧に出た記事は、拾わなくても全部「見つけた」として図鑑に入る
-    const prog=[...S.lands.map(x=>[x.k,x.all]),...(Y?[[Y.town+'生まれの人',Y.list.map(x=>x.t)]]:[])].map(([k,a])=>`<span class="pg"><b>${esc(k)}</b> ${a.filter(t=>sv[t]).length}/${a.length}</span>`);
-    const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>${got?`新しく<b>${got}</b>人を拾った`:'新しく拾った選手はなし'}（選手帳 ${pickLoad().length}人）。場所を変えると、出会う顔ぶれが変わる</div>${prog.join('')}`});
-    ol.prepend(box); nearBookBtn(); }
-  catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
-function nearHere(){ if(!navigator.geolocation) return;
-  nearMsg('現在地を確かめています…');
-  navigator.geolocation.getCurrentPosition(p=>nearShow(p.coords.latitude,p.coords.longitude,'現在地'),
-    ()=>nearMsg('現在地を使えませんでした。位置情報の利用を許可してから、もう一度押してください。'),{enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
-function nearBook(){ const a=pickLoad(); if(!a.length) return; nearOpen(a.map(x=>({t:x.t,d:pickRec(x)+(x.at?'・'+x.at+'で拾った':''),at:x.at})),{kick:'選手帳',title:'あなたの選手',sub:`${a.length}人（新しい順）。青コーナー・赤コーナーを選んで戦わせる`,book:true}); }
-if(typeof window!=='undefined'&&typeof document!=='undefined'&&document.getElementById('nearhere')){
-  if(!navigator.geolocation) $('#near').hidden=true; else { $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; $('#nearzukan').onclick=nearZukan; nearBookBtn(); } }
 const famURL=key=>location.origin+'/?fam='+encodeURIComponent(key);
 function famText(g){ const top=g.m.slice(0,3).map(m=>m[1]); return `【百科拳典 仲間図鑑】${FAMK[g.k](g.n)}は${g.c}記事。${top.join('、')}${g.c>top.length?'…':''}
 Wikipediaのつながりから見つけた仲間たち`; }
@@ -1705,16 +1520,19 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <div class="hallgo"><button type="button" class="btn small" id="hallopen">王者の殿堂 ▶</button></div>
   <details class="thx" id="thx"${THOPEN||msg?' open':''}><summary>この王者に挑む・王座戦の記録</summary>
   
-  <form id="chf"><select id="chT" aria-label="挑戦する選手"><option value="">${pickLoad().length?'挑戦する選手を選ぶ':'選手がいません（上で拾ってください）'}</option>${pickLoad().filter(x=>x.t!==c.title).map(x=>`<option value="${esc(x.t)}">${esc(dispT(x.t))}（${esc(pickRec(x))}）</option>`).join('')}</select>
+  <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
-  <div class="meta thn">挑めるのは、拾った選手だけ。勝てば、あなたの選手が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>
+  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
 </details>`;
   $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall();
-  const inp=$('#chT'); CHOPT=new Set(pickLoad().map(x=>x.t));
+  const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;
   const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };
-  inp.addEventListener('change',chk); chk();
+  inp.addEventListener('change',chk);
+  inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;
+    try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();
+      showSugg(inp,dl,list); }catch(_){} },250); });
   $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); };
   el.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); replayChallenge(+a.dataset.c); }); }
 // 王者の殿堂：防衛5回以上の王者を称える札と、記録、歴代王者
@@ -1804,7 +1622,8 @@ renderRec();
   N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount(); famToday(); mineInit(); todayInit();
   const nrP=Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>{ NORAND=new Set([...a,...h]); }).catch(()=>{});
   if(await openShared()) return;
-  const PK=pickLoad().map(x=>x.t).filter(t=>t!==champTitle()); if(PK.length>=2){ const [x,y]=await Promise.all([loadTitle(PK[0]),loadTitle(PK[1])]); if(x>=0&&y>=0){ sel[0]=x; sel[1]=y; } }   // 選手が2人以上いれば、選手帳の新しい2人を最初の組み合わせに
+  const [x,y]=await Promise.all([rnd([],1),rnd([],1)]); await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す
+  sel[0]=NORAND.has(F[x][1])?await rnd([y],1):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]],1):y;
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();
 </script>

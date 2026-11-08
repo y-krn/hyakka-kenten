@@ -3,7 +3,7 @@
 #   --wikidata を付けると、Wikidata に生年月日と出生地を問い合わせて、次の2つも作る
 #   data/bd/d/<月>.json.gz … 誕生日（月日）ごとに、よく読まれている人（15件）
 #   data/bd/ymd/<年>.json.gz … 生年月日ごとに、その日に生まれた人（10件）。誕生日と生まれた年の両方を入れたとき用
-#   data/bd/p/<番号>.json.gz … 出身地（日本語版の記事名）ごとに、そこで生まれた人の全員（よく読まれている順）。番号は記事名のFNVハッシュ % NBP
+#   data/bd/p/<番号>.json.gz … 出身地（日本語版の記事名）ごとに、よく読まれている人（12件）。番号は記事名のFNVハッシュ % NBP
 #     出生地の1つ上・2つ上の行政区画（例：北区 → 札幌市 → 北海道）にも数える
 #   よく読まれている＝収録データにある1年間の閲覧数。人の並びは毎回この索引から作るので、遊ぶ人のブラウザは Wikipedia に問い合わせない
 #   使い方: python3 tools/build_bd.py [--wikidata]
@@ -12,7 +12,6 @@ D = os.path.join(os.path.dirname(__file__), '..', 'data')
 NOR = set(json.load(open(os.path.join(D, 'norand.json'))))
 # 代表としておすすめしにくいもの（武器・反社会的勢力・事件など）は外す
 NG = re.compile(r'銃|兵器|武器|爆弾|ミサイル|戦車|戦闘機|軍艦|弾薬|ヤクザ|暴力団|犯罪|事件|殺人|テロ|死刑|詐欺|性的|ポルノ|AV女優|アダルト')
-ROYAL = re.compile(r'皇族|内親王|親王|皇后|皇太子|天皇の子女|日本の天皇|^上皇$')
 Y0, Y1 = 1900, datetime.date.today().year
 NBP = 256
 UA = 'hyakka-kenten-build/1.0 (https://github.com/y-krn/hyakka-kenten)'
@@ -29,17 +28,10 @@ def dump(path, obj):
 
 # ---------- 収録データを読む ----------
 P, O, H = {}, {}, {}   # 年→人, 年→もの, QID→(閲覧数, 記事名, 表示名, 年)
-# 確認中（保留）の記事は入れない（対戦に戻した記事 data/unhold.json は入れる）。ページ側で1人ずつ確かめなくて済むように
-_U = json.load(open(os.path.join(D, 'unhold.json'), encoding='utf-8')) if os.path.exists(os.path.join(D, 'unhold.json')) else {}
-def held(t, r):
-    if 'hold' not in r: return False
-    return not (t in _U.get('記事', {}) or re.sub(r'（[^（）]*年[^（）]*）$', '', str(r['hold'])) in _U.get('理由', {}))
 for f in glob.glob(os.path.join(D, 'a', '*.json.gz')):
     for t, r in json.load(gzip.open(f)).items():
         ff = r.get('f') or []
-        if len(ff) < 9 or t in NOR or held(t, r): continue
-        # 存命の皇族は、代表戦・ゆかりの人に出さない。記事名ではなくカテゴリで見る（名字が「宮家」の人や侍従長を外さないように）。「旧皇族」だけの人（皇籍を離れた家の子孫）は残す
-        if str(ff[6] if len(ff) > 6 else '').startswith('存命人物') and any(ROYAL.search(c) for c in ((r.get('gen') or {}).get('cc') or []) if c != '旧皇族'): continue
+        if len(ff) < 9 or t in NOR: continue
         g = r.get('gen') or {}
         if NG.search(' '.join([t, g.get('c') or '', *(g.get('cc') or [])])): continue
         pv = next((e[5] or 0 for e in (r.get('ext') or []) if e[0] == '_m'), 0)
@@ -106,7 +98,7 @@ for yy, days in YMD.items():
 PB = {}
 for p, v in PLACE.items():
     if len(v) < 2: continue
-    PB.setdefault(fnv(p) % NBP, {})[p] = [[t, n, y] for _, t, n, y in sorted(v, reverse=True)]   # 全員（よく読まれている順）。「この辺の記事」のゆかりの人で全員を出す
+    PB.setdefault(fnv(p) % NBP, {})[p] = [[t, n, y] for _, t, n, y in sorted(v, reverse=True)[:12]]
 for k in range(NBP): dump(os.path.join(D, 'bd', 'p', f'{k}.json.gz'), PB.get(k, {}))
 json.dump({'nbp': NBP, 'asof': datetime.date.today().isoformat()}, open(os.path.join(D, 'bd', 'meta.json'), 'w'))
 print('誕生日', len(DAY), '日', '出身地', sum(len(x) for x in PB.values()), 'か所', int(time.time() - t0), '秒')
