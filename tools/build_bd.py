@@ -3,7 +3,7 @@
 #   --wikidata を付けると、Wikidata に生年月日と出生地を問い合わせて、次の2つも作る
 #   data/bd/d/<月>.json.gz … 誕生日（月日）ごとに、よく読まれている人（15件）
 #   data/bd/ymd/<年>.json.gz … 生年月日ごとに、その日に生まれた人（10件）。誕生日と生まれた年の両方を入れたとき用
-#   data/bd/p/<番号>.json.gz … 出身地（日本語版の記事名）ごとに、よく読まれている人（12件）。番号は記事名のFNVハッシュ % NBP
+#   data/bd/p/<番号>.json.gz … 出身地（日本語版の記事名）ごとに、そこで生まれた人の全員（よく読まれている順）。番号は記事名のFNVハッシュ % NBP
 #     出生地の1つ上・2つ上の行政区画（例：北区 → 札幌市 → 北海道）にも数える
 #   よく読まれている＝収録データにある1年間の閲覧数。人の並びは毎回この索引から作るので、遊ぶ人のブラウザは Wikipedia に問い合わせない
 #   使い方: python3 tools/build_bd.py [--wikidata]
@@ -28,10 +28,15 @@ def dump(path, obj):
 
 # ---------- 収録データを読む ----------
 P, O, H = {}, {}, {}   # 年→人, 年→もの, QID→(閲覧数, 記事名, 表示名, 年)
+# 確認中（保留）の記事は入れない（対戦に戻した記事 data/unhold.json は入れる）。ページ側で1人ずつ確かめなくて済むように
+_U = json.load(open(os.path.join(D, 'unhold.json'), encoding='utf-8')) if os.path.exists(os.path.join(D, 'unhold.json')) else {}
+def held(t, r):
+    if 'hold' not in r: return False
+    return not (t in _U.get('記事', {}) or re.sub(r'（[^（）]*年[^（）]*）$', '', str(r['hold'])) in _U.get('理由', {}))
 for f in glob.glob(os.path.join(D, 'a', '*.json.gz')):
     for t, r in json.load(gzip.open(f)).items():
         ff = r.get('f') or []
-        if len(ff) < 9 or t in NOR: continue
+        if len(ff) < 9 or t in NOR or held(t, r): continue
         g = r.get('gen') or {}
         if NG.search(' '.join([t, g.get('c') or '', *(g.get('cc') or [])])): continue
         pv = next((e[5] or 0 for e in (r.get('ext') or []) if e[0] == '_m'), 0)
@@ -98,7 +103,7 @@ for yy, days in YMD.items():
 PB = {}
 for p, v in PLACE.items():
     if len(v) < 2: continue
-    PB.setdefault(fnv(p) % NBP, {})[p] = [[t, n, y] for _, t, n, y in sorted(v, reverse=True)[:12]]
+    PB.setdefault(fnv(p) % NBP, {})[p] = [[t, n, y] for _, t, n, y in sorted(v, reverse=True)]   # 全員（よく読まれている順）。「この辺の記事」のゆかりの人で全員を出す
 for k in range(NBP): dump(os.path.join(D, 'bd', 'p', f'{k}.json.gz'), PB.get(k, {}))
 json.dump({'nbp': NBP, 'asof': datetime.date.today().isoformat()}, open(os.path.join(D, 'bd', 'meta.json'), 'w'))
 print('誕生日', len(DAY), '日', '出身地', sum(len(x) for x in PB.values()), 'か所', int(time.time() - t0), '秒')

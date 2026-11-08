@@ -1802,8 +1802,8 @@ async function nearTown(titles){
     if(/[市区町村]$/.test(lab)&&await has(lab)) return lab; q=p131(e)[0]; }
   return null; }
 async function nearYukari(L){ try{ const town=await nearTown(L.map(x=>x.title)); if(!town) return null;
-    const P=new Set(L.map(x=>x.title)); const ns=(await natives(town)).filter(x=>!P.has(x.t)&&x.t!==champTitle()).slice(0,8);
-    const ok=await Promise.all(ns.map(x=>inData(x.t))); const list=ns.filter((x,i)=>ok[i]); return list.length?{town,list}:null; }catch(_){ return null; } }
+    const P=new Set(L.map(x=>x.title)); const ns=(await natives(town)).filter(x=>!P.has(x.t)&&x.t!==champTitle());
+    const list=ns; return list.length?{town,list}:null; }catch(_){ return null; } }   // 索引（tools/build_bd.py）は保留の記事を除いて作るので、1人ずつは確かめない
 """
 repall("async function nearShow(lat,lon,label){", _yk.strip()+"\nasync function nearShow(lat,lon,label){")
 repall("  try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }",
