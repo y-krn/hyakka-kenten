@@ -1707,6 +1707,13 @@ repall("\n  ${f[5]==='配慮'?`<div><span class=\"chip\">配慮：${esc(f[6].rep
 repall("function simulate(ai,bi,opt={}){\n", "// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）\nfunction disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }\nfunction simulate(ai,bi,opt={}){ disamb(ai,bi);\n")
 repall("function updateFight(){ ", "function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }\n  ")
 
+# ---- 73. 王座戦：結果（防衛・新王者など）は、試合を見終わってから出す。試合の途中に王座の欄で結果が分かってしまわないように ----
+repall("let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true;", "let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;   // TH_HOLD：試合のあとに出す結果 {msg, at}")
+repall("async function refreshThrone(){ if(!API||document.hidden||!THRONE) return;", "async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; if(TH_HOLD&&Date.now()-TH_HOLD.at<300000) return; /* 試合中は王座の欄を変えない（5分たったら戻す） */")
+repall("  await loadThrone(msg);\n  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); } }catch(_){} }",
+       "  let shown=false; m.className='msg'; m.textContent='試合開始。結果は、試合のあとでここに出ます。';\n  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}\n  if(!shown){ TH_HOLD=null; await loadThrone(msg); } }")
+repall("  if(!current||current.shown) return; current.shown=true;", "  if(!current||current.shown) return; current.shown=true; if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
