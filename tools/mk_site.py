@@ -1820,6 +1820,48 @@ repall("    nearMsg('ゆかりの人を探しています…'); const Y=await ne
 repall("    const items=[...(Y?[{mh:`ゆかりの人（${Y.town}生まれ）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),{mh:'この辺の記事（近い順）'}]:[]),...L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'}))];\n    nearMsg(''); nearOpen(items,{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}${Y?`、ゆかりの人${Y.list.length}`:''}`}); }",
        "    nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・ゆかりの人を探しています…`});\n    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'), Y=await YP; if(!ol||!dlg.open||!ol.isConnected) return;\n    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${Y?`・ゆかりの人${Y.list.length}`:''}`; if(!Y) return;\n    const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'), FIRST=20; tmp.innerHTML=[{mh:`ゆかりの人（${Y.town}生まれ・${Y.list.length}人）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town}))].map(m=>nearLi(m,P,false)).join('');\n    nearBind(tmp,false); [...tmp.children].forEach((li,k)=>{ if(k>FIRST) li.hidden=true; });   // 近くの記事のあとに足す。ゆかりの人は最初の20人だけ見せて、残りは「もっと見る」で開く\n    const more=Y.list.length>FIRST?Object.assign(document.createElement('li'),{className:'mh nmore',innerHTML:`<button type=\"button\" class=\"btn small\">ゆかりの人をもっと見る（残り${Y.list.length-FIRST}人）</button>`}):null;\n    ol.append(...tmp.children); if(more){ ol.append(more); more.querySelector('button').onclick=()=>{ ol.querySelectorAll('li[hidden]').forEach(li=>li.hidden=false); more.remove(); }; } famMark(); }")
 
+# ---- 77. 試作：この辺が舞台の作品（「○○を舞台とした作品」カテゴリの索引 data/st から。tools/build_stage.mjs で作る）----
+#   市区町村・都道府県が舞台の作品は、近くの記事の所在地（Wikidata P131）を市区町村 → 都道府県とたどって引く（都道府県だけの作品は県内どこでも）
+#   湘南・浅草・下北沢のような土地は、その記事の位置から5km以内で探したときに出す
+_st = r"""
+// この辺が舞台の作品
+let STM=null; const stMeta=()=>STM||(STM=fetch('data/st/meta.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ STM=null; throw e; }));
+const STF={}; const stFile=p=>STF[p]||(STF[p]=gzj('data/st/'+p+'.json.gz?v='+VER).catch(e=>{ delete STF[p]; throw e; }));
+const hav=(a,b,c,d)=>{ const r=Math.PI/180, x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2; return 2*6371e3*Math.asin(Math.sqrt(x)); };
+// 近くの記事の所在地を、市区町村 → 都道府県とたどる（日本語版の記事名で）
+async function nearChain(titles){
+  const pp=await wpq({action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:titles.slice(0,5).join('|')});
+  const ids=Object.values((pp.query&&pp.query.pages)||{}).map(p=>p.pageprops&&p.pageprops.wikibase_item).filter(Boolean); if(!ids.length) return [];
+  const up=async qs=>((await wdq({action:'wbgetentities',ids:qs.join('|'),props:'claims|sitelinks',sitefilter:'jawiki'})).entities||{});
+  const p131=e=>(((e.claims||{}).P131)||[]).filter(c=>c.rank!=='deprecated').map(c=>c.mainsnak.datavalue&&c.mainsnak.datavalue.value.id).filter(Boolean);
+  const E=await up(ids); const cnt={}; for(const e of Object.values(E)) for(const q of p131(e).slice(0,1)) cnt[q]=(cnt[q]||0)+1;
+  let q=(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]||[])[0]; const out=[];
+  for(let k=0;k<5&&q&&q!=='Q17';k++){ const e=(await up([q]))[q]; if(!e) break; const t=e.sitelinks&&e.sitelinks.jawiki&&e.sitelinks.jawiki.title; if(t) out.push(t); q=p131(e)[0]; }
+  return out; }
+async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L.map(x=>x.title));
+    const geo=(await stFile('geo')).map(([t,a,b])=>[t,hav(lat,lon,a,b)]).filter(x=>x[1]<=5000).sort((x,y)=>x[1]-y[1]).map(x=>x[0]);
+    const chain=await nearChain(L.map(x=>x.title)).catch(()=>[]);
+    const seen=new Set(), out=[];   // 細かい土地から順に（湘南 → 藤沢市 → 神奈川県）
+    for(const p of [...geo,...chain]){ const o=await stFile('p/'+(fnv(p)%M.nb));
+      for(const t of (o[p]||[])){ if(seen.has(t)||near.has(t)||t===champTitle()) continue; seen.add(t); out.push({t,d:dispT(p)+'が舞台',at:dispT(p)}); } }
+    return out; }catch(_){ return []; } }
+// 近くの記事の一覧のあとに、見出しつきで足す。最初の20件だけ見せて、残りは「もっと見る」で開く
+function nearAppend(ol,head,items,label){ const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'), FIRST=20;
+  tmp.innerHTML=[{mh:head},...items].map(m=>nearLi(m,P,false)).join(''); nearBind(tmp,false);
+  const li=[...tmp.children]; li.forEach((e,k)=>{ if(k>FIRST) e.hidden=true; });
+  const more=items.length>FIRST?Object.assign(document.createElement('li'),{className:'mh nmore',innerHTML:`<button type="button" class="btn small">${label}をもっと見る（残り${items.length-FIRST}）</button>`}):null;
+  ol.append(...li); if(more){ ol.append(more); more.querySelector('button').onclick=()=>{ li.forEach(e=>e.hidden=false); more.remove(); }; } famMark(); }
+"""
+repall("async function nearShow(lat,lon,label){", _st.strip()+"\nasync function nearShow(lat,lon,label){")
+repall("    const YP=nearYukari(L);", "    const YP=nearYukari(L), SP=nearStage(L,lat,lon);")
+repall("・ゆかりの人を探しています…`});", "・舞台の作品とゆかりの人を探しています…`});")
+rep_span("    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'), Y=await YP;", "more.remove(); }; } famMark(); }",
+  "    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'); if(!ol) return; const live=()=>dlg.open&&ol.isConnected;\n"
+  "    const S=await SP; if(!live()) return; if(S.length) nearAppend(ol,`この辺が舞台の作品（${S.length}作品）`,S,'舞台の作品');\n"
+  "    const Y=await YP; if(!live()) return;\n"
+  "    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.length?`・舞台の作品${S.length}`:''}${Y?`・ゆかりの人${Y.list.length}`:''}`;\n"
+  "    if(Y) nearAppend(ol,`ゆかりの人（${Y.town}生まれ・${Y.list.length}人）`,Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人'); }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

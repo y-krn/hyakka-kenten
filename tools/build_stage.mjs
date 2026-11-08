@@ -38,20 +38,32 @@ while (q.length) { const [cat, d] = q.shift(); const m = await members(cat);
 console.log('カテゴリ', seen.size, '土地', RAW.size);
 // 2. 土地の名前を記事名にそろえ、位置を取る
 const ALIAS = { '東京': '東京都' };
-const names = [...RAW.keys()]; const NORM = {}, COORD = {};
+const names = [...RAW.keys()]; const NORM = {}, COORD = {}, QID = {}, TO = {};
 for (let i = 0; i < names.length; i += 50) { const part = names.slice(i, i + 50).map(n => ALIAS[n] || n);
-  const j = await api({ action: 'query', titles: part.join('|'), redirects: 1, prop: 'coordinates|pageprops', ppprop: 'disambiguation', colimit: 'max' });
+  const j = await api({ action: 'query', titles: part.join('|'), redirects: 1, prop: 'coordinates|pageprops', ppprop: 'disambiguation|wikibase_item', colimit: 'max' });
   const qq = j.query || {}; const mp = {}; for (const r of [...(qq.normalized || []), ...(qq.redirects || [])]) mp[r.from] = r.to;
   const pages = Object.values(qq.pages || {});
   for (const [k, n] of names.slice(i, i + 50).entries()) { let t = part[k]; for (let s = 0; s < 3 && mp[t]; s++) t = mp[t];
     const pg = pages.find(p => p.title === t); if (!pg || pg.missing !== undefined || (pg.pageprops && pg.pageprops.disambiguation !== undefined)) continue;
-    NORM[n] = t; if (pg.coordinates && pg.coordinates[0]) COORD[t] = [+pg.coordinates[0].lat.toFixed(4), +pg.coordinates[0].lon.toFixed(4)]; }
+    NORM[n] = t; if (pg.pageprops && pg.pageprops.wikibase_item) QID[t] = pg.pageprops.wikibase_item; if (pg.coordinates && pg.coordinates[0]) COORD[t] = [+pg.coordinates[0].lat.toFixed(4), +pg.coordinates[0].lon.toFixed(4)]; }
   await sleep(100); }
 const PREF = new Set('北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県 石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県 岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県'.split(' '));
 const ADMIN = t => PREF.has(t) || /[市区町村郡]( \([^()]+\))?$/.test(t);
+// 2b. 記事に位置がない土地（湘南・浅草など）は、Wikidata の位置（P625）を使う。それもなければ、所在地（P131）の市区町村に寄せる
+async function wd(p) { for (let tr = 0; tr < 6; tr++) { try { const j = await (await fetch('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ format: 'json', ...p }), { headers: { 'User-Agent': UA } })).json(); if (!j.error) return j; } catch (_) {} await sleep(3000 * (tr + 1)); } return {}; }
+const NOC = [...new Set(Object.values(NORM))].filter(t => !ADMIN(t) && !COORD[t] && QID[t]); const UP = {};
+for (let i = 0; i < NOC.length; i += 50) { const part = NOC.slice(i, i + 50); const d = await wd({ action: 'wbgetentities', ids: part.map(t => QID[t]).join('|'), props: 'claims' });
+  for (const t of part) { const c = ((d.entities || {})[QID[t]] || {}).claims || {}; const v = s => (c[s] || []).filter(x => x.rank !== 'deprecated').map(x => x.mainsnak.datavalue && x.mainsnak.datavalue.value).filter(Boolean);
+    const co = v('P625')[0]; if (co) COORD[t] = [+co.latitude.toFixed(4), +co.longitude.toFixed(4)]; else { const u = v('P131')[0]; if (u) UP[t] = u.id; } }
+  await sleep(200); }
+const UQ = [...new Set(Object.values(UP))];
+for (let i = 0; i < UQ.length; i += 50) { const d = await wd({ action: 'wbgetentities', ids: UQ.slice(i, i + 50).join('|'), props: 'sitelinks', sitefilter: 'jawiki' });
+  for (const [t, q] of Object.entries(UP)) { const e = (d.entities || {})[q]; const jt = e && e.sitelinks && e.sitelinks.jawiki && e.sitelinks.jawiki.title; if (jt && ADMIN(jt)) TO[t] = jt; }
+  await sleep(200); }
+console.log('位置なしの土地', NOC.length, '→ Wikidata の位置', NOC.filter(t => COORD[t]).length, '・市区町村に寄せる', Object.keys(TO).length);
 // 3. 索引にする
 const P = {}; let nw = 0;
-for (const [n, s] of RAW) { const t = NORM[n]; if (!t) continue; if (!ADMIN(t) && !COORD[t]) continue;   // 市区町村・都道府県でもなく位置もない土地は引けない
+for (const [n, s] of RAW) { let t = NORM[n]; if (!t) continue; if (!ADMIN(t) && !COORD[t] && TO[t]) t = TO[t]; if (!ADMIN(t) && !COORD[t]) continue;   // 市区町村・都道府県でもなく位置もない土地は引けない
   const set = P[t] || (P[t] = new Set()); for (const w of s) if (w !== t) set.add(w); }
 const W = new Set(); for (const s of Object.values(P)) for (const w of s) W.add(w);
 rmSync('data/st', { recursive: true, force: true }); mkdirSync('data/st/p', { recursive: true });
