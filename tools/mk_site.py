@@ -1756,6 +1756,35 @@ function nearBook(){ const a=pickLoad(); if(!a.length) return; nearOpen(a.map(x=
 if(typeof window!=='undefined'&&typeof document!=='undefined'&&document.getElementById('nearhere')){
   if(!navigator.geolocation) $('#near').hidden=true; else { $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; nearBookBtn(); } }""")
 
+# ---- 74. 試作：拾った選手を主軸に（自由対戦と王座戦は、拾った選手で戦う。戦績が選手帳に貯まる）----
+#   名前で記事を選ぶ入口をなくし、「この辺の記事」で拾った選手から選ぶ。URL・仲間図鑑・代表戦・今日の一戦からの試合は「観戦」として残る
+# 「この辺の記事」を、見つけるの中から、自由対戦の上の独立した欄に出す
+repall('<div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所の近くにある記事を拾って、戦わせる。歩けば、拾える選手が変わる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></div>\n    ', '')
+repall('<section id="setup" class="card"', '<section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></section>\n\n  <section id="setup" class="card"')
+repall("input,select,textarea{font-size:16px!important}\n", "input,select,textarea{font-size:16px!important}\n#near.nearcard{padding:16px;display:flex;flex-direction:column;gap:10px}#near .trow{display:flex;gap:10px;flex-wrap:wrap}#near .fsub{margin:0;font-size:12px;color:var(--muted)}\n#throne select#chT{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}\n")
+repall('<span>好きな2記事を選んで戦わせる。結果は記録に残りません</span>', '<span>拾った選手どうしを戦わせる。勝ち負けは選手帳に残ります</span>')
+# 自由対戦の入口：記事名の入力とランダムをやめて、選手帳から選ぶ
+repall('el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?\'\':esc(F[i][0])}" aria-label="${side===0?\'青コーナー\':\'赤コーナー\'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>',
+       'el.innerHTML=`<div class="row"><button type="button" class="btn small" data-book="${side}">${i===null?\'選手帳から選ぶ\':\'選手を替える\'}</button></div>')
+repall("${i===null?'<div class=\"empty\">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;", "${i===null?'<div class=\"empty\">'+(pickLoad().length?'選手帳から、拾った選手を選んでください。':'まだ選手がいません。上の「現在地で探す」で、近くの記事を拾ってください。')+'</div>':fighterCard(i)}`;\n  el.querySelector('[data-book]').onclick=()=>{ if(pickLoad().length) nearBook(); else { $('#near').scrollIntoView({behavior:'smooth',block:'center'}); nearMsg('まずは「現在地で探す」で、近くの記事を拾ってください。'); } };\n  if(!el.querySelector('input')) return;")
+repall("$('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };",
+       "$('#omakase').onclick=async()=>{ const a=pickLoad().map(x=>x.t).filter(t=>t!==champTitle()); if(a.length<2){ $('#near').scrollIntoView({behavior:'smooth',block:'center'}); nearMsg('選手が2人以上いると、おまかせで組めます。近くの記事を拾ってください。'); return; }\n  const k=Math.floor(Math.random()*a.length); let m=Math.floor(Math.random()*(a.length-1)); if(m>=k) m++;\n  const [x,y]=await Promise.all([loadTitle(a[k]),loadTitle(a[m])]); if(x<0||y<0) return; sel[0]=x; sel[1]=y; streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };")
+# 最初の組み合わせ：選手が2人以上いれば選手帳から。いなければ空のまま
+repall("const [x,y]=await Promise.all([rnd([],1),rnd([],1)]);", "const PK=pickLoad().map(x=>x.t).filter(t=>t!==champTitle()); if(PK.length>=2){ const [x,y]=await Promise.all([loadTitle(PK[0]),loadTitle(PK[1])]); if(x>=0&&y>=0){ sel[0]=x; sel[1]=y; } }")
+repall(" await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す\n  sel[0]=NORAND.has(F[x][1])?await rnd([y],1):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]],1):y;", "   // 選手が2人以上いれば、選手帳の新しい2人を最初の組み合わせに")
+# 戦績：拾った選手が戦ったら、勝ち負けと倒した相手を選手帳に残す（今日の一戦と、記録の再生は数えない）
+repall("  saveRec(); renderRec();\n  const nm=i=>i===null?'引き分け':F[i][0];", "  saveRec(); renderRec(); if(!current.today&&!(M&&M.replay)) pickRecord(ai,bi,w);\n  const nm=i=>i===null?'引き分け':F[i][0];")
+repall("function nearBookBtn(){", "function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;\n  for(const [me,op] of [[a,b],[b,a]]){ const x=A.find(p=>p.t===F[me][1]); if(!x) continue; ch=true;\n    if(w===null) x.dr=(x.dr||0)+1; else if(w===me){ x.w=(x.w||0)+1; x.beat=[F[op][1],...(x.beat||[]).filter(t=>t!==F[op][1])].slice(0,30); } else x.l=(x.l||0)+1; }\n  if(ch) pickSave(A); }\nconst pickRec=x=>(x.w||x.l||x.dr)?`${x.w||0}勝${x.l||0}敗${x.dr?x.dr+'分':''}`:'まだ戦っていない';\nfunction nearBookBtn(){")
+repall("nearOpen(a.map(x=>({t:x.t,d:x.at?x.at+'で拾った':'',at:x.at})),{kick:'拾った選手',title:'拾った選手',sub:`${a.length}人（新しい順）`,book:true}); }",
+       "nearOpen(a.map(x=>({t:x.t,d:pickRec(x)+(x.at?'・'+x.at+'で拾った':''),at:x.at})),{kick:'選手帳',title:'あなたの選手',sub:`${a.length}人（新しい順）。青コーナー・赤コーナーを選んで戦わせる`,book:true}); }")
+repall("b.textContent='拾った選手（'+n+'）'; }", "b.textContent='選手帳（'+n+'人）'; }")
+# 王座戦：挑戦は、選手帳の選手から選ぶ
+repall('<form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>',
+       '<form id="chf"><select id="chT" aria-label="挑戦する選手"><option value="">${pickLoad().length?\'挑戦する選手を選ぶ\':\'選手がいません（上で拾ってください）\'}</option>${pickLoad().filter(x=>x.t!==c.title).map(x=>`<option value="${esc(x.t)}">${esc(dispT(x.t))}（${esc(pickRec(x))}）</option>`).join(\'\')}</select>')
+repall('勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。', '挑めるのは、拾った選手だけ。勝てば、あなたの選手が次の王者。同じ組み合わせで挑めるのは1回だけです。')
+repall("const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;\n  const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };\n  inp.addEventListener('change',chk);\n  inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;\n    try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();\n      showSugg(inp,dl,list); }catch(_){} },250); });",
+       "const inp=$('#chT'); CHOPT=new Set(pickLoad().map(x=>x.t));\n  const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };\n  inp.addEventListener('change',chk); chk();")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

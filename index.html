@@ -378,6 +378,8 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overflow-x:clip;max-width:100%}
 input,select,textarea{font-size:16px!important}
+#near.nearcard{padding:16px;display:flex;flex-direction:column;gap:10px}#near .trow{display:flex;gap:10px;flex-wrap:wrap}#near .fsub{margin:0;font-size:12px;color:var(--muted)}
+#throne select#chT{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 #find #nearmsg{margin-top:6px}
 #famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}
 #famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
@@ -399,8 +401,10 @@ input,select,textarea{font-size:16px!important}
 
   <section id="throne" class="card" hidden aria-live="polite"></section>
 
+  <section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></section>
+
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
-    <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる。結果は記録に残りません</span></div>
+    <div class="sechead"><h2>自由対戦</h2><span>拾った選手どうしを戦わせる。勝ち負けは選手帳に残ります</span></div>
     <div class="setup">
       <div class="card pick A" id="pickA"></div>
       <div class="vsmark">VS</div>
@@ -417,7 +421,6 @@ input,select,textarea{font-size:16px!important}
 
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
-    <div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所の近くにある記事を拾って、戦わせる。歩けば、拾える選手が変わる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></div>
     <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
   <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
 
@@ -992,9 +995,11 @@ function fighterCard(i){ const f=F[i];
   <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
-  el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
+  el.innerHTML=`<div class="row"><button type="button" class="btn small" data-book="${side}">${i===null?'選手帳から選ぶ':'選手を替える'}</button></div>
   <div class="pmsg" aria-live="polite"></div>
-  ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
+  ${i===null?'<div class="empty">'+(pickLoad().length?'選手帳から、拾った選手を選んでください。':'まだ選手がいません。上の「現在地で探す」で、近くの記事を拾ってください。')+'</div>':fighterCard(i)}`;
+  el.querySelector('[data-book]').onclick=()=>{ if(pickLoad().length) nearBook(); else { $('#near').scrollIntoView({behavior:'smooth',block:'center'}); nearMsg('まずは「現在地で探す」で、近くの記事を拾ってください。'); } };
+  if(!el.querySelector('input')) return;
   famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, seq=0, OPT=new Set();
   inp.addEventListener('input',()=>{ updateFight(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==seq) return; OPT=new Set(list);
@@ -1014,7 +1019,9 @@ const pickOK=s=>{ const i=sel[s]; if(i===null) return false; const e=$('#in'+s);
 function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }
   $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));
   const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class="a">${n(0)}</span><span class="vs">VS</span><span class="b">${n(1)}</span>`; }
-$('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
+$('#omakase').onclick=async()=>{ const a=pickLoad().map(x=>x.t).filter(t=>t!==champTitle()); if(a.length<2){ $('#near').scrollIntoView({behavior:'smooth',block:'center'}); nearMsg('選手が2人以上いると、おまかせで組めます。近くの記事を拾ってください。'); return; }
+  const k=Math.floor(Math.random()*a.length); let m=Math.floor(Math.random()*(a.length-1)); if(m>=k) m++;
+  const [x,y]=await Promise.all([loadTitle(a[k]),loadTitle(a[m])]); if(x<0||y<0) return; sel[0]=x; sel[1]=y; streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
 $('#fight').onclick=()=>startBattle();
 
 /* ---------- 対戦 ---------- */
@@ -1062,7 +1069,7 @@ function showResult(){
   const M=current.mode;
   if(M) streak={idx:null,n:0};
   else if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};
-  saveRec(); renderRec();
+  saveRec(); renderRec(); if(!current.today&&!(M&&M.replay)) pickRecord(ai,bi,w);
   const nm=i=>i===null?'引き分け':F[i][0];
   const mv=(arr)=>arr.slice(0,3).map(d=>'【'+esc(d.move)+'】').join('')+(arr.length>3?'ほか'+(arr.length-3)+'つ':'');
   const decW=dec.filter(d=>d.alt!==w);   // 外すと勝者が変わるものだけ
@@ -1254,7 +1261,12 @@ const pickLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-picked')||'
 const pickSave=a=>{ try{ localStorage.setItem('hk-picked',JSON.stringify(a.slice(0,300))); }catch(_){} };
 const fmtD=m=>m<1000?Math.max(10,Math.round(m/10)*10)+'m':(m/1000).toFixed(1)+'km';
 const dispT=t=>t.replace(/\s*\([^()]*\)$/,'');
-function nearBookBtn(){ const b=$('#nearbook'); if(!b) return; const n=pickLoad().length; b.style.display=n?'':'none'; b.textContent='拾った選手（'+n+'）'; }
+function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;
+  for(const [me,op] of [[a,b],[b,a]]){ const x=A.find(p=>p.t===F[me][1]); if(!x) continue; ch=true;
+    if(w===null) x.dr=(x.dr||0)+1; else if(w===me){ x.w=(x.w||0)+1; x.beat=[F[op][1],...(x.beat||[]).filter(t=>t!==F[op][1])].slice(0,30); } else x.l=(x.l||0)+1; }
+  if(ch) pickSave(A); }
+const pickRec=x=>(x.w||x.l||x.dr)?`${x.w||0}勝${x.l||0}敗${x.dr?x.dr+'分':''}`:'まだ戦っていない';
+function nearBookBtn(){ const b=$('#nearbook'); if(!b) return; const n=pickLoad().length; b.style.display=n?'':'none'; b.textContent='選手帳（'+n+'人）'; }
 function nearMsg(t){ const e=$('#nearmsg'); if(e) e.textContent=t||''; }
 async function wpq(p){ return fetch(WPAPI+'?'+new URLSearchParams({format:'json',origin:'*',...p}),{headers:{'Api-User-Agent':NEAR_UA}}).then(r=>r.json()); }
 // 近くの記事：1km → 3km → 10km と広げて、百科拳典に収録している記事が8つ以上見つかるまで（保留の記事は索引にないので出ない）
@@ -1286,7 +1298,7 @@ function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');
   navigator.geolocation.getCurrentPosition(p=>nearShow(p.coords.latitude,p.coords.longitude,'現在地'),
     ()=>nearMsg('現在地を使えませんでした。位置情報の利用を許可してから、もう一度押してください。'),{enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
-function nearBook(){ const a=pickLoad(); if(!a.length) return; nearOpen(a.map(x=>({t:x.t,d:x.at?x.at+'で拾った':'',at:x.at})),{kick:'拾った選手',title:'拾った選手',sub:`${a.length}人（新しい順）`,book:true}); }
+function nearBook(){ const a=pickLoad(); if(!a.length) return; nearOpen(a.map(x=>({t:x.t,d:pickRec(x)+(x.at?'・'+x.at+'で拾った':''),at:x.at})),{kick:'選手帳',title:'あなたの選手',sub:`${a.length}人（新しい順）。青コーナー・赤コーナーを選んで戦わせる`,book:true}); }
 if(typeof window!=='undefined'&&typeof document!=='undefined'&&document.getElementById('nearhere')){
   if(!navigator.geolocation) $('#near').hidden=true; else { $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; nearBookBtn(); } }
 const famURL=key=>location.origin+'/?fam='+encodeURIComponent(key);
@@ -1567,19 +1579,16 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <div class="hallgo"><button type="button" class="btn small" id="hallopen">王者の殿堂 ▶</button></div>
   <details class="thx" id="thx"${THOPEN||msg?' open':''}><summary>この王者に挑む・王座戦の記録</summary>
   
-  <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
+  <form id="chf"><select id="chT" aria-label="挑戦する選手"><option value="">${pickLoad().length?'挑戦する選手を選ぶ':'選手がいません（上で拾ってください）'}</option>${pickLoad().filter(x=>x.t!==c.title).map(x=>`<option value="${esc(x.t)}">${esc(dispT(x.t))}（${esc(pickRec(x))}）</option>`).join('')}</select>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
-  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>
+  <div class="meta thn">挑めるのは、拾った選手だけ。勝てば、あなたの選手が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
 </details>`;
   $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall();
-  const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;
+  const inp=$('#chT'); CHOPT=new Set(pickLoad().map(x=>x.t));
   const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };
-  inp.addEventListener('change',chk);
-  inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;
-    try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();
-      showSugg(inp,dl,list); }catch(_){} },250); });
+  inp.addEventListener('change',chk); chk();
   $('#chf').onsubmit=e=>{ e.preventDefault(); doChallenge(); };
   el.querySelectorAll('[data-c]').forEach(a=>a.onclick=e=>{ e.preventDefault(); replayChallenge(+a.dataset.c); }); }
 // 王者の殿堂：防衛5回以上の王者を称える札と、記録、歴代王者
@@ -1669,8 +1678,7 @@ renderRec();
   N=m.n-(m.hold||0); NB=m.nb; VER=m.build||m.asof; POPULAR=m.popular||[]; EXCL=new Set(ex); setCount(); famToday(); mineInit(); todayInit();
   const nrP=Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>{ NORAND=new Set([...a,...h]); }).catch(()=>{});
   if(await openShared()) return;
-  const [x,y]=await Promise.all([rnd([],1),rnd([],1)]); await nrP;   // 2記事を同時に読む。ランダムに出さない記事に当たっていたら引き直す
-  sel[0]=NORAND.has(F[x][1])?await rnd([y],1):x; sel[1]=(y===sel[0]||NORAND.has(F[y][1]))?await rnd([sel[0]],1):y;
+  const PK=pickLoad().map(x=>x.t).filter(t=>t!==champTitle()); if(PK.length>=2){ const [x,y]=await Promise.all([loadTitle(PK[0]),loadTitle(PK[1])]); if(x>=0&&y>=0){ sel[0]=x; sel[1]=y; } }   // 選手が2人以上いれば、選手帳の新しい2人を最初の組み合わせに
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();
 </script>
