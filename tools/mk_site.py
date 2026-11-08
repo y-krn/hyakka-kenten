@@ -1785,6 +1785,33 @@ repall('勝てば、あなたの記事が次の王者。同じ組み合わせで
 repall("const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;\n  const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };\n  inp.addEventListener('change',chk);\n  inp.addEventListener('input',()=>{ chk(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++sq;\n    try{ const list=await suggest(v,t=>t===champTitle()); if(my!==sq) return; CHOPT=new Set(list); chk();\n      showSugg(inp,dl,list); }catch(_){} },250); });",
        "const inp=$('#chT'); CHOPT=new Set(pickLoad().map(x=>x.t));\n  const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };\n  inp.addEventListener('change',chk); chk();")
 
+# ---- 75. 試作：ゆかりの人（近くで探したとき、その市区町村で生まれた有名人も拾える）----
+#   いちばん近い記事たちの所在地（Wikidata の P131）を市区町村までたどり、代表戦の出身地の索引（data/bd/p）から生まれた人を出す
+_yk = r"""
+// ゆかりの人：近くの記事の所在地を Wikidata でたどって市区町村を決め、そこで生まれた有名人（代表戦の出身地の索引）を出す
+async function wdq(p){ return fetch('https://www.wikidata.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',...p}),{headers:{'Api-User-Agent':NEAR_UA}}).then(r=>r.json()); }
+async function nearTown(titles){
+  const pp=await wpq({action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:titles.slice(0,5).join('|')});
+  const ids=Object.values((pp.query&&pp.query.pages)||{}).map(p=>p.pageprops&&p.pageprops.wikibase_item).filter(Boolean); if(!ids.length) return null;
+  const up=async qs=>{ const d=await wdq({action:'wbgetentities',ids:qs.join('|'),props:'claims|labels',languages:'ja'}); return d.entities||{}; };
+  const p131=e=>(((e.claims||{}).P131)||[]).filter(c=>c.rank!=='deprecated').map(c=>c.mainsnak.datavalue&&c.mainsnak.datavalue.value.id).filter(Boolean);
+  let E=await up(ids); const cnt={}; for(const e of Object.values(E)) for(const q of p131(e).slice(0,1)) cnt[q]=(cnt[q]||0)+1;
+  let q=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]; if(!q) return null; q=q[0];
+  const M=await bdMeta(); const has=async k=>{ const o=await bdFile('p/'+(fnv(k)%M.nbp)); return o[k]?k:null; };
+  for(let k=0;k<4&&q;k++){ E=await up([q]); const e=E[q]; if(!e) break; const lab=(e.labels&&e.labels.ja&&e.labels.ja.value)||'';
+    if(/[市区町村]$/.test(lab)&&await has(lab)) return lab; q=p131(e)[0]; }
+  return null; }
+async function nearYukari(L){ try{ const town=await nearTown(L.map(x=>x.title)); if(!town) return null;
+    const P=new Set(L.map(x=>x.title)); const ns=(await natives(town)).filter(x=>!P.has(x.t)&&x.t!==champTitle()).slice(0,8);
+    const ok=await Promise.all(ns.map(x=>inData(x.t))); const list=ns.filter((x,i)=>ok[i]); return list.length?{town,list}:null; }catch(_){ return null; } }
+"""
+repall("async function nearShow(lat,lon,label){", _yk.strip()+"\nasync function nearShow(lat,lon,label){")
+repall("  try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }",
+       "  try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }\n    nearMsg('ゆかりの人を探しています…'); const Y=await nearYukari(L);")
+repall("    nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`現在地から近い順に${L.length}記事`}); }",
+       "    const items=[...(Y?[{mh:`ゆかりの人（${Y.town}生まれ）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),{mh:'この辺の記事（近い順）'}]:[]),...L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'}))];\n    nearMsg(''); nearOpen(items,{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}${Y?`、ゆかりの人${Y.list.length}`:''}`}); }")
+repall('<ol class="flist near">${items.map(m=>`<li>', '<ol class="flist near">${items.map(m=>m.mh?`<li class="mh">${esc(m.mh)}</li>`:`<li>')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
