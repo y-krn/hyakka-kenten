@@ -37,6 +37,7 @@ for f in glob.glob(os.path.join(D, 'a', '*.json.gz')):
     for t, r in json.load(gzip.open(f)).items():
         ff = r.get('f') or []
         if len(ff) < 9 or t in NOR or held(t, r): continue
+        if str(ff[6] if len(ff) > 6 else '').startswith('存命人物') and re.search('天皇|皇族|内親王|親王|皇后|皇太子|上皇|秋篠宮|宮家', ' '.join([t, *((r.get('gen') or {}).get('cc') or [])])): continue   # 存命の皇族は、代表戦・ゆかりの人に出さない
         g = r.get('gen') or {}
         if NG.search(' '.join([t, g.get('c') or '', *(g.get('cc') or [])])): continue
         pv = next((e[5] or 0 for e in (r.get('ext') or []) if e[0] == '_m'), 0)

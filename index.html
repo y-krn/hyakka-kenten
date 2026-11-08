@@ -382,7 +382,7 @@ input,select,textarea{font-size:16px!important}
 #throne select#chT{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 #find #nearmsg{margin-top:6px}
 #famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}
-#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
+#famdlg .flist li[hidden]{display:none}#famdlg .flist li.nmore{text-align:center;padding:12px 0}#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
 #famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}
    /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
 </style>
@@ -1315,8 +1315,10 @@ async function nearShow(lat,lon,label){ nearMsg('近くの記事を探してい�
     nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・ゆかりの人を探しています…`});
     const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'), Y=await YP; if(!ol||!dlg.open||!ol.isConnected) return;
     const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${Y?`・ゆかりの人${Y.list.length}`:''}`; if(!Y) return;
-    const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'); tmp.innerHTML=[{mh:`ゆかりの人（${Y.town}生まれ）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),{mh:'この辺の記事（近い順）'}].map(m=>nearLi(m,P,false)).join('');
-    nearBind(tmp,false); ol.prepend(...tmp.children); famMark(); }
+    const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'), FIRST=20; tmp.innerHTML=[{mh:`ゆかりの人（${Y.town}生まれ・${Y.list.length}人）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town}))].map(m=>nearLi(m,P,false)).join('');
+    nearBind(tmp,false); [...tmp.children].forEach((li,k)=>{ if(k>FIRST) li.hidden=true; });   // 近くの記事のあとに足す。ゆかりの人は最初の20人だけ見せて、残りは「もっと見る」で開く
+    const more=Y.list.length>FIRST?Object.assign(document.createElement('li'),{className:'mh nmore',innerHTML:`<button type="button" class="btn small">ゆかりの人をもっと見る（残り${Y.list.length-FIRST}人）</button>`}):null;
+    ol.append(...tmp.children); if(more){ ol.append(more); more.querySelector('button').onclick=()=>{ ol.querySelectorAll('li[hidden]').forEach(li=>li.hidden=false); more.remove(); }; } famMark(); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
 function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');
