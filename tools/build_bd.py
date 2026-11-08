@@ -12,6 +12,7 @@ D = os.path.join(os.path.dirname(__file__), '..', 'data')
 NOR = set(json.load(open(os.path.join(D, 'norand.json'))))
 # 代表としておすすめしにくいもの（武器・反社会的勢力・事件など）は外す
 NG = re.compile(r'銃|兵器|武器|爆弾|ミサイル|戦車|戦闘機|軍艦|弾薬|ヤクザ|暴力団|犯罪|事件|殺人|テロ|死刑|詐欺|性的|ポルノ|AV女優|アダルト')
+ROYAL = re.compile(r'皇族|内親王|親王|皇后|皇太子|天皇の子女|日本の天皇|^上皇$')
 Y0, Y1 = 1900, datetime.date.today().year
 NBP = 256
 UA = 'hyakka-kenten-build/1.0 (https://github.com/y-krn/hyakka-kenten)'
@@ -37,7 +38,8 @@ for f in glob.glob(os.path.join(D, 'a', '*.json.gz')):
     for t, r in json.load(gzip.open(f)).items():
         ff = r.get('f') or []
         if len(ff) < 9 or t in NOR or held(t, r): continue
-        if str(ff[6] if len(ff) > 6 else '').startswith('存命人物') and re.search('天皇|皇族|内親王|親王|皇后|皇太子|上皇|秋篠宮|宮家', ' '.join([t, *((r.get('gen') or {}).get('cc') or [])])): continue   # 存命の皇族は、代表戦・ゆかりの人に出さない
+        # 存命の皇族は、代表戦・ゆかりの人に出さない。記事名ではなくカテゴリで見る（名字が「宮家」の人や侍従長を外さないように）。「旧皇族」だけの人（皇籍を離れた家の子孫）は残す
+        if str(ff[6] if len(ff) > 6 else '').startswith('存命人物') and any(ROYAL.search(c) for c in ((r.get('gen') or {}).get('cc') or []) if c != '旧皇族'): continue
         g = r.get('gen') or {}
         if NG.search(' '.join([t, g.get('c') or '', *(g.get('cc') or [])])): continue
         pv = next((e[5] or 0 for e in (r.get('ext') or []) if e[0] == '_m'), 0)
