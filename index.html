@@ -1279,7 +1279,8 @@ function nearOpen(items,{kick,title,sub,book}){ const dlg=$('#famdlg'); if(!dlg)
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
 async function nearShow(lat,lon,label){ nearMsg('近くの記事を探しています…');
   try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }
-    nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:label})),{kick:'この辺の記事',title:label+'の近く',sub:`${L.length}記事（近い順）`}); }
+    const lm=dispT(L[0].title);   // 拾った場所は、いちばん近い記事の名前で覚える（「東京駅の近く」のように）
+    nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`現在地から近い順に${L.length}記事`}); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
 function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');
