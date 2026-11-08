@@ -382,7 +382,7 @@ input,select,textarea{font-size:16px!important}
 #throne select#chT{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 #find #nearmsg{margin-top:6px}
 #famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}
-#famdlg .flist li[hidden]{display:none}#famdlg .flist li.nmore{text-align:center;padding:12px 0}#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
+#famdlg .flist li.nprog{font-weight:normal;font-size:13px;line-height:1.6;padding:10px 0}#famdlg .nprog .pg{display:inline-block;margin:4px 12px 0 0;white-space:nowrap}#famdlg .nprog b{font-weight:700}#famdlg .flist li[hidden]{display:none}#famdlg .flist li.nmore{text-align:center;padding:12px 0}#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
 #famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}
    /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
 </style>
@@ -401,7 +401,7 @@ input,select,textarea{font-size:16px!important}
 
   <section id="throne" class="card" hidden aria-live="polite"></section>
 
-  <section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></section>
+  <section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button></div><p class="fsub" id="nearseen"></p><p class="fsub" id="nearmsg" aria-live="polite"></p></section>
 
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
     <div class="sechead"><h2>自由対戦</h2><span>拾った選手どうしを戦わせる。勝ち負けは選手帳に残ります</span></div>
@@ -1266,7 +1266,7 @@ function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;
     if(w===null) x.dr=(x.dr||0)+1; else if(w===me){ x.w=(x.w||0)+1; x.beat=[F[op][1],...(x.beat||[]).filter(t=>t!==F[op][1])].slice(0,30); } else x.l=(x.l||0)+1; }
   if(ch) pickSave(A); }
 const pickRec=x=>(x.w||x.l||x.dr)?`${x.w||0}勝${x.l||0}敗${x.dr?x.dr+'分':''}`:'まだ戦っていない';
-function nearBookBtn(){ const b=$('#nearbook'); if(!b) return; const n=pickLoad().length; b.style.display=n?'':'none'; b.textContent='選手帳（'+n+'人）'; }
+function nearBookBtn(){ const b=$('#nearbook'); if(!b) return; const n=pickLoad().length; b.style.display=n?'':'none'; b.textContent='選手帳（'+n+'人）'; const sn=Object.keys(seenLoad()).length, e=$('#nearseen'); if(e) e.textContent=sn?'図鑑：これまでに見つけた記事 '+sn+'件':''; }
 function nearMsg(t){ const e=$('#nearmsg'); if(e) e.textContent=t||''; }
 async function wpq(p){ return fetch(WPAPI+'?'+new URLSearchParams({format:'json',origin:'*',...p}),{headers:{'Api-User-Agent':NEAR_UA}}).then(r=>r.json()); }
 // 近くの記事：1km → 3km → 10km と広げて、百科拳典に収録している記事が8つ以上見つかるまで（保留の記事は索引にないので出ない）
@@ -1322,13 +1322,20 @@ async function nearChain(titles){
   let q=(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]||[])[0]; const out=[];
   for(let k=0;k<5&&q&&q!=='Q17';k++){ const e=(await up([q]))[q]; if(!e) break; const t=e.sitelinks&&e.sitelinks.jawiki&&e.sitelinks.jawiki.title; if(t) out.push(t); q=p131(e)[0]; }
   return out; }
-async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L.map(x=>x.title));
+// 歩いた場所（約500m四方）ごとに、出会う顔ぶれを決める。同じ場所なら毎回同じ顔ぶれ。町を歩き回るほど図鑑が埋まる
+const cellOf=(lat,lon)=>Math.floor(lat/0.005)+':'+Math.floor(lon/0.006);
+const cellPick=(key,list,n)=>list.map((t,i)=>[t,i,fnv(key+'|'+t)]).sort((a,b)=>a[2]-b[2]).slice(0,n).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L.map(x=>x.title)), cell=cellOf(lat,lon);
     const geo=(await stFile('geo')).map(([t,a,b])=>[t,hav(lat,lon,a,b)]).filter(x=>x[1]<=5000).sort((x,y)=>x[1]-y[1]).map(x=>x[0]);
     const chain=await nearChain(L.map(x=>x.title)).catch(()=>[]);
-    const seen=new Set(), out=[];   // 細かい土地から順に（湘南 → 藤沢市 → 神奈川県）
-    for(const p of [...geo,...chain]){ const o=await stFile('p/'+(fnv(p)%M.nb));
-      for(const t of (o[p]||[])){ if(seen.has(t)||near.has(t)||t===champTitle()) continue; seen.add(t); out.push({t,d:dispT(p)+'が舞台',at:dispT(p)}); } }
-    return out; }catch(_){ return []; } }
+    const seen=new Set(), out=[], lands=[];   // 細かい土地から順に（浅草 → 台東区 → 東京都）。都道府県は4作品、それより細かい土地は6作品ずつ
+    for(const p of [...geo,...chain]){ const o=await stFile('p/'+(fnv(p)%M.nb)); const all=(o[p]||[]).filter(t=>t!==champTitle()); if(!all.length) continue;
+      lands.push({k:dispT(p)+'が舞台の作品',all});
+      for(const t of cellPick(cell+p,all,/[都道府県]$/.test(p)?4:6)){ if(seen.has(t)||near.has(t)) continue; seen.add(t); out.push({t,d:dispT(p)+'が舞台',at:dispT(p)}); } }
+    return {items:out,lands}; }catch(_){ return {items:[],lands:[]}; } }
+// 図鑑：これまでに見つけた記事（この端末の中だけ。localStorage hk-seen）
+const seenLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-seen')||'{}'); }catch(_){ return {}; } };
+function seenAdd(ts){ const s=seenLoad(); let n=0; for(const t of ts) if(!s[t]){ s[t]=1; n++; } if(n) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} return n; }
 // 近くの記事の一覧のあとに、見出しつきで足す。最初の20件だけ見せて、残りは「もっと見る」で開く
 function nearAppend(ol,head,items,label){ const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'), FIRST=20;
   tmp.innerHTML=[{mh:head},...items].map(m=>nearLi(m,P,false)).join(''); nearBind(tmp,false);
@@ -1341,10 +1348,14 @@ async function nearShow(lat,lon,label){ nearMsg('近くの記事を探してい�
     const lm=dispT(L[0].title);   // 拾った場所は、いちばん近い記事の名前で覚える（「東京駅の近く」のように）
     nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・舞台の作品とゆかりの人を探しています…`});
     const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'); if(!ol) return; const live=()=>dlg.open&&ol.isConnected;
-    const S=await SP; if(!live()) return; if(S.length) nearAppend(ol,`この辺が舞台の作品（${S.length}作品）`,S,'舞台の作品');
-    const Y=await YP; if(!live()) return;
-    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.length?`・舞台の作品${S.length}`:''}${Y?`・ゆかりの人${Y.list.length}`:''}`;
-    if(Y) nearAppend(ol,`ゆかりの人（${Y.town}生まれ・${Y.list.length}人）`,Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人'); }
+    const S=await SP; if(!live()) return; if(S.items.length) nearAppend(ol,`この辺が舞台の作品（${S.items.length}作品）`,S.items,'舞台の作品');
+    const Y=await YP; if(!live()) return; const yk=new Set(Y?cellPick(cellOf(lat,lon)+Y.town,Y.list.map(x=>x.t),8):[]), YL=Y?Y.list.filter(x=>yk.has(x.t)):[];
+    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.items.length?`・舞台の作品${S.items.length}`:''}${YL.length?`・ゆかりの人${YL.length}`:''}`;
+    if(YL.length) nearAppend(ol,`ゆかりの人（${Y.town}生まれ）`,YL.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人');
+    const neu=seenAdd([...L.map(x=>x.title),...S.items.map(x=>x.t),...YL.map(x=>x.t)]), sv=seenLoad();   // 一覧に出た記事は、拾わなくても全部「見つけた」として図鑑に入る
+    const prog=[...S.lands.map(x=>[x.k,x.all]),...(Y?[[Y.town+'生まれの人',Y.list.map(x=>x.t)]]:[])].map(([k,a])=>`<span class="pg"><b>${esc(k)}</b> ${a.filter(t=>sv[t]).length}/${a.length}</span>`);
+    const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>図鑑：${neu?`新しく<b>${neu}</b>件見つけた`:'新しく見つけた記事はなし'}（これまでに${Object.keys(sv).length}件）。場所を変えると、出会う顔ぶれが変わる</div>${prog.join('')}`});
+    ol.prepend(box); nearBookBtn(); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
 function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');

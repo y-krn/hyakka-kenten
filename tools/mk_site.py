@@ -1712,7 +1712,7 @@ repall("function updateFight(){ ", "function updateFight(){ if(sel[0]!==null&&se
 #   現在地だけで探す（地名の検索はしない：その場に行かないと拾えないのが遊びの芯）。位置を取れない端末では、この欄を出さない
 #   拾った選手は、この端末の中だけに残す（localStorage hk-picked）
 repall('<div id="mine"><h3>あなたの代表戦</h3>', '<div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所の近くにある記事を拾って、戦わせる。歩けば、拾える選手が変わる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></div>\n    <div id="mine"><h3>あなたの代表戦</h3>')
-repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}\n#find #nearmsg{margin-top:6px}\n#famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}\n#famdlg .flist li[hidden]{display:none}#famdlg .flist li.nmore{text-align:center;padding:12px 0}#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}\n#famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}\n")
+repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}\n#find #nearmsg{margin-top:6px}\n#famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}\n#famdlg .flist li.nprog{font-weight:normal;font-size:13px;line-height:1.6;padding:10px 0}#famdlg .nprog .pg{display:inline-block;margin:4px 12px 0 0;white-space:nowrap}#famdlg .nprog b{font-weight:700}#famdlg .flist li[hidden]{display:none}#famdlg .flist li.nmore{text-align:center;padding:12px 0}#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}\n#famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}\n")
 repall("let FP=[null,null];", r"""let FP=[null,null];
 // ---- この辺の記事 ----
 const NEAR_UA='hyakka-kenten (+https://github.com/y-krn)', WPAPI='https://ja.wikipedia.org/w/api.php';
@@ -1760,7 +1760,7 @@ if(typeof window!=='undefined'&&typeof document!=='undefined'&&document.getEleme
 #   名前で記事を選ぶ入口をなくし、「この辺の記事」で拾った選手から選ぶ。URL・仲間図鑑・代表戦・今日の一戦からの試合は「観戦」として残る
 # 「この辺の記事」を、見つけるの中から、自由対戦の上の独立した欄に出す
 repall('<div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所の近くにある記事を拾って、戦わせる。歩けば、拾える選手が変わる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></div>\n    ', '')
-repall('<section id="setup" class="card"', '<section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></section>\n\n  <section id="setup" class="card"')
+repall('<section id="setup" class="card"', '<section id="near" class="card nearcard"><div class="sechead"><h2>選手を拾う</h2><span>いま居る場所の近くにあるWikipediaの記事が、あなたの選手になる。歩けば、拾える選手が変わる</span></div><div class="trow"><button type="button" class="btn big" id="nearhere">現在地で探す</button><button type="button" class="btn" id="nearbook" style="display:none">選手帳</button></div><p class="fsub" id="nearseen"></p><p class="fsub" id="nearmsg" aria-live="polite"></p></section>\n\n  <section id="setup" class="card"')
 repall("input,select,textarea{font-size:16px!important}\n", "input,select,textarea{font-size:16px!important}\n#near.nearcard{padding:16px;display:flex;flex-direction:column;gap:10px}#near .trow{display:flex;gap:10px;flex-wrap:wrap}#near .fsub{margin:0;font-size:12px;color:var(--muted)}\n#throne select#chT{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}\n")
 repall('<span>好きな2記事を選んで戦わせる。結果は記録に残りません</span>', '<span>拾った選手どうしを戦わせる。勝ち負けは選手帳に残ります</span>')
 # 自由対戦の入口：記事名の入力とランダムをやめて、選手帳から選ぶ
@@ -1777,7 +1777,7 @@ repall("  saveRec(); renderRec();\n  const nm=i=>i===null?'引き分け':F[i][0]
 repall("function nearBookBtn(){", "function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;\n  for(const [me,op] of [[a,b],[b,a]]){ const x=A.find(p=>p.t===F[me][1]); if(!x) continue; ch=true;\n    if(w===null) x.dr=(x.dr||0)+1; else if(w===me){ x.w=(x.w||0)+1; x.beat=[F[op][1],...(x.beat||[]).filter(t=>t!==F[op][1])].slice(0,30); } else x.l=(x.l||0)+1; }\n  if(ch) pickSave(A); }\nconst pickRec=x=>(x.w||x.l||x.dr)?`${x.w||0}勝${x.l||0}敗${x.dr?x.dr+'分':''}`:'まだ戦っていない';\nfunction nearBookBtn(){")
 repall("nearOpen(a.map(x=>({t:x.t,d:x.at?x.at+'で拾った':'',at:x.at})),{kick:'拾った選手',title:'拾った選手',sub:`${a.length}人（新しい順）`,book:true}); }",
        "nearOpen(a.map(x=>({t:x.t,d:pickRec(x)+(x.at?'・'+x.at+'で拾った':''),at:x.at})),{kick:'選手帳',title:'あなたの選手',sub:`${a.length}人（新しい順）。青コーナー・赤コーナーを選んで戦わせる`,book:true}); }")
-repall("b.textContent='拾った選手（'+n+'）'; }", "b.textContent='選手帳（'+n+'人）'; }")
+repall("b.textContent='拾った選手（'+n+'）'; }", "b.textContent='選手帳（'+n+'人）'; const sn=Object.keys(seenLoad()).length, e=$('#nearseen'); if(e) e.textContent=sn?'図鑑：これまでに見つけた記事 '+sn+'件':''; }")
 # 王座戦：挑戦は、選手帳の選手から選ぶ
 repall('<form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>',
        '<form id="chf"><select id="chT" aria-label="挑戦する選手"><option value="">${pickLoad().length?\'挑戦する選手を選ぶ\':\'選手がいません（上で拾ってください）\'}</option>${pickLoad().filter(x=>x.t!==c.title).map(x=>`<option value="${esc(x.t)}">${esc(dispT(x.t))}（${esc(pickRec(x))}）</option>`).join(\'\')}</select>')
@@ -1838,13 +1838,20 @@ async function nearChain(titles){
   let q=(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]||[])[0]; const out=[];
   for(let k=0;k<5&&q&&q!=='Q17';k++){ const e=(await up([q]))[q]; if(!e) break; const t=e.sitelinks&&e.sitelinks.jawiki&&e.sitelinks.jawiki.title; if(t) out.push(t); q=p131(e)[0]; }
   return out; }
-async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L.map(x=>x.title));
+// 歩いた場所（約500m四方）ごとに、出会う顔ぶれを決める。同じ場所なら毎回同じ顔ぶれ。町を歩き回るほど図鑑が埋まる
+const cellOf=(lat,lon)=>Math.floor(lat/0.005)+':'+Math.floor(lon/0.006);
+const cellPick=(key,list,n)=>list.map((t,i)=>[t,i,fnv(key+'|'+t)]).sort((a,b)=>a[2]-b[2]).slice(0,n).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+async function nearStage(L,lat,lon){ try{ const M=await stMeta(), near=new Set(L.map(x=>x.title)), cell=cellOf(lat,lon);
     const geo=(await stFile('geo')).map(([t,a,b])=>[t,hav(lat,lon,a,b)]).filter(x=>x[1]<=5000).sort((x,y)=>x[1]-y[1]).map(x=>x[0]);
     const chain=await nearChain(L.map(x=>x.title)).catch(()=>[]);
-    const seen=new Set(), out=[];   // 細かい土地から順に（湘南 → 藤沢市 → 神奈川県）
-    for(const p of [...geo,...chain]){ const o=await stFile('p/'+(fnv(p)%M.nb));
-      for(const t of (o[p]||[])){ if(seen.has(t)||near.has(t)||t===champTitle()) continue; seen.add(t); out.push({t,d:dispT(p)+'が舞台',at:dispT(p)}); } }
-    return out; }catch(_){ return []; } }
+    const seen=new Set(), out=[], lands=[];   // 細かい土地から順に（浅草 → 台東区 → 東京都）。都道府県は4作品、それより細かい土地は6作品ずつ
+    for(const p of [...geo,...chain]){ const o=await stFile('p/'+(fnv(p)%M.nb)); const all=(o[p]||[]).filter(t=>t!==champTitle()); if(!all.length) continue;
+      lands.push({k:dispT(p)+'が舞台の作品',all});
+      for(const t of cellPick(cell+p,all,/[都道府県]$/.test(p)?4:6)){ if(seen.has(t)||near.has(t)) continue; seen.add(t); out.push({t,d:dispT(p)+'が舞台',at:dispT(p)}); } }
+    return {items:out,lands}; }catch(_){ return {items:[],lands:[]}; } }
+// 図鑑：これまでに見つけた記事（この端末の中だけ。localStorage hk-seen）
+const seenLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-seen')||'{}'); }catch(_){ return {}; } };
+function seenAdd(ts){ const s=seenLoad(); let n=0; for(const t of ts) if(!s[t]){ s[t]=1; n++; } if(n) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} return n; }
 // 近くの記事の一覧のあとに、見出しつきで足す。最初の20件だけ見せて、残りは「もっと見る」で開く
 function nearAppend(ol,head,items,label){ const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'), FIRST=20;
   tmp.innerHTML=[{mh:head},...items].map(m=>nearLi(m,P,false)).join(''); nearBind(tmp,false);
@@ -1857,10 +1864,14 @@ repall("    const YP=nearYukari(L);", "    const YP=nearYukari(L), SP=nearStage(
 repall("・ゆかりの人を探しています…`});", "・舞台の作品とゆかりの人を探しています…`});")
 rep_span("    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'), Y=await YP;", "more.remove(); }; } famMark(); }",
   "    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'); if(!ol) return; const live=()=>dlg.open&&ol.isConnected;\n"
-  "    const S=await SP; if(!live()) return; if(S.length) nearAppend(ol,`この辺が舞台の作品（${S.length}作品）`,S,'舞台の作品');\n"
-  "    const Y=await YP; if(!live()) return;\n"
-  "    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.length?`・舞台の作品${S.length}`:''}${Y?`・ゆかりの人${Y.list.length}`:''}`;\n"
-  "    if(Y) nearAppend(ol,`ゆかりの人（${Y.town}生まれ・${Y.list.length}人）`,Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人'); }")
+  """    const S=await SP; if(!live()) return; if(S.items.length) nearAppend(ol,`この辺が舞台の作品（${S.items.length}作品）`,S.items,'舞台の作品');
+    const Y=await YP; if(!live()) return; const yk=new Set(Y?cellPick(cellOf(lat,lon)+Y.town,Y.list.map(x=>x.t),8):[]), YL=Y?Y.list.filter(x=>yk.has(x.t)):[];
+    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.items.length?`・舞台の作品${S.items.length}`:''}${YL.length?`・ゆかりの人${YL.length}`:''}`;
+    if(YL.length) nearAppend(ol,`ゆかりの人（${Y.town}生まれ）`,YL.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人');
+    const neu=seenAdd([...L.map(x=>x.title),...S.items.map(x=>x.t),...YL.map(x=>x.t)]), sv=seenLoad();   // 一覧に出た記事は、拾わなくても全部「見つけた」として図鑑に入る
+    const prog=[...S.lands.map(x=>[x.k,x.all]),...(Y?[[Y.town+'生まれの人',Y.list.map(x=>x.t)]]:[])].map(([k,a])=>`<span class="pg"><b>${esc(k)}</b> ${a.filter(t=>sv[t]).length}/${a.length}</span>`);
+    const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>図鑑：${neu?`新しく<b>${neu}</b>件見つけた`:'新しく見つけた記事はなし'}（これまでに${Object.keys(sv).length}件）。場所を変えると、出会う顔ぶれが変わる</div>${prog.join('')}`});
+    ol.prepend(box); nearBookBtn(); }""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
