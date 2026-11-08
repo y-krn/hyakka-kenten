@@ -1048,7 +1048,7 @@ function startBattle(pair){
   $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); };
 }
 function showResult(){
-  if(!current||current.shown) return; current.shown=true; if(current.today) setTimeout(()=>todayDone(current),0);
+  if(!current||current.shown) return; current.shown=true; if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
@@ -1579,11 +1579,11 @@ function renderKeep(d,msg){ const t=$('#chT'), n=$('#chN'); const prev={t:t?t.va
     if(r0!==null&&r0<innerHeight&&r0>-ring.offsetHeight){ const dy=ring.getBoundingClientRect().top-r0; if(Math.abs(dy)>1) scrollBy(0,dy); } }; }
 async function loadThrone(msg,keep){ if(!API) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(d&&d.champ){ keep?renderKeep(d,msg):renderThrone(d,msg); fixChamp(); } }catch(_){} }
 // 王者が変わっていたら、王座戦欄を新しくする（30秒ごと・タブに戻ったとき）
-async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(!d||!d.champ) return;
+async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; if(TH_HOLD&&Date.now()-TH_HOLD.at<300000) return; /* 試合中は王座の欄を変えない（5分たったら戻す） */ try{ const d=await fetch(API+'/api/throne').then(r=>r.json()); setAll(d); if(!d||!d.champ) return;
   const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました':($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
-let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true;
+let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;   // TH_HOLD：試合のあとに出す結果 {msg, at}
 function thTick(force){ if(document.hidden||(!TH_SEEN&&!force)||Date.now()-TH_ACT>600000) return; if(!force&&Date.now()-TH_LAST<120000) return; TH_LAST=Date.now(); refreshThrone(); }
 ['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{ const idle=Date.now()-TH_ACT>600000; TH_ACT=Date.now(); if(idle) thTick(true); },{passive:true}));
 try{ new IntersectionObserver(es=>{ TH_SEEN=es.some(e=>e.isIntersecting); if(TH_SEEN) thTick(); }).observe($('#throne')); }catch(_){}
@@ -1606,8 +1606,9 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
     d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
   // 対戦の中身をリングで見せる（同じ計算なので、サーバーと同じ結果になる）
   try{ const ae=document.activeElement; if(ae&&ae.blur) ae.blur(); }catch(_){}
-  await loadThrone(msg);
-  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); } }catch(_){} }
+  let shown=false; m.className='msg'; m.textContent='試合開始。結果は、試合のあとでここに出ます。';
+  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}
+  if(!shown){ TH_HOLD=null; await loadThrone(msg); } }
 // スマホのキーボードが閉じきるのを待つ（最大0.7秒）
 function kbClosed(){ const vv=window.visualViewport; if(!TOUCH||!vv) return Promise.resolve();
   return new Promise(res=>{ const t0=Date.now(); const ck=()=>{ if(vv.height>innerHeight-80||Date.now()-t0>700) res(); else setTimeout(ck,60); }; ck(); }); }
