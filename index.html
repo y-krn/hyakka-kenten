@@ -378,7 +378,6 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overflow-x:clip;max-width:100%}
 input,select,textarea{font-size:16px!important}
-#find .nearq{display:flex;gap:8px;margin-top:8px}#find .nearq input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 #find #nearmsg{margin-top:6px}
 #famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}
 #famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
@@ -418,7 +417,7 @@ input,select,textarea{font-size:16px!important}
 
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
-    <div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所や、駅名・地名の近くにある記事を拾って、戦わせる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><form class="trow nearq" id="nearform"><input id="nearq" type="search" placeholder="駅名・地名（例：東京駅）" aria-label="駅名・地名"><button type="submit" class="btn">探す</button></form><p class="fsub" id="nearmsg" aria-live="polite"></p></div>
+    <div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所の近くにある記事を拾って、戦わせる。歩けば、拾える選手が変わる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></div>
     <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
   <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
 
@@ -1263,10 +1262,6 @@ async function nearFetch(lat,lon){ lat=Math.round(lat*1000)/1000; lon=Math.round
   for(const r of [1000,3000,10000]){ const j=await wpq({action:'query',list:'geosearch',gscoord:lat+'|'+lon,gsradius:r,gslimit:80});
     L=((j.query&&j.query.geosearch)||[]); const ok=await Promise.all(L.map(x=>inData(x.title))); L=L.filter((x,i)=>ok[i]&&x.title!==champTitle()); if(L.length>=8) break; }
   return L.slice(0,40); }
-// 駅名・地名から座標：その記事の座標（転送も解決）。なければ検索の先頭の記事の座標
-async function placeCoord(q){ const get=async t=>{ const j=await wpq({action:'query',prop:'coordinates',redirects:1,titles:t}); const p=Object.values((j.query&&j.query.pages)||{})[0]; return p&&p.coordinates?{lat:p.coordinates[0].lat,lon:p.coordinates[0].lon,t:p.title}:null; };
-  let c=await get(q); if(c) return c;
-  const s=await wpq({action:'opensearch',search:q,limit:5,namespace:0}); for(const t of (s[1]||[])){ c=await get(t); if(c) return c; } return null; }
 function nearOpen(items,{kick,title,sub,book}){ const dlg=$('#famdlg'); if(!dlg) return; const P=new Set(pickLoad().map(x=>x.t));
   dlg.setAttribute('aria-label',kick);
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">${esc(kick)}</div><h3>${esc(title)}</h3><div class="fc">${esc(sub)}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
@@ -1286,17 +1281,13 @@ async function nearShow(lat,lon,label){ nearMsg('近くの記事を探してい�
   try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }
     nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:label})),{kick:'この辺の記事',title:label+'の近く',sub:`${L.length}記事（近い順）`}); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
-function nearHere(){ if(!navigator.geolocation){ nearMsg('この端末では現在地を使えません。駅名・地名で探してください。'); return; }
+function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');
   navigator.geolocation.getCurrentPosition(p=>nearShow(p.coords.latitude,p.coords.longitude,'現在地'),
-    ()=>nearMsg('現在地を使えませんでした（許可されていないか、取得できませんでした）。駅名・地名で探してください。'),{enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
-async function nearPlace(q){ q=(q||'').trim(); if(!q) return; nearMsg('「'+q+'」の場所を探しています…');
-  try{ const c=await placeCoord(q); if(!c){ nearMsg('「'+q+'」の場所が見つかりませんでした。別の名前で試してください。'); return; } await nearShow(c.lat,c.lon,dispT(c.t)); }
-  catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
+    ()=>nearMsg('現在地を使えませんでした。位置情報の利用を許可してから、もう一度押してください。'),{enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
 function nearBook(){ const a=pickLoad(); if(!a.length) return; nearOpen(a.map(x=>({t:x.t,d:x.at?x.at+'で拾った':'',at:x.at})),{kick:'拾った選手',title:'拾った選手',sub:`${a.length}人（新しい順）`,book:true}); }
 if(typeof window!=='undefined'&&typeof document!=='undefined'&&document.getElementById('nearhere')){
-  $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; $('#nearform').onsubmit=e=>{ e.preventDefault(); nearPlace($('#nearq').value); }; nearBookBtn();
-  const nq=new URLSearchParams(location.search).get('near'); if(nq){ $('#nearq').value=nq; nearPlace(nq); } }
+  if(!navigator.geolocation) $('#near').hidden=true; else { $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; nearBookBtn(); } }
 const famURL=key=>location.origin+'/?fam='+encodeURIComponent(key);
 function famText(g){ const top=g.m.slice(0,3).map(m=>m[1]); return `【百科拳典 仲間図鑑】${FAMK[g.k](g.n)}は${g.c}記事。${top.join('、')}${g.c>top.length?'…':''}
 Wikipediaのつながりから見つけた仲間たち`; }

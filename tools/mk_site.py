@@ -1707,11 +1707,12 @@ repall("\n  ${f[5]==='配慮'?`<div><span class=\"chip\">配慮：${esc(f[6].rep
 repall("function simulate(ai,bi,opt={}){\n", "// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）\nfunction disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }\nfunction simulate(ai,bi,opt={}){ disamb(ai,bi);\n")
 repall("function updateFight(){ ", "function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }\n  ")
 
-# ---- 73. 試作：この辺の記事（いま居る場所や駅名・地名の近くにある記事を拾って戦わせる）----
+# ---- 73. 試作：この辺の記事（いま居る場所の近くにある記事を拾って戦わせる）----
 #   位置は Wikipedia の位置検索（geosearch）にブラウザから直接送る（100m ほどに丸める）。百科拳典のサーバーには送らない
+#   現在地だけで探す（地名の検索はしない：その場に行かないと拾えないのが遊びの芯）。位置を取れない端末では、この欄を出さない
 #   拾った選手は、この端末の中だけに残す（localStorage hk-picked）
-repall('<div id="mine"><h3>あなたの代表戦</h3>', '<div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所や、駅名・地名の近くにある記事を拾って、戦わせる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><form class="trow nearq" id="nearform"><input id="nearq" type="search" placeholder="駅名・地名（例：東京駅）" aria-label="駅名・地名"><button type="submit" class="btn">探す</button></form><p class="fsub" id="nearmsg" aria-live="polite"></p></div>\n    <div id="mine"><h3>あなたの代表戦</h3>')
-repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}\n#find .nearq{display:flex;gap:8px;margin-top:8px}#find .nearq input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}\n#find #nearmsg{margin-top:6px}\n#famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}\n#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}\n#famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}\n")
+repall('<div id="mine"><h3>あなたの代表戦</h3>', '<div id="near"><h3>この辺の記事</h3><p class="fsub">いま居る場所の近くにある記事を拾って、戦わせる。歩けば、拾える選手が変わる</p><div class="trow"><button type="button" class="btn" id="nearhere">現在地で探す</button><button type="button" class="btn small" id="nearbook" style="display:none">拾った選手</button></div><p class="fsub" id="nearmsg" aria-live="polite"></p></div>\n    <div id="mine"><h3>あなたの代表戦</h3>')
+repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}\n#find #nearmsg{margin-top:6px}\n#famdlg .flist.near li{grid-template-columns:1fr;row-gap:6px}#famdlg .flist.near .fn,#famdlg .flist.near .fb{grid-column:1;grid-row:auto}#famdlg .flist.near .fb{justify-self:end}\n#famdlg .fdist{font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}\n#famdlg .fpick.on{background:var(--hl);color:var(--hl-ink);border-color:var(--ink)}\n")
 repall("let FP=[null,null];", r"""let FP=[null,null];
 // ---- この辺の記事 ----
 const NEAR_UA='hyakka-kenten (+https://github.com/y-krn)', WPAPI='https://ja.wikipedia.org/w/api.php';
@@ -1727,10 +1728,6 @@ async function nearFetch(lat,lon){ lat=Math.round(lat*1000)/1000; lon=Math.round
   for(const r of [1000,3000,10000]){ const j=await wpq({action:'query',list:'geosearch',gscoord:lat+'|'+lon,gsradius:r,gslimit:80});
     L=((j.query&&j.query.geosearch)||[]); const ok=await Promise.all(L.map(x=>inData(x.title))); L=L.filter((x,i)=>ok[i]&&x.title!==champTitle()); if(L.length>=8) break; }
   return L.slice(0,40); }
-// 駅名・地名から座標：その記事の座標（転送も解決）。なければ検索の先頭の記事の座標
-async function placeCoord(q){ const get=async t=>{ const j=await wpq({action:'query',prop:'coordinates',redirects:1,titles:t}); const p=Object.values((j.query&&j.query.pages)||{})[0]; return p&&p.coordinates?{lat:p.coordinates[0].lat,lon:p.coordinates[0].lon,t:p.title}:null; };
-  let c=await get(q); if(c) return c;
-  const s=await wpq({action:'opensearch',search:q,limit:5,namespace:0}); for(const t of (s[1]||[])){ c=await get(t); if(c) return c; } return null; }
 function nearOpen(items,{kick,title,sub,book}){ const dlg=$('#famdlg'); if(!dlg) return; const P=new Set(pickLoad().map(x=>x.t));
   dlg.setAttribute('aria-label',kick);
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">${esc(kick)}</div><h3>${esc(title)}</h3><div class="fc">${esc(sub)}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
@@ -1750,17 +1747,13 @@ async function nearShow(lat,lon,label){ nearMsg('近くの記事を探してい�
   try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }
     nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:label})),{kick:'この辺の記事',title:label+'の近く',sub:`${L.length}記事（近い順）`}); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
-function nearHere(){ if(!navigator.geolocation){ nearMsg('この端末では現在地を使えません。駅名・地名で探してください。'); return; }
+function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');
   navigator.geolocation.getCurrentPosition(p=>nearShow(p.coords.latitude,p.coords.longitude,'現在地'),
-    ()=>nearMsg('現在地を使えませんでした（許可されていないか、取得できませんでした）。駅名・地名で探してください。'),{enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
-async function nearPlace(q){ q=(q||'').trim(); if(!q) return; nearMsg('「'+q+'」の場所を探しています…');
-  try{ const c=await placeCoord(q); if(!c){ nearMsg('「'+q+'」の場所が見つかりませんでした。別の名前で試してください。'); return; } await nearShow(c.lat,c.lon,dispT(c.t)); }
-  catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
+    ()=>nearMsg('現在地を使えませんでした。位置情報の利用を許可してから、もう一度押してください。'),{enableHighAccuracy:false,timeout:10000,maximumAge:300000}); }
 function nearBook(){ const a=pickLoad(); if(!a.length) return; nearOpen(a.map(x=>({t:x.t,d:x.at?x.at+'で拾った':'',at:x.at})),{kick:'拾った選手',title:'拾った選手',sub:`${a.length}人（新しい順）`,book:true}); }
 if(typeof window!=='undefined'&&typeof document!=='undefined'&&document.getElementById('nearhere')){
-  $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; $('#nearform').onsubmit=e=>{ e.preventDefault(); nearPlace($('#nearq').value); }; nearBookBtn();
-  const nq=new URLSearchParams(location.search).get('near'); if(nq){ $('#nearq').value=nq; nearPlace(nq); } }""")
+  if(!navigator.geolocation) $('#near').hidden=true; else { $('#nearhere').onclick=nearHere; $('#nearbook').onclick=nearBook; nearBookBtn(); } }""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
