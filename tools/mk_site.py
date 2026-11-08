@@ -1693,6 +1693,20 @@ repall("#today .seal{position:absolute;right:10px;bottom:34px;color:#c0392b;bord
 repall('<div class="mb"><small>きょう${td.m}月${td.d}日生まれ</small>', '<div class="mb"><small>${+v.m===td.m&&+v.d===td.d?\'もう一人の\':\'きょう\'}${td.m}月${td.d}日生まれ</small>')
 repall("。きょう${td.m}月${td.d}日生まれの${ST.opp.n}と対決！", "。${+ST.v.m===td.m&&+ST.v.d===td.d?'同じ':'きょう'}${td.m}月${td.d}日生まれの${ST.opp.n}と対決！")
 
+# ---- 70. 「数えない」印：動作確認に使うブラウザで、アクセス解析と利用回数に数えない ----
+#   URL に ?nostat=1 を付けて一度開くと、そのブラウザに印が残る（?nostat=0 で外す）。印があるときは、Cloudflare Web Analytics を読み込まず、利用回数（/api/plays）も送らない
+repall("<script>\n/* ---------- 記事データ：必要になった記事だけを読み込む ---------- */", "<script>\nconst NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない\n/* ---------- 記事データ：必要になった記事だけを読み込む ---------- */")
+repall("function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return;", "function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return;")
+repall("""<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "92aaad9660e1433f8d518c17a8ac2512"}'></script><!-- End Cloudflare Web Analytics -->""",
+       """<!-- Cloudflare Web Analytics（「数えない」印のあるブラウザでは読み込まない） --><script>if(!NOSTAT){ const s=document.createElement('script'); s.type='module'; s.src='https://static.cloudflareinsights.com/beacon.min.js'; s.setAttribute('data-cf-beacon','{"token": "92aaad9660e1433f8d518c17a8ac2512"}'); document.body.appendChild(s); }</script><!-- End Cloudflare Web Analytics -->""")
+
+# ---- 71. 記事カードの「配慮：存命人物」などの札を出さない（遊ぶ人には役に立たず、「配慮」の言葉で誤解を招くため。文面を控えめにする仕組みはそのまま）----
+repall("\n  ${f[5]==='配慮'?`<div><span class=\"chip\">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}", "")
+
+# ---- 72. 同じ表示名どうしの対戦（「冬将軍」と「冬将軍 (曲)」など）は、括弧つきの記事名で見分けられるようにする ----
+repall("function simulate(ai,bi,opt={}){\n", "// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）\nfunction disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }\nfunction simulate(ai,bi,opt={}){ disamb(ai,bi);\n")
+repall("function updateFight(){ ", "function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }\n  ")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

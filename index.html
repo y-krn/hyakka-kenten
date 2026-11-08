@@ -423,6 +423,7 @@ input,select,textarea{font-size:16px!important}   /* iPhoneは16px未満の入�
 </div>
 
 <script>
+const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
 const fnv=t=>{ let h=0x811c9dc5; for(let k=0;k<t.length;k++){ h^=t.charCodeAt(k); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; };
@@ -671,7 +672,9 @@ function pickMoves(i,j){
   return PICK[key]=bonus?out.map(m=>{ const c=[...m]; c[4]=Math.min(5,+(m[4]+bonus).toFixed(2)); return c; }):out;
 }
 const BIG=m=>m&&(m[0]==='SUMMON'||(m[0]==='STRIKE'&&m[4]>=4)||(m[0]==='MULTI'&&m[4]>=4));
-function simulate(ai,bi,opt={}){
+// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）
+function disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }
+function simulate(ai,bi,opt={}){ disamb(ai,bi);
   const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
     moves:opt.noMoves?[]:pickMoves(i,o).filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
   const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
@@ -977,7 +980,6 @@ async function rnd(ex,pop){ for(let k=0;k<12;k++){ let t;
   return ex.includes(0)?1:0; }
 function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
-  ${f[5]==='配慮'?`<div><span class="chip">配慮：${esc(f[6].replace(/：.*/,''))}</span></div>`:''}
   <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>
   <div class="fams" data-fi="${i}"></div>
   <details class="mvs"><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
@@ -1003,7 +1005,8 @@ function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=se
   el.querySelector('[data-rnd]').onclick=async()=>{ sel[side]=await rnd([sel[1-side]]); streak={idx:null,n:0}; renderPick(side); updateFight(); };
 }
 const pickOK=s=>{ const i=sel[s]; if(i===null) return false; const e=$('#in'+s); if(!e) return true; const v=e.value.trim(); return v===F[i][0]||v===F[i][1]; };   // 入力欄を書き換え中（選び直す途中）は未確定
-function updateFight(){ $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));
+function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F[sel[0]][0]===F[sel[1]][0]){ disamb(sel[0],sel[1]); renderPick(0); renderPick(1); }
+  $('#fight').disabled=!(sel[0]!==null&&sel[1]!==null&&sel[0]!==sel[1]&&pickOK(0)&&pickOK(1));
   const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class="a">${n(0)}</span><span class="vs">VS</span><span class="b">${n(1)}</span>`; }
 $('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
 $('#fight').onclick=()=>startBattle();
@@ -1473,7 +1476,7 @@ function pendK(){ try{ const o=JSON.parse(localStorage.getItem(PENDK_KEY)||'{}')
 function setPendK(o){ try{ localStorage.setItem(PENDK_KEY,JSON.stringify(o)); }catch(_){} }
 function addPlay(){ setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
 function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
-function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
+function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
   const body=JSON.stringify({n,k,client:clientId()}); let ok=false;
   try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
     else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
@@ -1624,6 +1627,6 @@ renderRec();
 }catch(e){ $('#pickA').innerHTML='<div class="empty">記事データを読み込めませんでした。ページを再読み込みしてください。</div>'; return; }
   renderPick(0); renderPick(1); updateFight(); loadThrone(); })();
 </script>
-<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "92aaad9660e1433f8d518c17a8ac2512"}'></script><!-- End Cloudflare Web Analytics -->
+<!-- Cloudflare Web Analytics（「数えない」印のあるブラウザでは読み込まない） --><script>if(!NOSTAT){ const s=document.createElement('script'); s.type='module'; s.src='https://static.cloudflareinsights.com/beacon.min.js'; s.setAttribute('data-cf-beacon','{"token": "92aaad9660e1433f8d518c17a8ac2512"}'); document.body.appendChild(s); }</script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

@@ -14,11 +14,17 @@ def norm(s):
     return ''.join(chr(ord(c) + 0x60) if 'ぁ' <= c <= 'ゖ' else c for c in s)
 def grams(t):
     n = norm(t); return {n[i:i + 2] for i in range(len(n) - 1)}
+# 対戦に戻した記事（data/unhold.json）は、保留でも索引に入れる
+import re as _re
+_U = json.load(open(os.path.join(D, 'unhold.json'), encoding='utf-8')) if os.path.exists(os.path.join(D, 'unhold.json')) else {}
+def held(t, r):
+    if 'hold' not in r: return False
+    return not (t in _U.get('記事', {}) or _re.sub(r'（[^（）]*年[^（）]*）$', '', str(r['hold'])) in _U.get('理由', {}))
 pv = []
 for k in range(NB):
     d = json.loads(gzip.open(os.path.join(D, 'a', f'{k}.json.gz'), 'rt', encoding='utf-8').read())
     for t, r in d.items():
-        if 'hold' in r: continue
+        if held(t, r): continue
         m = next((e for e in r['ext'] if e[0] == '_m'), None); pv.append((-(m[5] if m else 0), t))
 pv.sort()
 G = collections.defaultdict(list); CNT = collections.Counter()

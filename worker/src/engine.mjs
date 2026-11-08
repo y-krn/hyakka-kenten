@@ -1,6 +1,7 @@
 /* 百科拳典の戦闘エンジン（index.html から自動生成。直接編集しない） */
 let DATA_BASE='data/', FETCH=u=>fetch(u);
 
+const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
 const fnv=t=>{ let h=0x811c9dc5; for(let k=0;k<t.length;k++){ h^=t.charCodeAt(k); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; };
@@ -249,7 +250,9 @@ function pickMoves(i,j){
   return PICK[key]=bonus?out.map(m=>{ const c=[...m]; c[4]=Math.min(5,+(m[4]+bonus).toFixed(2)); return c; }):out;
 }
 const BIG=m=>m&&(m[0]==='SUMMON'||(m[0]==='STRIKE'&&m[4]>=4)||(m[0]==='MULTI'&&m[4]>=4));
-function simulate(ai,bi,opt={}){
+// 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）
+function disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }
+function simulate(ai,bi,opt={}){ disamb(ai,bi);
   const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
     moves:opt.noMoves?[]:pickMoves(i,o).filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
   const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
