@@ -8,16 +8,25 @@ const IN = new Map();
 for (const f of readdirSync('data/a')) { const B = JSON.parse(gunzipSync(readFileSync('data/a/' + f)));
   for (const [t, r] of Object.entries(B)) { if (r.hold) continue; const m = (r.ext || []).find(e => e[0] === '_m'); IN.set(t, m ? m[5] || 0 : 0); } }
 console.log('収録', IN.size);
-const Q = `SELECT ?w ?wt ?p ?pt ?coord (GROUP_CONCAT(DISTINCT STRAFTER(STR(?c),'entity/');separator=',') AS ?cs) (GROUP_CONCAT(DISTINCT STRAFTER(STR(?k),'entity/');separator=',') AS ?ks) WHERE {
- ?w wdt:P840 ?p. ?wa schema:about ?w; schema:isPartOf <https://ja.wikipedia.org/>; schema:name ?wt.
- OPTIONAL { ?pa schema:about ?p; schema:isPartOf <https://ja.wikipedia.org/>; schema:name ?pt. }
- OPTIONAL { ?p wdt:P625 ?coord. } OPTIONAL { ?p wdt:P17 ?c. } OPTIONAL { ?p wdt:P31 ?k. }
-} GROUP BY ?w ?wt ?p ?pt ?coord`;
+const Q = `SELECT ?w ?wt ?p WHERE { ?w wdt:P840 ?p. ?wa schema:about ?w; schema:isPartOf <https://ja.wikipedia.org/>; schema:name ?wt. }`;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 let rows = null;
 for (let tr = 0; tr < 4 && !rows; tr++) {
   try { const r = await fetch('https://query.wikidata.org/sparql', { method: 'POST', headers: { 'User-Agent': UA, Accept: 'application/sparql-results+json', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ query: Q }) });
-    const tx = await r.text(); rows = JSON.parse(tx).results.bindings; } catch (e) { console.log('失敗', tr, String(e).slice(0, 200)); await new Promise(r => setTimeout(r, 20000)); } }
+    const tx = await r.text(); rows = JSON.parse(tx).results.bindings; } catch (e) { console.log('失敗', tr, String(e).slice(0, 200)); await sleep(20000); } }
 if (!rows) process.exit(1);
+rows = rows.filter(b => IN.has(b.wt.value));
+// 舞台の場所の情報（日本語版の記事名・座標・国・種類）は wbgetentities で50件ずつ
+const PL = {}; const ids = [...new Set(rows.map(b => b.p.value.split('/').pop()))]; console.log('舞台の場所', ids.length);
+const vals = (c, p) => ((c[p] || []).filter(s => s.rank !== 'deprecated').map(s => s.mainsnak.datavalue && s.mainsnak.datavalue.value).filter(Boolean));
+for (let i = 0; i < ids.length; i += 50) { const part = ids.slice(i, i + 50);
+  for (let tr = 0; tr < 5; tr++) { try { const d = await (await fetch('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ format: 'json', action: 'wbgetentities', ids: part.join('|'), props: 'claims|sitelinks', sitefilter: 'jawiki' }), { headers: { 'User-Agent': UA } })).json();
+      for (const [q, e] of Object.entries(d.entities || {})) { const c = e.claims || {};
+        PL[q] = { pt: e.sitelinks && e.sitelinks.jawiki ? e.sitelinks.jawiki.title : q, coord: vals(c, 'P625').length > 0, cs: vals(c, 'P17').map(v => v.id), ks: vals(c, 'P31').map(v => v.id) }; } break; }
+    catch (e) { await sleep(5000 * (tr + 1)); } }
+  await sleep(200); }
+rows = rows.map(b => { const q = b.p.value.split('/').pop(), x = PL[q] || { pt: q, coord: false, cs: [], ks: [] };
+  return { wt: b.wt, p: b.p, pt: { value: x.pt }, coord: x.coord || undefined, cs: { value: x.cs.join(',') }, ks: { value: x.ks.join(',') } }; });
 console.log('舞台の行', rows.length);
 const MUNI = new Set(['Q494721', 'Q1059478', 'Q4174776', 'Q5327704', 'Q1137833', 'Q1196035', 'Q1749269', 'Q134390', 'Q15710360']);
 const PREF = new Set(['Q50337']);
