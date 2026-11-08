@@ -1258,7 +1258,7 @@ let FP=[null,null];
 // ---- この辺の記事 ----
 const NEAR_UA='hyakka-kenten (+https://github.com/y-krn)', WPAPI='https://ja.wikipedia.org/w/api.php';
 const pickLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-picked')||'[]'); }catch(_){ return []; } };
-const pickSave=a=>{ try{ localStorage.setItem('hk-picked',JSON.stringify(a.slice(0,300))); }catch(_){} };
+const pickSave=a=>{ try{ localStorage.setItem('hk-picked',JSON.stringify(a)); }catch(_){} };
 const fmtD=m=>m<1000?Math.max(10,Math.round(m/10)*10)+'m':(m/1000).toFixed(1)+'km';
 const dispT=t=>t.replace(/\s*\([^()]*\)$/,'');
 function pickRecord(a,b,w){ const A=pickLoad(); let ch=false;
@@ -1274,7 +1274,7 @@ async function nearFetch(lat,lon){ lat=Math.round(lat*1000)/1000; lon=Math.round
   for(const r of [1000,3000,10000]){ const j=await wpq({action:'query',list:'geosearch',gscoord:lat+'|'+lon,gsradius:r,gslimit:80});
     L=((j.query&&j.query.geosearch)||[]); const ok=await Promise.all(L.map(x=>inData(x.title))); L=L.filter((x,i)=>ok[i]&&x.title!==champTitle()); if(L.length>=8) break; }
   return L.slice(0,40); }
-const nearLi=(m,P,book)=>m.mh?`<li class="mh">${esc(m.mh)}</li>`:`<li><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m.t)}" target="_blank" rel="noopener">${esc(dispT(m.t))}</a><span class="fdist">${esc(m.d)}</span></div><div class="fb"><button type="button" class="btn small fpick${P.has(m.t)?' on':''}" data-pick="${esc(m.t)}" data-at="${esc(m.at||'')}">${book?'手放す':(P.has(m.t)?'拾った':'拾う')}</button><button type="button" class="btn small fa" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="1" aria-pressed="false">赤コーナーへ</button></div></li>`;
+const nearLi=(m,P,book)=>m.mh?`<li class="mh">${esc(m.mh)}</li>`:`<li><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m.t)}" target="_blank" rel="noopener">${esc(dispT(m.t))}</a><span class="fdist">${esc(m.d)}</span></div><div class="fb"><button type="button" class="btn small fa" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="1" aria-pressed="false">赤コーナーへ</button></div></li>`;
 function nearBind(root,book){
   root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n}; if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s]; FP[s]=x; famMark(); });
   root.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const t=b.dataset.pick; let a=pickLoad();
@@ -1285,7 +1285,7 @@ function nearOpen(items,{kick,title,sub,book}){ const dlg=$('#famdlg'); if(!dlg)
   dlg.setAttribute('aria-label',kick);
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">${esc(kick)}</div><h3>${esc(title)}</h3><div class="fc">${esc(sub)}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <ol class="flist near">${items.map(m=>nearLi(m,P,book)).join('')}</ol>
-  <div class="fnote">${book?'拾った選手は、この端末の中だけに残ります。':'Wikipediaに位置が書かれている記事から、百科拳典に収録しているものを近い順に出しています。位置は少しぼかしてWikipediaに問い合わせ、百科拳典には送りません。'}</div>
+  <div class="fnote">${book?'拾った選手は、この端末の中だけに残ります。':'一覧に出た記事は、自動で拾って選手帳に入ります。Wikipediaに位置が書かれている記事から、百科拳典に収録しているものを近い順に出しています。位置は少しぼかしてWikipediaに問い合わせ、百科拳典には送りません。'}</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
@@ -1338,6 +1338,8 @@ const seenLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-seen')||'{}
 // 1件は [種類, 場所, 見つけた時刻]。種類は n（近くの記事）・s（舞台の作品）・y（ゆかりの人）
 function seenAdd(es){ const s=seenLoad(), now=Date.now(); let n=0; for(const [t,k,pl] of es) if(!s[t]){ s[t]=[k,pl,now]; n++; } if(n) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} return n; }
 // 選手帳の選手は、必ず図鑑にも入れる（図鑑ができる前に拾った選手も）。種類 p は「以前に拾った選手」
+// 自動で拾う（まだ選手帳にない記事だけ、新しい順の先頭に足す）
+function pickAdd(es){ const a=pickLoad(), have=new Set(a.map(x=>x.t)), now=Date.now(), add=[]; for(const [t,at] of es) if(!have.has(t)){ have.add(t); add.push({t,at:at||'',d:now}); } if(add.length){ pickSave([...add,...a]); } return add.length; }
 function seenSync(){ const s=seenLoad(); let ch=false; for(const x of pickLoad()) if(!s[x.t]){ s[x.t]=['p',x.at||'',x.d||0]; ch=true; } if(ch) try{ localStorage.setItem('hk-seen',JSON.stringify(s)); }catch(_){} }
 // 図鑑で達成率を出す土地（s|記事名 は舞台の作品、y|市区町村 はゆかりの人）
 const landsLoad=()=>{ try{ return JSON.parse(localStorage.getItem('hk-lands')||'{}'); }catch(_){ return {}; } };
@@ -1371,7 +1373,7 @@ async function nearZukan(){ const dlg=$('#famdlg'); if(!dlg) return; seenSync();
   dlg.setAttribute('aria-label','図鑑');
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">図鑑</div><h3>見つけた記事</h3><div class="fc">これまでに${E.length}件。見つけた順に番号が付く</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <div class="zk"><div class="zchips" role="group" aria-label="部門"></div><details class="zland"><summary>土地ごとの達成率</summary><div class="zlist">数えています…</div></details><ol class="zgrid"></ol></div>
-  <div class="fnote">図鑑は、この端末の中だけに残ります。「現在地で探す」で一覧に出た記事は、拾わなくても図鑑に入ります。拾った選手には「選手帳」の印が付きます。</div>`;
+  <div class="fnote">図鑑は、この端末の中だけに残ります。「現在地で探す」で一覧に出た記事は、自動で拾って図鑑と選手帳に入ります。</div>`;
   $('#famx').onclick=()=>dlg.close(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0;
   const grid=dlg.querySelector('.zgrid'), chips=dlg.querySelector('.zchips'); let cur='';
   const draw=()=>{ const C={}; for(const x of E){ x.cat=zkCat(x.lab,x.k); C[x.cat]=(C[x.cat]||0)+1; }
@@ -1379,7 +1381,7 @@ async function nearZukan(){ const dlg=$('#famdlg'); if(!dlg) return; seenSync();
     if(cur&&!C[cur]) cur='';
     chips.innerHTML=[['',E.length,'すべて'],...order.map(c=>[c,C[c],c])].map(([c,n,l])=>`<button type="button" data-c="${esc(c)}" class="${c===cur?'on':''}" aria-pressed="${c===cur}">${esc(l)} <span>${n}</span></button>`).join('');
     chips.querySelectorAll('button').forEach(b=>b.onclick=()=>{ cur=b.dataset.c; draw(); });
-    grid.innerHTML=E.filter(x=>!cur||x.cat===cur).slice().reverse().map(x=>`<li class="zc"><span class="zno">No.${x.no}</span>${PK.has(x.t)?'<span class="zpk">選手帳</span>':''}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(x.t)}" target="_blank" rel="noopener">${esc(dispT(x.t))}</a><span class="zcat">${esc(x.cat)}${x.lab&&x.lab!=='?'&&x.lab!==x.cat?'・'+esc(x.lab):''}</span><span class="zpl">${esc([where(x),day(x.ts)].filter(Boolean).join('・'))}</span></li>`).join(''); };
+    grid.innerHTML=E.filter(x=>!cur||x.cat===cur).slice().reverse().map(x=>`<li class="zc"><span class="zno">No.${x.no}</span>${''}<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(x.t)}" target="_blank" rel="noopener">${esc(dispT(x.t))}</a><span class="zcat">${esc(x.cat)}${x.lab&&x.lab!=='?'&&x.lab!==x.cat?'・'+esc(x.lab):''}</span><span class="zpl">${esc([where(x),day(x.ts)].filter(Boolean).join('・'))}</span></li>`).join(''); };
   draw();
   // 分類がまだの記事は、Wikidata に問い合わせて図鑑に覚えておく
   const need=E.filter(x=>x.lab===undefined&&x.k!=='y').map(x=>x.t);
@@ -1407,14 +1409,15 @@ async function nearShow(lat,lon,label){ nearMsg('近くの記事を探してい�
     const YP=nearYukari(L), SP=nearStage(L,lat,lon);
     const lm=dispT(L[0].title);   // 拾った場所は、いちばん近い記事の名前で覚える（「東京駅の近く」のように）
     nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・舞台の作品とゆかりの人を探しています…`});
+    const NP=pickAdd(L.map(x=>[x.title,lm+'の近く'])); seenAdd(L.map(x=>[x.title,'n',lm+'の近く'])); nearBookBtn();   // 近くの記事は、一覧を開いた時点で拾う
     const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'); if(!ol) return; const live=()=>dlg.open&&ol.isConnected;
     const S=await SP; if(!live()) return; if(S.items.length) nearAppend(ol,`この辺が舞台の作品（${S.items.length}作品）`,S.items,'舞台の作品');
     const Y=await YP; if(!live()) return; const yk=new Set(Y?cellPick(cellOf(lat,lon)+Y.town,Y.list.map(x=>x.t),8):[]), YL=Y?Y.list.filter(x=>yk.has(x.t)):[];
     const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${S.items.length?`・舞台の作品${S.items.length}`:''}${YL.length?`・ゆかりの人${YL.length}`:''}`;
     if(YL.length) nearAppend(ol,`ゆかりの人（${Y.town}生まれ）`,YL.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),'ゆかりの人');
-    const neu=seenAdd([...L.map(x=>[x.title,'n',lm+'の近く']),...S.items.map(x=>[x.t,'s',x.at]),...YL.map(x=>[x.t,'y',Y.town])]), sv=seenLoad(); landsAdd([...S.lands.map(x=>'s|'+x.p),...(Y?['y|'+Y.town]:[])]);   // 一覧に出た記事は、拾わなくても全部「見つけた」として図鑑に入る
+    const got=NP+pickAdd([...S.items.map(x=>[x.t,x.at]),...YL.map(x=>[x.t,Y.town])]); const neu=seenAdd([...L.map(x=>[x.title,'n',lm+'の近く']),...S.items.map(x=>[x.t,'s',x.at]),...YL.map(x=>[x.t,'y',Y.town])]), sv=seenLoad(); landsAdd([...S.lands.map(x=>'s|'+x.p),...(Y?['y|'+Y.town]:[])]);   // 一覧に出た記事は、拾わなくても全部「見つけた」として図鑑に入る
     const prog=[...S.lands.map(x=>[x.k,x.all]),...(Y?[[Y.town+'生まれの人',Y.list.map(x=>x.t)]]:[])].map(([k,a])=>`<span class="pg"><b>${esc(k)}</b> ${a.filter(t=>sv[t]).length}/${a.length}</span>`);
-    const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>図鑑：${neu?`新しく<b>${neu}</b>件見つけた`:'新しく見つけた記事はなし'}（これまでに${Object.keys(sv).length}件）。場所を変えると、出会う顔ぶれが変わる</div>${prog.join('')}`});
+    const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>${got?`新しく<b>${got}</b>人を拾った`:'新しく拾った選手はなし'}（選手帳 ${pickLoad().length}人）。場所を変えると、出会う顔ぶれが変わる</div>${prog.join('')}`});
     ol.prepend(box); nearBookBtn(); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
 function nearHere(){ if(!navigator.geolocation) return;

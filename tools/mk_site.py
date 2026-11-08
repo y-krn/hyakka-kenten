@@ -1934,6 +1934,20 @@ rep_span("    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'), 
     const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>図鑑：${neu?`新しく<b>${neu}</b>件見つけた`:'新しく見つけた記事はなし'}（これまでに${Object.keys(sv).length}件）。場所を変えると、出会う顔ぶれが変わる</div>${prog.join('')}`});
     ol.prepend(box); nearBookBtn(); }""")
 
+# ---- 78. 試作：一覧に出た記事は、自動で拾う（「拾う」「手放す」ボタンをなくす）。選手帳の人数の上限もなくす ----
+repall("""<button type="button" class="btn small fpick${P.has(m.t)?' on':''}" data-pick="${esc(m.t)}" data-at="${esc(m.at||'')}">${book?'手放す':(P.has(m.t)?'拾った':'拾う')}</button>""", "")
+repall("localStorage.setItem('hk-picked',JSON.stringify(a.slice(0,300)));", "localStorage.setItem('hk-picked',JSON.stringify(a));")
+repall("const neu=seenAdd([", "const got=NP+pickAdd([...S.items.map(x=>[x.t,x.at]),...YL.map(x=>[x.t,Y.town])]); const neu=seenAdd([")
+repall("const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>図鑑：${neu?`新しく<b>${neu}</b>件見つけた`:'新しく見つけた記事はなし'}（これまでに${Object.keys(sv).length}件）。場所を変えると、出会う顔ぶれが変わる</div>",
+       "const box=Object.assign(document.createElement('li'),{className:'mh nprog',innerHTML:`<div>${got?`新しく<b>${got}</b>人を拾った`:'新しく拾った選手はなし'}（選手帳 ${pickLoad().length}人）。場所を変えると、出会う顔ぶれが変わる</div>")
+repall("PK.has(x.t)?'<span class=\"zpk\">選手帳</span>':''", "''")
+repall("拾った選手には「選手帳」の印が付きます。", "")
+repall("「現在地で探す」で一覧に出た記事は、拾わなくても図鑑に入ります。", "「現在地で探す」で一覧に出た記事は、自動で拾って図鑑と選手帳に入ります。")
+repall("<div class=\"fnote\">${book?'拾った選手は、この端末の中だけに残ります。':'Wikipediaに位置が書かれている記事から、", "<div class=\"fnote\">${book?'拾った選手は、この端末の中だけに残ります。':'一覧に出た記事は、自動で拾って選手帳に入ります。Wikipediaに位置が書かれている記事から、")
+repall("function seenSync(){", "// 自動で拾う（まだ選手帳にない記事だけ、新しい順の先頭に足す）\nfunction pickAdd(es){ const a=pickLoad(), have=new Set(a.map(x=>x.t)), now=Date.now(), add=[]; for(const [t,at] of es) if(!have.has(t)){ have.add(t); add.push({t,at:at||'',d:now}); } if(add.length){ pickSave([...add,...a]); } return add.length; }\nfunction seenSync(){")
+repall("nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・舞台の作品とゆかりの人を探しています…`});",
+       "nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・舞台の作品とゆかりの人を探しています…`});\n    const NP=pickAdd(L.map(x=>[x.title,lm+'の近く'])); seenAdd(L.map(x=>[x.title,'n',lm+'の近く'])); nearBookBtn();   // 近くの記事は、一覧を開いた時点で拾う")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
