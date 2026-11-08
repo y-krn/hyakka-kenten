@@ -1274,19 +1274,22 @@ async function nearFetch(lat,lon){ lat=Math.round(lat*1000)/1000; lon=Math.round
   for(const r of [1000,3000,10000]){ const j=await wpq({action:'query',list:'geosearch',gscoord:lat+'|'+lon,gsradius:r,gslimit:80});
     L=((j.query&&j.query.geosearch)||[]); const ok=await Promise.all(L.map(x=>inData(x.title))); L=L.filter((x,i)=>ok[i]&&x.title!==champTitle()); if(L.length>=8) break; }
   return L.slice(0,40); }
+const nearLi=(m,P,book)=>m.mh?`<li class="mh">${esc(m.mh)}</li>`:`<li><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m.t)}" target="_blank" rel="noopener">${esc(dispT(m.t))}</a><span class="fdist">${esc(m.d)}</span></div><div class="fb"><button type="button" class="btn small fpick${P.has(m.t)?' on':''}" data-pick="${esc(m.t)}" data-at="${esc(m.at||'')}">${book?'手放す':(P.has(m.t)?'拾った':'拾う')}</button><button type="button" class="btn small fa" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="1" aria-pressed="false">赤コーナーへ</button></div></li>`;
+function nearBind(root,book){
+  root.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n}; if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s]; FP[s]=x; famMark(); });
+  root.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const t=b.dataset.pick; let a=pickLoad();
+    if(book||a.some(x=>x.t===t)){ a=a.filter(x=>x.t!==t); if(book){ b.closest('li').remove(); } else { b.classList.remove('on'); b.textContent='拾う'; } }
+    else { a.unshift({t,at:b.dataset.at||'',d:Date.now()}); b.classList.add('on'); b.textContent='拾った'; }
+    pickSave(a); nearBookBtn(); }); }
 function nearOpen(items,{kick,title,sub,book}){ const dlg=$('#famdlg'); if(!dlg) return; const P=new Set(pickLoad().map(x=>x.t));
   dlg.setAttribute('aria-label',kick);
   dlg.innerHTML=`<div class="fhead"><div><div class="fk">${esc(kick)}</div><h3>${esc(title)}</h3><div class="fc">${esc(sub)}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
-  <ol class="flist near">${items.map(m=>m.mh?`<li class="mh">${esc(m.mh)}</li>`:`<li><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m.t)}" target="_blank" rel="noopener">${esc(dispT(m.t))}</a><span class="fdist">${esc(m.d)}</span></div><div class="fb"><button type="button" class="btn small fpick${P.has(m.t)?' on':''}" data-pick="${esc(m.t)}" data-at="${esc(m.at||'')}">${book?'手放す':(P.has(m.t)?'拾った':'拾う')}</button><button type="button" class="btn small fa" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m.t)}" data-n="${esc(dispT(m.t))}" data-s="1" aria-pressed="false">赤コーナーへ</button></div></li>`).join('')}</ol>
+  <ol class="flist near">${items.map(m=>nearLi(m,P,book)).join('')}</ol>
   <div class="fnote">${book?'拾った選手は、この端末の中だけに残ります。':'Wikipediaに位置が書かれている記事から、百科拳典に収録しているものを近い順に出しています。位置は少しぼかしてWikipediaに問い合わせ、百科拳典には送りません。'}</div>
   <div class="ffoot"><div class="fpair"><span class="pa"></span><span class="pv">vs</span><span class="pb"></span></div><div class="fgo"><button type="button" class="btn" id="famset">選んで閉じる</button><button type="button" class="btn big" id="famgo">この2つで対戦</button></div></div>`;
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
-  dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n}; if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s]; FP[s]=x; famMark(); });
-  dlg.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{ const t=b.dataset.pick; let a=pickLoad();
-    if(book||a.some(x=>x.t===t)){ a=a.filter(x=>x.t!==t); if(book){ b.closest('li').remove(); } else { b.classList.remove('on'); b.textContent='拾う'; } }
-    else { a.unshift({t,at:b.dataset.at||'',d:Date.now()}); b.classList.add('on'); b.textContent='拾った'; }
-    pickSave(a); nearBookBtn(); });
+  nearBind(dlg,book);
   $('#famset').onclick=()=>famApply(false); $('#famgo').onclick=()=>famApply(true);
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
 // ゆかりの人：近くの記事の所在地を Wikidata でたどって市区町村を決め、そこで生まれた有名人（代表戦の出身地の索引）を出す
@@ -1307,10 +1310,13 @@ async function nearYukari(L){ try{ const town=await nearTown(L.map(x=>x.title));
     const ok=await Promise.all(ns.map(x=>inData(x.t))); const list=ns.filter((x,i)=>ok[i]); return list.length?{town,list}:null; }catch(_){ return null; } }
 async function nearShow(lat,lon,label){ nearMsg('近くの記事を探しています…');
   try{ const L=await nearFetch(lat,lon); if(!L.length){ nearMsg('近くに、百科拳典に収録している記事が見つかりませんでした。'); return; }
-    nearMsg('ゆかりの人を探しています…'); const Y=await nearYukari(L);
+    const YP=nearYukari(L);
     const lm=dispT(L[0].title);   // 拾った場所は、いちばん近い記事の名前で覚える（「東京駅の近く」のように）
-    const items=[...(Y?[{mh:`ゆかりの人（${Y.town}生まれ）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),{mh:'この辺の記事（近い順）'}]:[]),...L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'}))];
-    nearMsg(''); nearOpen(items,{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}${Y?`、ゆかりの人${Y.list.length}`:''}`}); }
+    nearMsg(''); nearOpen(L.map(x=>({t:x.title,d:fmtD(x.dist),at:lm+'の近く'})),{kick:'この辺の記事',title:lm+'の近く',sub:`近くの記事${L.length}・ゆかりの人を探しています…`});
+    const dlg=$('#famdlg'), ol=dlg&&dlg.querySelector('.flist.near'), Y=await YP; if(!ol||!dlg.open||!ol.isConnected) return;
+    const fc=dlg.querySelector('.fc'); if(fc) fc.textContent=`近くの記事${L.length}${Y?`・ゆかりの人${Y.list.length}`:''}`; if(!Y) return;
+    const P=new Set(pickLoad().map(x=>x.t)), tmp=document.createElement('ol'); tmp.innerHTML=[{mh:`ゆかりの人（${Y.town}生まれ）`},...Y.list.map(x=>({t:x.t,d:x.y?x.y+'年・'+Y.town+'生まれ':Y.town+'生まれ',at:Y.town})),{mh:'この辺の記事（近い順）'}].map(m=>nearLi(m,P,false)).join('');
+    nearBind(tmp,false); ol.prepend(...tmp.children); famMark(); }
   catch(_){ nearMsg('Wikipediaに問い合わせられませんでした。少し待ってから試してください。'); } }
 function nearHere(){ if(!navigator.geolocation) return;
   nearMsg('現在地を確かめています…');
