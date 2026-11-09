@@ -1720,6 +1720,9 @@ repall("    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので�
 repall("  if(!why[0]&&!why[1]) startBattle(); return true; }",
        "  if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる\n    if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }\n  return true; }")
 
+# ---- 76. 自由対戦の選手カードに、能力の数値（HP・攻撃・防御・速さ）を出さない。強さは記事の事実（技の候補）から読む形にそろえる ----
+repall("""  <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>\n""", "")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
