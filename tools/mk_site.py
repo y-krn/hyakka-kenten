@@ -1750,7 +1750,7 @@ async function dgDoors(){ const here=F[DG.pos][1], L=[...new Set(await dgLinks(h
 const dgClue=i=>{ const f=F[i], c=(CL[i]||[])[1], mv=(POOL[i]||[]).slice(0,2).map(m=>m[3]&&/：/.test(m[3])?m[1]+'（'+m[3]+'）':m[1]); return `<span class="dgc">${c?esc(c)+'｜':''}${f[3].map((v,k)=>STAT[k]+' '+v).join('・')}${mv.length?'<br>技：'+esc(mv.join('／')):''}</span>`; };
 const dgHead=()=>`${DG.practice?'<b>練習</b>（記録には残りません）<br>':''}あなたの選手：<b>${esc(F[DG.me][0])}</b>　いま <b>${DG.floor}階</b>（${esc(F[DG.pos][0])}）<br>${dgClue(DG.me)}<div class="dgpath">${DG.path.map(p=>DGE[p.ev]+esc(p.t)).join(' → ')}</div>`;
 // 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
-const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()?o:null; }catch(_){ return null; } };
+const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
 function dgSave(done){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done})); }catch(_){} }
 function dgShare(day,path){ const md=day.slice(5).replace('-','/').replace(/^0/,''), deep=path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; return `百科ダンジョン ${md}\n${path[0].t}から潜って ${deep}階突破\n${path.map(p=>DGE[p.ev]).join('')}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
 function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgSave(false); dgFloor(); }
@@ -1780,7 +1780,8 @@ function dgEnd(msg,foe){ const box=$('#dgbox'), deep=DG.path.filter(p=>p.ev==='w
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
 async function dgCopy(share){ try{ if(navigator.share&&TOUCH) await navigator.share({text:share}); else { await navigator.clipboard.writeText(share); const b=$('#dgcopy'); if(b) b.textContent='コピーしました'; } }catch(_){} }
 // 入口：今日のお題（1日1回の挑戦）と、練習（何度でも。記録に残らない）
-async function dgInit(){ const box=$('#dgbox'); if(!box||!POPULAR.length) return; const day=jstDay();
+async function dgInit(){ try{ await dgInit0(); }catch(e){ const box=$('#dgbox'); if(box) box.textContent='準備できませんでした。ページを読み込み直してください。'; } }
+async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.length){ box.textContent='今日のお題を用意できませんでした。'; return; } const day=jstDay();
   let t0=-1; for(let k=0;k<20&&t0<0;k++){ const t=POPULAR[hash('dg-start/'+day+'/'+k)%POPULAR.length]; if(!t) continue; const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!isChamp(i)) t0=i; }
   const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
   const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類・能力・技の手がかりが書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
