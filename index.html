@@ -1638,8 +1638,8 @@ async function dgDoors(){ const here=F[DG.pos][1], L=[...new Set(await dgLinks(h
   const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]); const out=[];
   for(const t of order){ if(out.length>=3) break; const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||isChamp(i)||i===DG.me||out.includes(i)) continue; out.push(i); }
   return out; }
-// 扉の手がかり：分類・能力・技の候補の上位（記事の事実から作ったもの）
-const dgClue=i=>{ const f=F[i], c=(CL[i]||[])[1], mv=(POOL[i]||[]).slice(0,2).map(m=>m[3]&&/：/.test(m[3])?m[1]+'（'+m[3]+'）':m[1]); return `<span class="dgc">${c?esc(c)+'｜':''}${f[3].map((v,k)=>STAT[k]+' '+v).join('・')}${mv.length?'<br>技：'+esc(mv.join('／')):''}</span>`; };
+// 扉の手がかり：分類と、その記事らしい事実を1つだけ（数値の能力は出さない。知識で読む余地を残す）
+const dgClue=i=>{ const c=(CL[i]||[])[1], m=(POOL[i]||[]).find(m=>m[3]&&/：/.test(m[3])&&m[0]!=='NAME'&&m[0]!=='SENIORITY'&&!META_MV.has(m[1])); const fact=m?m[3]:''; return `<span class="dgc">${[c,fact].filter(Boolean).map(esc).join('｜')}</span>`; };
 const dgHead=()=>`${DG.practice?'<b>練習</b>（記録には残りません）<br>':''}あなたの選手：<b>${esc(F[DG.me][0])}</b>　いま <b>${DG.floor}階</b>（${esc(F[DG.pos][0])}）<br>${dgClue(DG.me)}<div class="dgpath">${DG.path.map(p=>DGE[p.ev]+esc(p.t)).join(' → ')}</div>`;
 // 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
 const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
