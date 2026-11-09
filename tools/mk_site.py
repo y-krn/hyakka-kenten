@@ -1770,7 +1770,7 @@ function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres"><b>${esc(F[d][0])}</b>とは引き分け。扉は開いたので先へ進める（乗り換えはできない）</div><div class="trow"><button type="button" class="btn" id="dgkeep">進む</button>${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; }
-  else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`<b>${esc(F[d][0])}</b>に敗れた（${esc(how)}${key}）`,d); }
+  else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`<b>${esc(F[d][0])}</b>に敗れた（相手の${esc(how)}${key}）`,d); }
   const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
 function dgEnd(msg,foe){ const box=$('#dgbox'), deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length, pr=DG.practice; dgSave(true);
   const share=dgShare(DG.day,DG.path), me=DG.me;
