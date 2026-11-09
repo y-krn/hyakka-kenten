@@ -1714,6 +1714,12 @@ repall("  await loadThrone(msg);\n  try{ const a=await loadTitle(d.challenger.ti
        "  let shown=false; m.className='msg'; m.textContent='試合開始。結果は、試合のあとでここに出ます。';\n  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}\n  if(!shown){ TH_HOLD=null; await loadThrone(msg); } }")
 repall("  if(!current||current.shown) return; current.shown=true;", "  if(!current||current.shown) return; current.shown=true; if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */")
 
+# ---- 74. 共有URL（?a=…&b=…）で開いた対戦は、片方がいまの王者でも、そのまま観戦できるようにする（投稿したトーナメントの試合などが、あとで王者になった記事のせいで見られなくなっていた）----
+#   王座は動かない観戦だけ。王者を自由対戦の欄で選べないのは、いままでどおり
+repall("    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので自由対戦に出せません。別の記事にしました';\n", "")
+repall("  if(!why[0]&&!why[1]) startBattle(); return true; }",
+       "  if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる\n    if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }\n  return true; }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
