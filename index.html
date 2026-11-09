@@ -1629,7 +1629,7 @@ function settleTo(el){ let touched=false; const mark=()=>{ touched=true; }; ['to
 
 // ---- 撮って選手にする（試作） ----
 const shotLog=()=>{ try{ return JSON.parse(localStorage.getItem('hk-shots')||'[]'); }catch(_){ return []; } };
-function shotLogDraw(){ const o=$('#shotlog'); if(!o) return; const L=shotLog(); o.innerHTML=L.length?L.map(x=>`<li>${x.t?`<b>${esc(dispT(x.t))}</b>`:'<span style="color:var(--muted)">選手にならず</span>'}（${esc(x.what||'')}・${esc(x.m)}・${(x.ms/1000).toFixed(1)}秒${x.tok?'・'+x.tok+'トークン':''}）</li>`).join(''):'<li>まだありません</li>'; }
+function shotLogDraw(){ const o=$('#shotlog'); if(!o) return; const L=shotLog(); o.innerHTML=L.length?L.map(x=>`<li>${x.t?`<b>${esc(x.t)}</b>`:'<span style="color:var(--muted)">選手にならず</span>'}（${esc(x.what||'')}・${esc(x.m)}・${(x.ms/1000).toFixed(1)}秒${x.tok?'・'+x.tok+'トークン':''}）</li>`).join(''):'<li>まだありません</li>'; }
 // 写真を縮めて JPEG にする（長い辺 768px）
 async function shotShrink(file){ const bm=await createImageBitmap(file); const k=Math.min(1,768/Math.max(bm.width,bm.height)); const c=document.createElement('canvas'); c.width=Math.round(bm.width*k); c.height=Math.round(bm.height*k); c.getContext('2d').drawImage(bm,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.8); }
 // AIが答えた記事名の候補を、収録している記事に当てる（そのまま → Wikipediaの転送をたどる → 検索のいちばん上）
@@ -1648,7 +1648,7 @@ async function shotGo(file){ const res=$('#shotres'), m=$('#shotm').value; let u
   const i=await shotMatch(d.titles||[],d.what||'');
   const L=shotLog(); L.unshift({t:i>=0?F[i][1]:'',what:d.what||'',m:d.model,ms:d.ms||0,tok:d.usage?(d.usage.prompt_tokens||0)+(d.usage.completion_tokens||0):0,c:(d.titles||[]).join('、'),at:Date.now()}); try{ localStorage.setItem('hk-shots',JSON.stringify(L.slice(0,100))); }catch(_){} shotLogDraw();
   if(i<0){ res.innerHTML=`<img src="${url}" alt="撮った写真"><div>「${esc(d.what||'？')}」は、選手になりませんでした（候補：${esc((d.titles||[]).join('、')||'なし')}。収録している記事に当たらず）</div>${d.raw?`<div class="fsub">${esc(d.raw)}</div>`:''}`; return; }
-  res.innerHTML=`<img src="${url}" alt="撮った写真"><div class="fsub">「${esc(d.what||'')}」</div><div class="big">${esc(dispT(F[i][1]))}</div><div class="fsub">が選手になった（${esc(d.model)}・${((d.ms||0)/1000).toFixed(1)}秒。AIの候補：${esc((d.titles||[]).join('、'))}）</div><div class="trow"><button type="button" class="btn" id="shotA">青コーナーに入れて戦う</button></div>`;
+  res.innerHTML=`<img src="${url}" alt="撮った写真"><div class="fsub">「${esc(d.what||'')}」</div><div class="big">${esc(F[i][0])}</div><div class="fsub">が選手になった（${esc(d.model)}・${((d.ms||0)/1000).toFixed(1)}秒。AIの候補：${esc((d.titles||[]).join('、'))}）</div><div class="trow"><button type="button" class="btn" id="shotA">青コーナーに入れて戦う</button></div>`;
   $('#shotA').onclick=async()=>{ sel[0]=i; if(sel[1]===i||sel[1]===null||isChamp(sel[1])) sel[1]=await rnd([i]); renderPick(0); renderPick(1); updateFight(); startBattle(); }; }
 if($('#shotin')){ $('#shotin').onchange=e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) shotGo(f); }; shotLogDraw(); }
 
