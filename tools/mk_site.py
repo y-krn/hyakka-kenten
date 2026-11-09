@@ -1795,6 +1795,9 @@ async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.le
 repall("\nrenderRec();\n(async()=>{", _dg+"\nrenderRec();\n(async()=>{")
 repall("setCount(); famToday(); mineInit(); todayInit();", "setCount(); famToday(); mineInit(); todayInit(); dgInit();")
 
+# ---- 76. 自由対戦の選手カードに、能力の数値（HP・攻撃・防御・速さ）を出さない。強さは記事の事実（技の候補）から読む形にそろえる ----
+repall("""  <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>\n""", "")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
