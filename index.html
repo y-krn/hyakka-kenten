@@ -377,7 +377,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:4px}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overflow-x:clip;max-width:100%}
-input,select,textarea{font-size:16px!important}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
+input,select,textarea{font-size:16px!important}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
 </style>
 </head>
 <body>
@@ -1638,42 +1638,50 @@ async function dgDoors(){ const here=F[DG.pos][1], L=[...new Set(await dgLinks(h
   const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]); const out=[];
   for(const t of order){ if(out.length>=3) break; const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||isChamp(i)||i===DG.me||out.includes(i)) continue; out.push(i); }
   return out; }
-const dgHead=()=>`あなたの選手：<b>${esc(F[DG.me][0])}</b>　いま <b>${DG.floor}階</b>（${esc(F[DG.pos][0])}）<div class="dgpath">${DG.path.map(p=>DGE[p.ev]+esc(p.t)).join(' → ')}</div>`;
-function dgStart(i){ DG={day:jstDay(),me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgFloor(); }
+// 扉の手がかり：分類・能力・技の候補の上位（記事の事実から作ったもの）
+const dgClue=i=>{ const f=F[i], c=(CL[i]||[])[1], mv=(POOL[i]||[]).slice(0,2).map(m=>m[3]&&/：/.test(m[3])?m[1]+'（'+m[3]+'）':m[1]); return `<span class="dgc">${c?esc(c)+'｜':''}${f[3].map((v,k)=>STAT[k]+' '+v).join('・')}${mv.length?'<br>技：'+esc(mv.join('／')):''}</span>`; };
+const dgHead=()=>`${DG.practice?'<b>練習</b>（記録には残りません）<br>':''}あなたの選手：<b>${esc(F[DG.me][0])}</b>　いま <b>${DG.floor}階</b>（${esc(F[DG.pos][0])}）<br>${dgClue(DG.me)}<div class="dgpath">${DG.path.map(p=>DGE[p.ev]+esc(p.t)).join(' → ')}</div>`;
+// 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
+const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()?o:null; }catch(_){ return null; } };
+function dgSave(done){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done})); }catch(_){} }
+function dgShare(day,path){ const md=day.slice(5).replace('-','/').replace(/^0/,''), deep=path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; return `百科ダンジョン ${md}\n${path[0].t}から潜って ${deep}階突破\n${path.map(p=>DGE[p.ev]).join('')}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
+function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgSave(false); dgFloor(); }
 async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst">${dgHead()}</div><div>扉を探しています…</div>`;
   const doors=await dgDoors(); if(!DG) return;
   if(!doors.length){ dgEnd('行き止まり。この記事からは、もう扉が見つからない'); return; }
-  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgq">${esc(F[DG.pos][0])}から伸びる扉。どれに入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}">🚪 ${esc(F[d][0])}</button>`).join('')}</div><div class="trow"><button type="button" class="btn small" id="dgquit">ここでやめる</button></div>`;
+  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgq">${esc(F[DG.pos][0])}から伸びる扉。どれに入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div><div class="trow"><button type="button" class="btn small" id="dgquit">ここでやめる</button></div>`;
   box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
   $('#dgquit').onclick=()=>dgEnd('自分の判断で引き返した'); }
 function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move);
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
   const watch=`<button type="button" class="btn small" id="dgw">この試合を観戦</button>`;
-  if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d;
+  if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win"><b>${esc(F[me][0])}</b>が、扉の先の<b>${esc(F[d][0])}</b>に勝った（${esc(how)}${key}）</div><div class="trow"><button type="button" class="btn" id="dgkeep">${esc(F[me][0])}のまま進む</button><button type="button" class="btn" id="dgsw">${esc(F[d][0])}に乗り換えて進む</button>${watch}</div>`;
-    $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; $('#dgsw').onclick=()=>{ DG.me=d; DG.path[DG.path.length-1].ev='switch'; DG.floor++; dgFloor(); }; }
-  else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d;
+    $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; $('#dgsw').onclick=()=>{ DG.me=d; DG.path[DG.path.length-1].ev='switch'; dgSave(false); DG.floor++; dgFloor(); }; }
+  else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres"><b>${esc(F[d][0])}</b>とは引き分け。扉は開いたので先へ進める（乗り換えはできない）</div><div class="trow"><button type="button" class="btn" id="dgkeep">進む</button>${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; }
   else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`<b>${esc(F[d][0])}</b>に敗れた（${esc(how)}${key}）`,d); }
   const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
-function dgEnd(msg,foe){ const box=$('#dgbox'), got=DG.floor-1+(DG.path[DG.path.length-1].ev==='lose'?0:0), deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length;
-  let best=0; try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); best=o.day===DG.day?o.best:0; if(deep>best){ best=deep; localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,best})); } }catch(_){}
-  const md=DG.day.slice(5).replace('-','/').replace(/^0/,''), start=DG.path[0].t;
-  const share=`百科ダンジョン ${md}\n${start}から潜って ${deep}階突破\n${DG.path.map(p=>DGE[p.ev]).join('')}\n${DG.path.map(p=>p.t).join(' → ')}\n${location.origin}/`;
-  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres lose">${msg}</div><div class="dgq">${deep}階を突破（今日の最高 ${best}階）</div><div class="dgshare" id="dgshare">${esc(share)}</div><div class="trow"><button type="button" class="btn" id="dgcopy">結果をコピー</button>${foe!==undefined?`<button type="button" class="btn small" id="dgw">最後の試合を観戦</button>`:''}<button type="button" class="btn small" id="dgagain">もう一度</button></div>`;
-  const me=DG.me; $('#dgcopy').onclick=async()=>{ try{ if(navigator.share&&TOUCH) await navigator.share({text:share}); else { await navigator.clipboard.writeText(share); $('#dgcopy').textContent='コピーしました'; } }catch(_){} };
+function dgEnd(msg,foe){ const box=$('#dgbox'), deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length, pr=DG.practice; dgSave(true);
+  const share=dgShare(DG.day,DG.path), me=DG.me;
+  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres lose">${msg}</div><div class="dgq">${deep}階を突破${pr?'（練習なので記録には残りません）':''}</div>${pr?'':`<div class="dgshare">${esc(share)}</div>`}<div class="trow">${pr?'':'<button type="button" class="btn" id="dgcopy">結果をコピー</button>'}${foe!==undefined?`<button type="button" class="btn small" id="dgw">最後の試合を観戦</button>`:''}<button type="button" class="btn small" id="dgagain">はじめの画面へ</button></div>`;
+  if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
   if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
-// 入口：今日のお題（毎日同じ記事）か、自由対戦の青コーナーの記事で潜る
+async function dgCopy(share){ try{ if(navigator.share&&TOUCH) await navigator.share({text:share}); else { await navigator.clipboard.writeText(share); const b=$('#dgcopy'); if(b) b.textContent='コピーしました'; } }catch(_){} }
+// 入口：今日のお題（1日1回の挑戦）と、練習（何度でも。記録に残らない）
 async function dgInit(){ const box=$('#dgbox'); if(!box||!POPULAR.length) return; const day=jstDay();
   let t0=-1; for(let k=0;k<20&&t0<0;k++){ const t=POPULAR[hash('dg-start/'+day+'/'+k)%POPULAR.length]; if(!t) continue; const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!isChamp(i)) t0=i; }
-  let best=0; try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); if(o.day===day) best=o.best; }catch(_){}
-  box.innerHTML=`<div class="dgst">決まりごと：いまいる記事のリンク先が、3つの扉になります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。同じ日なら、誰が潜っても同じ扉が出ます。${best?`<br>今日のあなたの最高：<b>${best}階</b>`:''}</div>
-    <div class="trow">${t0>=0?`<button type="button" class="btn big" id="dgtoday">今日のお題「${esc(F[t0][0])}」で潜る</button>`:''}<button type="button" class="btn" id="dgmine">自由対戦の青コーナーの記事で潜る</button></div>`;
-  if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0);
-  $('#dgmine').onclick=()=>{ const i=sel[0]; if(i===null||i<0) return; dgStart(i); }; }
+  const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
+  const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類・能力・技の手がかりが書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
+  if(o){ const share=dgShare(day,o.path);
+    box.innerHTML=`<div class="dgq">今日の挑戦は終わりました：${o.deep}階突破</div><div class="dgshare">${esc(share)}</div><div class="trow"><button type="button" class="btn" id="dgcopy">結果をコピー</button></div><div class="dgst">また明日、新しいお題で潜れます。練習は何度でもできます（記録には残りません）。</div><div class="trow">${t0>=0?`<button type="button" class="btn small" id="dgpt">今日のお題で練習</button>`:''}<button type="button" class="btn small" id="dgmine">自由対戦の青コーナーの記事で練習</button></div>`;
+    $('#dgcopy').onclick=()=>dgCopy(share); if($('#dgpt')) $('#dgpt').onclick=()=>dgStart(t0,true); }
+  else { box.innerHTML=`<div class="dgst">${rule}</div><div class="trow">${t0>=0?`<button type="button" class="btn big" id="dgtoday">今日のお題「${esc(F[t0][0])}」で挑戦（1日1回）</button>`:''}<button type="button" class="btn small" id="dgmine">自由対戦の青コーナーの記事で練習</button></div>`;
+    if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false); }
+  $('#dgmine').onclick=()=>{ const i=sel[0]; if(i===null||i<0) return; if(!o&&i===t0){ const b=$('#dgmine'); b.textContent='今日のお題の練習は、挑戦のあとでできます'; return; } dgStart(i,true); }; }
 
 renderRec();
 (async()=>{ try{
