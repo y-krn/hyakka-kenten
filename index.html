@@ -1501,12 +1501,13 @@ async function openShared(){ const q=new URLSearchParams(location.search);
   for(const s of [0,1]){ const i=ids[s], t=[ta,tb][s];
     if(i<0) why[s]='「'+t+'」は収録していないので、別の記事にしました';
     else if(BLOCK.has(i)) why[s]='「'+t+'」は確認中なので、別の記事にしました';
-    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので自由対戦に出せません。別の記事にしました';
     else sel[s]=i; }
   for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);
   renderPick(0); renderPick(1); updateFight();
   for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }
-  if(!why[0]&&!why[1]) startBattle(); return true; }
+  if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる
+    if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }
+  return true; }
 const isChamp=i=>!!(THRONE&&i!==null&&i>=0&&F[i]&&F[i][1]===THRONE.champ.title);
 async function fixChamp(){ for(const s of [0,1]){ if(isChamp(sel[s])){ sel[s]=await rnd([sel[1-s]]); renderPick(s); const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者は自由対戦に出せないので、入れ替えました'; } } updateFight(); }
 const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(_){ return ''; } };
