@@ -1720,6 +1720,48 @@ repall("    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので�
 repall("  if(!why[0]&&!why[1]) startBattle(); return true; }",
        "  if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる\n    if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }\n  return true; }")
 
+# ---- 75. 試作（プレビューだけ）：撮って選手にする。写真に写っているものを Workers AI に聞き、その記事を自由対戦の選手にする ----
+#   サーバー側は worker/src/index.js の /api/shot（プレビュー用URLでだけ動く）。どのモデルが当てられるかを比べるため、モデルを選べるようにしてある
+repall('  <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">',
+  '''  <section id="shot" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div class="sechead"><h2>撮って選手にする</h2><span>試作。写真に写っているものの記事が、選手になる</span></div>
+    <div class="trow"><label class="btn big" id="shotbtn">写真を撮る<input type="file" id="shotin" accept="image/*" capture="environment" hidden></label>
+      <label class="fsub">判定するAI <select id="shotm"><option value="scout">Llama 4 Scout</option><option value="mistral">Mistral Small 3.1</option><option value="qwen">Qwen3.8 27B</option><option value="llama">Llama 3.2 Vision</option></select></label></div>
+    <div id="shotres" class="shotres" aria-live="polite"></div>
+    <details class="shotlog"><summary>これまでに撮ったもの</summary><ol id="shotlog"></ol></details>
+    <p class="fsub">写真は記事を当てるためだけに使い、残しません（Cloudflare の Workers AI で判定）。人の顔は人物名として当てません。</p>
+  </section>
+
+  <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">''')
+repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}#shot .shotres:empty{display:none}#shot .shotres{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}#shot .shotres img{max-width:120px;max-height:120px;border-radius:8px;object-fit:cover}#shot .shotres .big{font-size:20px;font-weight:700}#shot .shotlog{font-size:13px}#shot .shotlog ol{margin:6px 0 0;padding-left:1.4em;display:flex;flex-direction:column;gap:2px}#shot select{font-size:14px!important;margin-left:4px}")
+_shot = r"""
+// ---- 撮って選手にする（試作） ----
+const shotLog=()=>{ try{ return JSON.parse(localStorage.getItem('hk-shots')||'[]'); }catch(_){ return []; } };
+function shotLogDraw(){ const o=$('#shotlog'); if(!o) return; const L=shotLog(); o.innerHTML=L.length?L.map(x=>`<li>${x.t?`<b>${esc(dispT(x.t))}</b>`:'<span style="color:var(--muted)">選手にならず</span>'}（${esc(x.what||'')}・${esc(x.m)}・${(x.ms/1000).toFixed(1)}秒${x.tok?'・'+x.tok+'トークン':''}）</li>`).join(''):'<li>まだありません</li>'; }
+// 写真を縮めて JPEG にする（長い辺 768px）
+async function shotShrink(file){ const bm=await createImageBitmap(file); const k=Math.min(1,768/Math.max(bm.width,bm.height)); const c=document.createElement('canvas'); c.width=Math.round(bm.width*k); c.height=Math.round(bm.height*k); c.getContext('2d').drawImage(bm,0,0,c.width,c.height); return c.toDataURL('image/jpeg',0.8); }
+// AIが答えた記事名の候補を、収録している記事に当てる（そのまま → Wikipediaの転送をたどる → 検索のいちばん上）
+async function shotMatch(titles,what){ const ok=async t=>{ const i=await loadTitle(t).catch(()=>-1); return i>=0&&!BLOCK.has(i)?i:-1; };
+  for(const t of titles){ const i=await ok(t); if(i>=0) return i; }
+  const wp=async p=>fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',...p})).then(r=>r.json()).catch(()=>({}));
+  if(titles.length){ const j=await wp({action:'query',redirects:1,titles:titles.slice(0,5).join('|')}); for(const pg of Object.values((j.query||{}).pages||{})){ if(pg.missing!==undefined) continue; const i=await ok(pg.title); if(i>=0) return i; } }
+  for(const q of [...titles.slice(0,2),what].filter(Boolean)){ const j=await wp({action:'query',list:'search',srsearch:q,srlimit:3,srnamespace:0}); for(const h of ((j.query||{}).search||[])){ const i=await ok(h.title); if(i>=0) return i; } }
+  return -1; }
+async function shotGo(file){ const res=$('#shotres'), m=$('#shotm').value; let url='';
+  try{ url=await shotShrink(file); }catch(_){ res.textContent='写真を読み込めませんでした'; return; }
+  res.innerHTML=`<img src="${url}" alt="撮った写真"><div>写っているものを調べています…</div>`;
+  let d; try{ const r=await fetch(API+'/api/shot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:url,m})}); d=await r.json(); }catch(_){ d={error:'送れませんでした。通信状態を確かめてください。'}; }
+  if(d.error){ res.innerHTML=`<img src="${url}" alt="撮った写真"><div class="msg err">${esc(d.error)}</div>`; return; }
+  res.innerHTML=`<img src="${url}" alt="撮った写真"><div>「${esc(d.what||'？')}」…記事を探しています（候補：${esc((d.titles||[]).join('、')||'なし')}）</div>`;
+  const i=await shotMatch(d.titles||[],d.what||'');
+  const L=shotLog(); L.unshift({t:i>=0?F[i][1]:'',what:d.what||'',m:d.model,ms:d.ms||0,tok:d.usage?(d.usage.prompt_tokens||0)+(d.usage.completion_tokens||0):0,c:(d.titles||[]).join('、'),at:Date.now()}); try{ localStorage.setItem('hk-shots',JSON.stringify(L.slice(0,100))); }catch(_){} shotLogDraw();
+  if(i<0){ res.innerHTML=`<img src="${url}" alt="撮った写真"><div>「${esc(d.what||'？')}」は、選手になりませんでした（候補：${esc((d.titles||[]).join('、')||'なし')}。収録している記事に当たらず）</div>${d.raw?`<div class="fsub">${esc(d.raw)}</div>`:''}`; return; }
+  res.innerHTML=`<img src="${url}" alt="撮った写真"><div class="fsub">「${esc(d.what||'')}」</div><div class="big">${esc(dispT(F[i][1]))}</div><div class="fsub">が選手になった（${esc(d.model)}・${((d.ms||0)/1000).toFixed(1)}秒。AIの候補：${esc((d.titles||[]).join('、'))}）</div><div class="trow"><button type="button" class="btn" id="shotA">青コーナーに入れて戦う</button></div>`;
+  $('#shotA').onclick=async()=>{ sel[0]=i; if(sel[1]===i||sel[1]===null||isChamp(sel[1])) sel[1]=await rnd([i]); renderPick(0); renderPick(1); updateFight(); startBattle(); }; }
+if($('#shotin')){ $('#shotin').onchange=e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) shotGo(f); }; shotLogDraw(); }
+"""
+repall("\nrenderRec();\n(async()=>{", _shot+"\nrenderRec();\n(async()=>{")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
