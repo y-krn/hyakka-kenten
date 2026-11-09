@@ -402,7 +402,7 @@ async function holds(env, req, ctx) {
 //   POST /api/shot  {image: 'data:image/jpeg;base64,…', m: 'scout'|'mistral'|'qwen'|'llama'} → {what, titles, model, usage}
 //   写真は判定に使うだけで、どこにも残さない。回線ごとに1日の回数を区切る（試作なのでWorkerの記憶の中だけで数える）
 const SHOT_HOST = 'preview-hyakka-kenten-api.y-krn.workers.dev';
-const SHOT_MODELS = { scout: '@cf/meta/llama-4-scout-17b-16e-instruct', mistral: '@cf/mistralai/mistral-small-3.1-24b-instruct', qwen: '@cf/qwen/qwen3.8-27b', llama: '@cf/meta/llama-3.2-11b-vision-instruct' };
+const SHOT_MODELS = { scout: '@cf/meta/llama-4-scout-17b-16e-instruct', mistral: '@cf/mistralai/mistral-small-3.1-24b-instruct', qwen: '@cf/qwen/qwen3.8-27b' };   // Llama 3.2 Vision は、使う前に利用規約への同意が要るので外す
 const SHOT_DAY = 60; const SHOTN = new Map();
 const SHOT_PROMPT = 'この写真に写っている、いちばん目立つものを1つ選んでください。それについて書かれた日本語版ウィキペディアの記事名を答えてください。' +
   '固有のもの（建物・名所・車両・作品・キャラクター・商品・ブランドなど）だと分かれば、その固有の記事名にしてください。分からなければ一般的な名前（例：柴犬、自動販売機、イチョウ）にしてください。' +
@@ -419,8 +419,9 @@ async function shot(env, req, u) {
   let r;
   try { r = await env.AI.run(model, { messages: [{ role: 'user', content: [{ type: 'text', text: SHOT_PROMPT }, { type: 'image_url', image_url: { url: img } }] }], max_tokens: 300, temperature: 0.2 }); }
   catch (e) { return json(env, req, { error: 'AIの呼び出しに失敗しました：' + String(e && e.message || e).slice(0, 300), model: key }, 502); }
-  const raw = typeof r.response === 'string' ? r.response : JSON.stringify(r.response ?? r.choices?.[0]?.message?.content ?? r);
-  let out = null; const m = raw.match(/\{[\s\S]*\}/); if (m) { try { out = JSON.parse(m[0]); } catch (_) {} }
+  const c = typeof r.response === 'string' ? r.response : (r.choices?.[0]?.message?.content ?? r.response ?? r);   // モデルによって、答えの入る場所と形が違う
+  let out = c && typeof c === 'object' && Array.isArray(c.titles) ? c : null; const raw = typeof c === 'string' ? c : JSON.stringify(c);
+  if (!out) { const m = raw.match(/\{[\s\S]*\}/); if (m) { try { out = JSON.parse(m[0]); } catch (_) {} } }
   const titles = (out && Array.isArray(out.titles) ? out.titles : []).map(x => String(x).trim()).filter(Boolean).slice(0, 5);
   return json(env, req, { what: out && out.what ? String(out.what).slice(0, 200) : '', titles, raw: titles.length ? undefined : raw.slice(0, 500), model: key, usage: r.usage || null, ms: Date.now() - t0, left: SHOT_DAY - n });
 }
