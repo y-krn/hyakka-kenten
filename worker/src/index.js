@@ -398,34 +398,6 @@ async function holds(env, req, ctx) {
   return json(env, req, body);
 }
 
-// 試作（プレビュー用URLだけ）：撮った写真に写っているものの、日本語版Wikipediaの記事名を Workers AI に聞く
-//   POST /api/shot  {image: 'data:image/jpeg;base64,…', m: 'scout'|'mistral'|'qwen'|'llama'} → {what, titles, model, usage}
-//   写真は判定に使うだけで、どこにも残さない。回線ごとに1日の回数を区切る（試作なのでWorkerの記憶の中だけで数える）
-const SHOT_HOST = 'preview-hyakka-kenten-api.y-krn.workers.dev';
-const SHOT_MODELS = { scout: '@cf/meta/llama-4-scout-17b-16e-instruct', mistral: '@cf/mistralai/mistral-small-3.1-24b-instruct', qwen: '@cf/qwen/qwen3.8-27b' };   // Llama 3.2 Vision は、使う前に利用規約への同意が要るので外す
-const SHOT_DAY = 60; const SHOTN = new Map();
-const SHOT_PROMPT = 'この写真に写っている、いちばん目立つものを1つ選んでください。それについて書かれた日本語版ウィキペディアの記事名を答えてください。' +
-  '固有のもの（建物・名所・車両・作品・キャラクター・商品・ブランドなど）だと分かれば、その固有の記事名にしてください。分からなければ一般的な名前（例：柴犬、自動販売機、イチョウ）にしてください。' +
-  '人の顔が写っていても、人物の名前は答えないでください（その場合は「人間」としてください）。' +
-  '次のJSONだけで答えてください。説明や前置きは書かないでください：{"what":"写っているものの短い説明（日本語）","titles":["記事名の候補1","候補2","候補3"]}';
-async function shot(env, req, u) {
-  if (u.hostname !== SHOT_HOST || !env.AI) return json(env, req, { error: 'この機能は試作版だけです' }, 404);
-  const ip = await ipHash(env, req), day = now().slice(0, 10), k = day + '|' + ip, n = (SHOTN.get(k) || 0) + 1;
-  if (n > SHOT_DAY) return json(env, req, { error: '今日はここまで（1日' + SHOT_DAY + '枚）' }, 429);
-  SHOTN.set(k, n); if (SHOTN.size > 5000) SHOTN.clear();
-  const b = await req.json().catch(() => ({})); const img = String(b.image || '');
-  if (!/^data:image\/(jpeg|png|webp);base64,/.test(img) || img.length > 1200000) return json(env, req, { error: '写真を読み取れませんでした（大きすぎるか、形式が違います）' }, 400);
-  const key = SHOT_MODELS[b.m] ? b.m : 'scout', model = SHOT_MODELS[key], t0 = Date.now();
-  let r;
-  try { r = await env.AI.run(model, { messages: [{ role: 'user', content: [{ type: 'text', text: SHOT_PROMPT }, { type: 'image_url', image_url: { url: img } }] }], max_tokens: 300, temperature: 0.2 }); }
-  catch (e) { return json(env, req, { error: 'AIの呼び出しに失敗しました：' + String(e && e.message || e).slice(0, 300), model: key }, 502); }
-  const c = typeof r.response === 'string' ? r.response : (r.choices?.[0]?.message?.content ?? r.response ?? r);   // モデルによって、答えの入る場所と形が違う
-  let out = c && typeof c === 'object' && Array.isArray(c.titles) ? c : null; const raw = typeof c === 'string' ? c : JSON.stringify(c);
-  if (!out) { const m = raw.match(/\{[\s\S]*\}/); if (m) { try { out = JSON.parse(m[0]); } catch (_) {} } }
-  const titles = (out && Array.isArray(out.titles) ? out.titles : []).map(x => String(x).trim()).filter(Boolean).slice(0, 5);
-  return json(env, req, { what: out && out.what ? String(out.what).slice(0, 200) : '', titles, raw: titles.length ? undefined : raw.slice(0, 500), model: key, usage: r.usage || null, ms: Date.now() - t0, left: SHOT_DAY - n });
-}
-
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -436,7 +408,6 @@ export default {
     const og = u.pathname.match(/^\/og\/c\/(\d{1,9})\.jpg$/); if (og && req.method === 'GET') return ogGet(req, env, ctx, +og[1]);
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
-      if (u.pathname === '/api/shot' && req.method === 'POST') return await shot(env, req, u);
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req, ctx);
       if (u.pathname === '/api/hall' && req.method === 'GET') return await hall(env, req, ctx);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);

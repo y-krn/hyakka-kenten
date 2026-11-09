@@ -12,10 +12,6 @@ routes = [
   { pattern = "www.hyakkakenten.com", custom_domain = true },
 ]
 
-# 試作（プレビュー）：写真の判定に Workers AI を使う
-[ai]
-binding = "AI"
-
 [vars]
 DATA_BASE = "https://hyakkakenten.com/data/"
 ALLOWED_ORIGINS = "https://hyakkakenten.com,https://y-krn.github.io,http://localhost:8765"
