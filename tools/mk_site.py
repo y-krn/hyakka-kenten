@@ -1774,7 +1774,7 @@ function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
 function dgEnd(msg,foe){ const box=$('#dgbox'), deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length, pr=DG.practice; dgSave(true);
   const share=dgShare(DG.day,DG.path), me=DG.me;
-  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres lose">${msg}</div><div class="dgq">${deep}階を突破${pr?'（練習なので記録には残りません）':''}</div>${pr?'':`<div class="dgshare">${esc(share)}</div>`}<div class="trow">${pr?'':'<button type="button" class="btn" id="dgcopy">${dgShareLab()}</button>'}${foe!==undefined?`<button type="button" class="btn small" id="dgw">最後の試合を観戦</button>`:''}<button type="button" class="btn small" id="dgagain">はじめの画面へ</button></div>`;
+  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres lose">${msg}</div><div class="dgq">${deep}階を突破${pr?'（練習なので記録には残りません）':''}</div>${pr?'':`<div class="dgshare">${esc(share)}</div>`}<div class="trow">${pr?'':'<button type="button" class="btn" id="dgcopy">'+dgShareLab()+'</button>'}${foe!==undefined?`<button type="button" class="btn small" id="dgw">最後の試合を観戦</button>`:''}<button type="button" class="btn small" id="dgagain">はじめの画面へ</button></div>`;
   if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
   if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
