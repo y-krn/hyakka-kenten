@@ -1638,8 +1638,8 @@ async function dgLinks(t){ const out=[]; let cont={};
 async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await dgLinks(here))].filter(t=>!DG_NG.test(t)&&!DG.seen.has(t));
   const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
   const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set();
-  for(let k=0;k<order.length&&k<60&&(W.length<wantW||X.length<3-wantW);k+=6){
-    const ids=await Promise.all(order.slice(k,k+6).map(t=>loadTitle(t).catch(()=>-1)));
+  for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW);k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
+    const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
     for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)) continue; seen.add(i);
       const w=analyze(me,i,true).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
   let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }   // 足りなければ、見つかった順に足す
