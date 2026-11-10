@@ -1788,11 +1788,11 @@ async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.le
   const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
   const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類と、事実がひとつ書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
   if(o){ const share=dgShare(day,o.path);
-    box.innerHTML=`<div class="dgq">今日の挑戦は終わりました：${o.deep}階突破</div><div class="dgshare">${esc(share)}</div><div class="trow"><button type="button" class="btn" id="dgcopy">${dgShareLab()}</button></div><div class="dgst">また明日、新しいお題で潜れます。練習は何度でもできます（記録には残りません）。</div><div class="trow">${t0>=0?`<button type="button" class="btn small" id="dgpt">今日のお題で練習</button>`:''}<button type="button" class="btn small" id="dgmine">記事を選んで練習</button></div>`;
-    $('#dgcopy').onclick=()=>dgCopy(share); if($('#dgpt')) $('#dgpt').onclick=()=>dgStart(t0,true); }
-  else { box.innerHTML=`<div class="dgst">${rule}</div><div class="trow">${t0>=0?`<button type="button" class="btn big" id="dgtoday">今日のお題「${esc(F[t0][0])}」で挑戦（1日1回）</button>`:''}<button type="button" class="btn small" id="dgmine">記事を選んで練習</button></div>`;
+    box.innerHTML=`<div class="dgq">今日の挑戦は終わりました：${o.deep}階突破</div><div class="dgshare">${esc(share)}</div><div class="trow"><button type="button" class="btn" id="dgcopy">${dgShareLab()}</button></div><div class="dgst">また明日、新しいお題で潜れます。</div>`;
+    $('#dgcopy').onclick=()=>dgCopy(share); }
+  else { box.innerHTML=`<div class="dgst">${rule}</div><div class="trow">${t0>=0?`<button type="button" class="btn big" id="dgtoday">今日のお題「${esc(F[t0][0])}」で挑戦（1日1回）</button>`:''}</div>`;
     if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false); }
-  $('#dgmine').onclick=()=>dgPick(o,t0); }
+  /* 練習（dgPick）は、分かりにくいので入口を外している */ }
 // 練習で潜る記事を選ぶ（記事名を入れるか、ランダム）。今日のお題は、挑戦が済むまで練習に使えない
 function dgPick(o,t0){ const box=$('#dgbox'), cur=sel[0]!==null&&sel[0]>=0?F[sel[0]][1]:'';
   box.innerHTML=`<div class="dgq">練習で潜る記事を選ぶ</div><div class="dgst">練習は何度でもできます。記録には残りません。</div><input id="dgpin" type="text" placeholder="記事名（例：東京タワー）" value="${esc(cur)}" autocomplete="off" aria-label="練習で潜る記事名"><div class="trow"><button type="button" class="btn" id="dgpgo">この記事で練習</button><button type="button" class="btn small" id="dgprnd">ランダムな記事で練習</button><button type="button" class="btn small" id="dgpback">戻る</button></div><div class="fsub" id="dgpmsg" aria-live="polite"></div>`;
