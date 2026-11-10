@@ -1774,7 +1774,7 @@ function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
 function dgEnd(msg,foe){ const box=$('#dgbox'), deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length, pr=DG.practice; dgSave(true);
   const share=dgShare(DG.day,DG.path), me=DG.me;
-  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres lose">${msg}</div><div class="dgfl">${deep}階突破</div>${pr?'':`<div class="dgshare">${esc(share)}</div>`}<div class="trow">${pr?'':'<button type="button" class="btn" id="dgcopy">'+dgShareLab()+'</button>'}${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
+  box.innerHTML=`<div class="dgfl">${deep}階突破</div><div class="dgres lose">${msg}</div><div class="dgpath">${DG.path.map(p=>DGE[p.ev]+esc(p.t)).join(' → ')}</div><div class="trow">${pr?'':'<button type="button" class="btn" id="dgcopy">'+dgShareLab()+'</button>'}${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
   if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
   if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
@@ -1788,7 +1788,7 @@ async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.le
   const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
   const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類と、事実がひとつ書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
   if(o){ const share=dgShare(day,o.path);
-    box.innerHTML=`<div class="dgfl">今日は ${o.deep}階突破</div><div class="dgshare">${esc(share)}</div><div class="trow"><button type="button" class="btn" id="dgcopy">${dgShareLab()}</button></div><div class="dgst">次のお題は明日</div>`;
+    box.innerHTML=`<div class="dgfl">今日は ${o.deep}階突破</div><div class="dgpath">${o.path.map(p=>DGE[p.ev]+esc(p.t)).join(' → ')}</div><div class="trow"><button type="button" class="btn" id="dgcopy">${dgShareLab()}</button></div><div class="dgst">次のお題は明日</div>`;
     $('#dgcopy').onclick=()=>dgCopy(share); }
   else { box.innerHTML=`<div class="dgst">今日の入口</div>${t0>=0?`<button type="button" class="btn big dgin" id="dgtoday">🚪 ${esc(F[t0][0])}</button>`:''}<div class="dgst">1日1回</div>`;
     if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false); }
