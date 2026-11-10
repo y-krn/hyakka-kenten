@@ -377,7 +377,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:4px}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overflow-x:clip;max-width:100%}
-input,select,textarea{font-size:16px!important}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box;font-size:20px;justify-content:center}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
+input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>.btn,.fgo>.btn{display:inline-flex;align-items:center;justify-content:center}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box;font-size:20px;justify-content:center;display:flex;align-items:center;min-height:52px}#dg .dgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dg .dgpair .btn{display:flex;align-items:center;justify-content:center;min-height:48px;box-sizing:border-box;padding:8px}#dg .dgsub{display:flex;gap:8px}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
 </style>
 </head>
 <body>
@@ -1294,7 +1294,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
     <label for="my">生まれた年</label><div class="mrow"><input id="my" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()}" placeholder="例：1990" value="${esc(o.y||'')}">年</div>
     <label for="mp">出身地</label><input id="mp" type="text" placeholder="例：札幌市" value="${esc(o.p||'')}" autocomplete="off">
     <label class="mkeep"><input type="checkbox" id="mkeep"${sv?' checked':''}>この端末に入力を覚えておく</label>
-    <div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button><button type="button" class="btn small" id="mclr">入力を消す</button></div>
+    <div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button></div><div class="mgo"><button type="button" class="btn small" id="mclr">入力を消す</button></div>
   </form>
   <div class="mst" id="mst"></div>
   <div id="mres" hidden></div>
@@ -1315,7 +1315,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
       ${reps.length>1?`<div class="mpick" role="group" aria-label="代表を選ぶ">${reps.map((x,k)=>`<button type="button" data-k="${k}" aria-pressed="${k===pick}">${esc(MB[x.k].lab)}</button>`).join('')}</div>`:''}
       <div class="mduel"><div class="ma"><small>あなたの代表・${esc(MB[r.k].lab)}</small><b>${esc(r.x.n)}</b><small>${esc(bsub(r.x))}</small></div><span class="mvx">vs</span>
         <div class="mb"><small>${+v.m===td.m&&+v.d===td.d?'もう一人の':'きょう'}${td.m}月${td.d}日生まれ</small>${opp?`<b>${esc(opp.n)}</b><small>${esc(bsub(opp))}</small>${ST.opps.length>1?'<button type="button" class="mlink" id="mopp">相手を変える</button>':''}`:'<small>読み込めませんでした</small>'}</div></div>
-      <div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>
+      <div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button></div><div class="mact"><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>
       <div class="mshare" id="mshp" hidden>
         <label><input type="checkbox" id="mwhy">選ばれた理由（${esc(MB[r.k].why(v))}）も書く</label>
         <div class="mpv" id="mpv"></div>
@@ -1667,16 +1667,16 @@ function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
   const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
   if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
-    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="trow"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">🔁 ${esc(F[d][0])}になって進む</button>${watch}</div>`;
+    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">🔁 乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; $('#dgsw').onclick=()=>{ DG.me=d; DG.path[DG.path.length-1].ev='switch'; dgSave(false); DG.floor++; dgFloor(); }; }
   else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d; dgSave(false);
-    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">🤝 <b>${esc(F[d][0])}</b>と引き分け</div><div class="trow"><button type="button" class="btn" id="dgkeep">進む</button>${watch}</div>`;
+    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">🤝 <b>${esc(F[d][0])}</b>と引き分け</div><button type="button" class="btn big dgin" id="dgkeep">進む</button><div class="dgsub">${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; }
   else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`💀 <b>${esc(F[d][0])}</b>に負けた<div class="dgc">相手の${esc(how)}${key}</div>`,d,'lose'); }
   const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
 function dgEnd(msg,foe,end){ const box=$('#dgbox'), pr=DG.practice; dgSave(true,end);
   const share=dgShare(DG.day,DG.path,end), me=DG.me;
-  box.innerHTML=`<div class="dgfl">${dgLine(DG.path,end)}</div><div class="dgres lose">${msg}</div><div class="dgpath">${dgPath(DG.path)}</div><div class="trow">${pr?'':'<button type="button" class="btn" id="dgcopy">'+dgShareLab()+'</button>'}${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
+  box.innerHTML=`<div class="dgfl">${dgLine(DG.path,end)}</div><div class="dgres lose">${msg}</div><div class="dgpath">${dgPath(DG.path)}</div>${pr?'':'<button type="button" class="btn big dgin" id="dgcopy">'+dgShareLab()+'</button>'}<div class="dgsub">${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
   if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
   if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
@@ -1690,7 +1690,7 @@ async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.le
   const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
   const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類と、事実がひとつ書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
   if(o){ const share=dgShare(day,o.path,o.end);
-    box.innerHTML=`<div class="dgfl">今日は ${dgLine(o.path,o.end)}</div><div class="dgpath">${dgPath(o.path)}</div><div class="trow"><button type="button" class="btn" id="dgcopy">${dgShareLab()}</button></div><div class="dgst">次のお題は明日</div>`;
+    box.innerHTML=`<div class="dgfl">今日は ${dgLine(o.path,o.end)}</div><div class="dgpath">${dgPath(o.path)}</div><button type="button" class="btn big dgin" id="dgcopy">${dgShareLab()}</button><div class="dgst">次のお題は明日</div>`;
     $('#dgcopy').onclick=()=>dgCopy(share); }
   else { box.innerHTML=`<div class="dgst">今日の入口</div>${t0>=0?`<button type="button" class="btn big dgin" id="dgtoday">🚪 ${esc(F[t0][0])}</button>`:''}<div class="dgst">1日1回</div>`;
     if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false); }
