@@ -1723,6 +1723,13 @@ repall("  if(!why[0]&&!why[1]) startBattle(); return true; }",
 # ---- 76. 自由対戦の選手カードに、能力の数値（HP・攻撃・防御・速さ）を出さない。強さは記事の事実（技の候補）から読む形にそろえる ----
 repall("""  <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>\n""", "")
 
+# ---- 77. UIの決まり（docs/ui-policy.md）に合わせる：補助のボタンは主・副と別の行に。主と副を並べるときは高さをそろえる ----
+repall('<div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button><button type="button" class="btn small" id="mclr">入力を消す</button></div>',
+       '<div class="mgo"><button type="submit" class="btn big" id="mfind">代表を探す</button></div><div class="mgo"><button type="button" class="btn small" id="mclr">入力を消す</button></div>')
+repall("""<div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>""",
+       """<div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button></div><div class="mact"><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>""")
+repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>.btn,.fgo>.btn{display:inline-flex;align-items:center;justify-content:center}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
