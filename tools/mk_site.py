@@ -1720,7 +1720,7 @@ repall("    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので�
 repall("  if(!why[0]&&!why[1]) startBattle(); return true; }",
        "  if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる\n    if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }\n  return true; }")
 
-# ---- 75. 試作（プレビューだけ）：百科ダンジョン。記事のリンクをたどり、扉の先の記事と殴り合って、何階まで潜れるかに挑む ----
+# ---- 75. 百科ダンジョン。記事のリンクをたどり、扉の先の記事と殴り合って、何階まで潜れるかに挑む ----
 #   扉は、いまいる記事のリンク先から3つ（日付とその記事から決まるので、同じ日なら誰でも同じ扉）。勝てば扉の先へ進み、倒した記事に乗り換えることもできる。負けたら終わり
 repall('  <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">',
   '''  <section id="dg" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
