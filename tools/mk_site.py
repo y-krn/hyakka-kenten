@@ -1778,7 +1778,7 @@ function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
   const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
   if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
-    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">🔁 乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
+    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; $('#dgsw').onclick=()=>{ DG.me=d; DG.path[DG.path.length-1].ev='switch'; dgSave(false); DG.floor++; dgFloor(); }; }
   else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">🤝 <b>${esc(F[d][0])}</b>と引き分け</div><button type="button" class="btn big dgin" id="dgkeep">進む</button><div class="dgsub">${watch}</div>`;
