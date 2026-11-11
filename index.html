@@ -1660,7 +1660,7 @@ function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filte
 function dgShare(day,path,end,got){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}${got&&got.length?'\n拾ったもの：'+got.map(x=>DGI[x.k]+F[x.i][0]).join(' '):''}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
 // ---- 装備と体力（百科ダンジョンの中だけで効く。SIMX に入れて戦闘エンジンに渡す） ----
 //   武器：持っているあいだ、その記事のいちばん強い攻めの技が1つ増える。食べ物：食べると体力が戻る（1回で使い切り）。持てるのは2つまで
-//   体力は次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
+//   体力は、受けた傷の半分を次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
 const DG_WEAPON=/刀|剣|槍|弓|銃|砲|武器|兵器|斧|ナイフ|ハンマー|ミサイル|戦車|爆弾|棍|鎌|盾|鎧|甲冑|手裏剣|鞭|弾薬|鈍器/;
 const DG_FOOD=/料理|食品|食べ物|菓子|麺|飲料|飲み物|酒|果物|果実|野菜|パン|丼|寿司|茶|コーヒー|スープ|ラーメン|カレー|うどん|蕎麦|そば|調味料|チーズ|食材|郷土料理|和菓子|洋菓子|デザート/;
 const dgKind=i=>{ const c=(CL[i]||[])[1]||''; if(!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター/.test(c)) return null; return DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null; };
@@ -1694,7 +1694,7 @@ function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found;
 function dgFight(d){ const me=DG.me, mods=dgMods(), an=dgSim(()=>analyze(me,d),mods), r=an.r, w=r.w, before=DG.hp;
   const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move);
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
-  DG.hp=an.type==='kurabe'?before:Math.max(1,r.hp[0]);   // 比べ合い（事実の比べっこ）では体力は減らない
+  DG.hp=an.type==='kurabe'?before:Math.max(1,Math.round(before-(before-Math.min(before,r.hp[0]))/2));   // 受けた傷の半分を次の階に持ち越す（試合のあとに一息つく）。比べ合い（事実の比べっこ）では減らない
   const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
   if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
