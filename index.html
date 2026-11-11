@@ -1641,7 +1641,7 @@ async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await
   const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set();
   for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW);k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
     const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
-    for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)) continue; seen.add(i);
+    for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)||NORAND.has(F[i][1])) continue; seen.add(i);   // 性的な内容の記事（data/norand.json）は扉に出さない
       const w=analyze(me,i,true).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
   let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }   // 足りなければ、見つかった順に足す
   return out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1])); }
@@ -1688,7 +1688,7 @@ async function dgCopy(share){ try{ if(navigator.share&&TOUCH) await navigator.sh
 // 入口：今日のお題（1日1回の挑戦）と、練習（何度でも。記録に残らない）
 async function dgInit(){ try{ await dgInit0(); }catch(e){ const box=$('#dgbox'); if(box) box.textContent='準備できませんでした。ページを読み込み直してください。'; } }
 async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.length){ box.textContent='今日のお題を用意できませんでした。'; return; } const day=jstDay();
-  let t0=-1; for(let k=0;k<20&&t0<0;k++){ const t=POPULAR[hash('dg-start/'+day+'/'+k)%POPULAR.length]; if(!t) continue; const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!isChamp(i)) t0=i; }
+  let t0=-1; for(let k=0;k<20&&t0<0;k++){ const t=POPULAR[hash('dg-start/'+day+'/'+k)%POPULAR.length]; if(!t) continue; const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) t0=i; }
   const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
   const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類と、事実がひとつ書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
   if(o){ const share=dgShare(day,o.path,o.end);
