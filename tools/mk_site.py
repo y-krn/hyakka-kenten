@@ -1737,7 +1737,8 @@ let DG=null;   // {day, me（自分の選手）, pos（いまいる記事）, fl
 const DG_NG=/^(紀元前)?\d+年(代)?$|^\d+月\d+日$|^\d+月$|^\d+世紀$|一覧|^日本$|^日本語$|^英語$|^アメリカ合衆国$|^東京都$|^ウィキ|^Wikipedia|^ISBN|^国際標準|^バーチャル国際典拠|^典拠管理|^世界の国/;
 const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀'};
 async function dgLinks(t){ const out=[]; let cont={};
-  for(let k=0;k<3;k++){ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'links',titles:t,plnamespace:0,pllimit:'max',redirects:1,...cont})).then(r=>r.json()).catch(()=>({}));
+  for(let k=0;k<3;k++){ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'links',titles:t,plnamespace:0,pllimit:'max',redirects:1,...cont})).then(r=>r.json()).catch(()=>null);
+    if(!j){ if(k===0) throw new Error('links'); break; }   // 最初の問い合わせに失敗したら、扉を出せないものとして知らせる
     for(const p of Object.values((j.query||{}).pages||{})) for(const l of (p.links||[])) out.push(l.title);
     if(!j.continue) break; cont=j.continue; }
   return out; }
@@ -1761,12 +1762,13 @@ const dgPath=path=>path.map((p,k)=>`${k?`<span class="dgn">${k}階</span>`:''}${
 const dgLine=(path,end)=>{ const n=path.length-1; if(end==='lose'||(!end&&path[n].ev==='lose')) return n+'階で力尽きた'; return (n+1)+'階で'+(end==='dead'?'行き止まり':'引き返した'); };
 const dgHead=()=>`<div class="dgfl">${DG.floor}階</div><div>あなた：<b>${esc(F[DG.me][0])}</b>　${dgClue(DG.me)}</div><div class="dgpath">${dgPath(DG.path)}</div>`;
 // 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
-const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
+const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length>1?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
 function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done,end:end||''})); }catch(_){} }
 function dgShare(day,path,end){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
-function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgSave(false); dgFloor(); }
-async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgst">…</div>`;
-  const doors=await dgDoors(); if(!DG) return;
+function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgFloor(); }   // 記録は最初の勝負がついたときから（扉が出る前に止まっても、今日の挑戦は使わない）
+async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgst">扉を探しています…</div>`;
+  let doors; try{ doors=await dgDoors(); }catch(_){ doors=null; } if(!DG) return;
+  if(!doors){ box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">扉を開けませんでした（通信を確かめてください）</div><button type="button" class="btn big dgin" id="dgretry">もう一度</button>`; $('#dgretry').onclick=()=>dgFloor(); return; }
   if(!doors.length){ dgEnd('🧱 この先に扉がない',undefined,'dead'); return; }
   box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div><div class="trow"><button type="button" class="btn small" id="dgquit">引き返す</button></div>`;
   box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
