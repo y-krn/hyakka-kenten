@@ -1720,6 +1720,103 @@ repall("    else if(isChamp(i)) why[s]='「'+t+'」はいまの王者なので�
 repall("  if(!why[0]&&!why[1]) startBattle(); return true; }",
        "  if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる\n    if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }\n  return true; }")
 
+# ---- 75. 百科ダンジョン。記事のリンクをたどり、扉の先の記事と殴り合って、何階まで潜れるかに挑む ----
+#   扉は、いまいる記事のリンク先から3つ（日付とその記事から決まるので、同じ日なら誰でも同じ扉）。勝てば扉の先へ進み、倒した記事に乗り換えることもできる。負けたら終わり
+repall('  <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">',
+  '''  <section id="dg" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div class="sechead"><h2>百科ダンジョン</h2><span>リンクの扉をくぐって、どこまで潜れるか</span></div>
+    <div id="dgbox" class="dgbox" aria-live="polite">準備しています…</div>
+  </section>
+
+  <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">''')
+repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box;font-size:20px;justify-content:center;display:flex;align-items:center;min-height:52px}#dg .dgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dg .dgpair .btn{display:flex;align-items:center;justify-content:center;min-height:48px;box-sizing:border-box;padding:8px}#dg .dgsub{display:flex;gap:8px}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}")
+_dg = r"""
+// ---- 百科ダンジョン（試作） ----
+let DG=null;   // {day, me（自分の選手）, pos（いまいる記事）, floor, path:[{t, ev}], seen:Set}
+// 扉に出さない記事：年・日付・一覧と、どこからでもつながる大きすぎる記事
+const DG_NG=/^(紀元前)?\d+年(代)?$|^\d+月\d+日$|^\d+月$|^\d+世紀$|一覧|^日本$|^日本語$|^英語$|^アメリカ合衆国$|^東京都$|^ウィキ|^Wikipedia|^ISBN|^国際標準|^バーチャル国際典拠|^典拠管理|^世界の国/;
+const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀'};
+async function dgLinks(t){ const out=[]; let cont={};
+  for(let k=0;k<3;k++){ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'links',titles:t,plnamespace:0,pllimit:'max',redirects:1,...cont})).then(r=>r.json()).catch(()=>({}));
+    for(const p of Object.values((j.query||{}).pages||{})) for(const l of (p.links||[])) out.push(l.title);
+    if(!j.continue) break; cont=j.continue; }
+  return out; }
+// 扉：いまいる記事のリンク先から、収録している記事を3つ（順番は日付と記事名で決まる）
+// 扉：いまいる記事のリンク先から3つ（並びは日付と記事名で決まる）。必ず勝てる扉（引き分けを含む）を混ぜる
+//   1〜3階は3つのうち2つ、4階からは1つが勝てる扉。どれが勝てる扉かは見せない。リンク先に勝てる記事がなければ、そのまま出す
+async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await dgLinks(here))].filter(t=>!DG_NG.test(t)&&!DG.seen.has(t));
+  const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set();
+  for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW);k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
+    const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
+    for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)) continue; seen.add(i);
+      const w=analyze(me,i,true).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
+  let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }   // 足りなければ、見つかった順に足す
+  return out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1])); }
+// 扉の手がかり：分類と、その記事らしい事実を1つだけ（数値の能力は出さない。知識で読む余地を残す）
+const dgClue=i=>{ const c=(CL[i]||[])[1], m=(POOL[i]||[]).find(m=>m[3]&&/：/.test(m[3])&&!/^(Wikidataでの分類|別名)/.test(m[3])&&m[0]!=='NAME'&&m[0]!=='SENIORITY'&&!/マウント|長文|リンク|注目|カテゴリ|見出し|画像|名前/.test(m[1])); const fact=m?m[3]:''; return `<span class="dgc">${[c,fact].filter(Boolean).map(esc).join('｜')}</span>`; };
+// 道のり：くぐった扉ごとに階の番号を付ける（🏁入口 → 1階 🤝… → 2階 ⚔️… → 3階 💀…）
+const dgPath=path=>path.map((p,k)=>`${k?`<span class="dgn">${k}階</span>`:''}${DGE[p.ev]}${esc(p.t)}`).join(' → ');
+// 結果の一言：負けたら「3階で力尽きた」、やめたら「3階で引き返した」（階は、くぐった扉の数で数える）
+const dgLine=(path,end)=>{ const n=path.length-1; if(end==='lose'||(!end&&path[n].ev==='lose')) return n+'階で力尽きた'; return (n+1)+'階で'+(end==='dead'?'行き止まり':'引き返した'); };
+const dgHead=()=>`<div class="dgfl">${DG.floor}階</div><div>あなた：<b>${esc(F[DG.me][0])}</b>　${dgClue(DG.me)}</div><div class="dgpath">${dgPath(DG.path)}</div>`;
+// 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
+const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
+function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done,end:end||''})); }catch(_){} }
+function dgShare(day,path,end){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
+function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgSave(false); dgFloor(); }
+async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgst">…</div>`;
+  const doors=await dgDoors(); if(!DG) return;
+  if(!doors.length){ dgEnd('🧱 この先に扉がない',undefined,'dead'); return; }
+  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div><div class="trow"><button type="button" class="btn small" id="dgquit">引き返す</button></div>`;
+  box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
+  $('#dgquit').onclick=()=>dgEnd('🏳️ 引き返した',undefined,'quit'); }
+function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
+  const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move);
+  const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
+  const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
+  if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
+    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">🔁 乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
+    $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; $('#dgsw').onclick=()=>{ DG.me=d; DG.path[DG.path.length-1].ev='switch'; dgSave(false); DG.floor++; dgFloor(); }; }
+  else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d; dgSave(false);
+    box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">🤝 <b>${esc(F[d][0])}</b>と引き分け</div><button type="button" class="btn big dgin" id="dgkeep">進む</button><div class="dgsub">${watch}</div>`;
+    $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; }
+  else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`💀 <b>${esc(F[d][0])}</b>に負けた<div class="dgc">相手の${esc(how)}${key}</div>`,d,'lose'); }
+  const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
+function dgEnd(msg,foe,end){ const box=$('#dgbox'), pr=DG.practice; dgSave(true,end);
+  const share=dgShare(DG.day,DG.path,end), me=DG.me;
+  box.innerHTML=`<div class="dgfl">${dgLine(DG.path,end)}</div><div class="dgres lose">${msg}</div><div class="dgpath">${dgPath(DG.path)}</div>${pr?'':'<button type="button" class="btn big dgin" id="dgcopy">'+dgShareLab()+'</button>'}<div class="dgsub">${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
+  if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
+  if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
+  $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
+// スマホでは共有の画面を開き、パソコンではコピーする。ボタンの名前もそれに合わせる
+const dgShareLab=()=>navigator.share&&TOUCH?'結果を共有':'結果をコピー';
+async function dgCopy(share){ try{ if(navigator.share&&TOUCH) await navigator.share({text:share}); else { await navigator.clipboard.writeText(share); const b=$('#dgcopy'); if(b) b.textContent='コピーしました'; } }catch(_){} }
+// 入口：今日のお題（1日1回の挑戦）と、練習（何度でも。記録に残らない）
+async function dgInit(){ try{ await dgInit0(); }catch(e){ const box=$('#dgbox'); if(box) box.textContent='準備できませんでした。ページを読み込み直してください。'; } }
+async function dgInit0(){ const box=$('#dgbox'); if(!box) return; if(!POPULAR.length){ box.textContent='今日のお題を用意できませんでした。'; return; } const day=jstDay();
+  let t0=-1; for(let k=0;k<20&&t0<0;k++){ const t=POPULAR[hash('dg-start/'+day+'/'+k)%POPULAR.length]; if(!t) continue; const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!isChamp(i)) t0=i; }
+  const o=dgRec(); if(o&&!o.done){ o.done=true; try{ localStorage.setItem('hk-dg',JSON.stringify(o)); }catch(_){} }   // 挑戦の途中で離れたら、そこまでの記録で終わり
+  const rule='決まりごと：いまいる記事のリンク先が、3つの扉になります。扉には、その記事の分類と、事実がひとつ書いてあります。扉の先の記事と殴り合い、勝てば先へ。倒した記事に乗り換えてもかまいません。負けたら終わり。今日の挑戦は1日1回で、同じ日なら誰が潜っても同じ扉が出ます。';
+  if(o){ const share=dgShare(day,o.path,o.end);
+    box.innerHTML=`<div class="dgfl">今日は ${dgLine(o.path,o.end)}</div><div class="dgpath">${dgPath(o.path)}</div><button type="button" class="btn big dgin" id="dgcopy">${dgShareLab()}</button><div class="dgst">次のお題は明日</div>`;
+    $('#dgcopy').onclick=()=>dgCopy(share); }
+  else { box.innerHTML=`<div class="dgst">今日の入口</div>${t0>=0?`<button type="button" class="btn big dgin" id="dgtoday">🚪 ${esc(F[t0][0])}</button>`:''}<div class="dgst">1日1回</div>`;
+    if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false); }
+  /* 練習（dgPick）は、分かりにくいので入口を外している */ }
+// 練習で潜る記事を選ぶ（記事名を入れるか、ランダム）。今日のお題は、挑戦が済むまで練習に使えない
+function dgPick(o,t0){ const box=$('#dgbox'), cur=sel[0]!==null&&sel[0]>=0?F[sel[0]][1]:'';
+  box.innerHTML=`<div class="dgq">練習で潜る記事を選ぶ</div><div class="dgst">練習は何度でもできます。記録には残りません。</div><input id="dgpin" type="text" placeholder="記事名（例：東京タワー）" value="${esc(cur)}" autocomplete="off" aria-label="練習で潜る記事名"><div class="trow"><button type="button" class="btn" id="dgpgo">この記事で練習</button><button type="button" class="btn small" id="dgprnd">ランダムな記事で練習</button><button type="button" class="btn small" id="dgpback">戻る</button></div><div class="fsub" id="dgpmsg" aria-live="polite"></div>`;
+  const msg=t=>{ $('#dgpmsg').textContent=t; };
+  const go=async i=>{ if(i<0||BLOCK.has(i)) return msg('その記事は見つかりませんでした。記事名を確かめてください'); if(isChamp(i)) return msg('いまの王者では潜れません'); if(!o&&i===t0) return msg('今日のお題の練習は、今日の挑戦のあとでできます'); dgStart(i,true); };
+  $('#dgpgo').onclick=async()=>{ const t=$('#dgpin').value.trim(); if(!t) return msg('記事名を入れてください'); msg('探しています…'); go(await loadTitle(t).catch(()=>-1)); };
+  $('#dgpin').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#dgpgo').click(); } };
+  $('#dgprnd').onclick=async()=>{ msg('選んでいます…'); go(await rnd(t0>=0?[t0]:[])); };
+  $('#dgpback').onclick=()=>{ DG=null; dgInit(); }; }
+"""
+repall("\nrenderRec();\n(async()=>{", _dg+"\nrenderRec();\n(async()=>{")
+repall("setCount(); famToday(); mineInit(); todayInit();", "setCount(); famToday(); mineInit(); todayInit(); dgInit();")
+
 # ---- 76. 自由対戦の選手カードに、能力の数値（HP・攻撃・防御・速さ）を出さない。強さは記事の事実（技の候補）から読む形にそろえる ----
 repall("""  <div class="stats">${f[3].map((v,k)=>`<span>${STAT[k]}</span><span class="bar"><i style="width:${Math.min(100,v/MAX[k]*100)}%"></i></span><span>${v}</span>`).join('')}</div>\n""", "")
 
