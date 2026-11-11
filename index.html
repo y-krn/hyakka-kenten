@@ -1640,7 +1640,7 @@ async function dgLinks(t){ const out=[]; let cont={};
 async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await dgLinks(here))].filter(t=>!DG_NG.test(t)&&!DG.seen.has(t));
   const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
   const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set();
-  const itemP=DG.floor>1?dgFindItem(order.slice(0,50)).catch(()=>null):Promise.resolve(null);   // 落とし物は2階から
+  const itemP=DG.floor>1?dgFindItem(order.slice(0,100)).catch(()=>null):Promise.resolve(null);   // 落とし物は2階から
   for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW);k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
     const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
     for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)||NORAND.has(F[i][1])) continue; seen.add(i);   // 性的な内容の記事（data/norand.json）は扉に出さない
@@ -1660,21 +1660,23 @@ function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filte
 function dgShare(day,path,end,got){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}${got&&got.length?'\n拾ったもの：'+got.map(x=>DGI[x.k]+F[x.i][0]).join(' '):''}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
 // ---- 装備と体力（百科ダンジョンの中だけで効く。SIMX に入れて戦闘エンジンに渡す） ----
 //   武器：持っているあいだ、その記事のいちばん強い攻めの技が1つ増える。食べ物：食べると体力が戻る（1回で使い切り）。持てるのは2つまで
-//   体力は、受けた傷の半分を次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
+//   体力は、受けた傷の3分の1を次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
 const DG_WEAPON=/刀|剣|槍|弓|銃|砲|武器|兵器|斧|ナイフ|ハンマー|ミサイル|戦車|爆弾|棍|鎌|盾|鎧|甲冑|手裏剣|鞭|弾薬|鈍器|道具|工具|器具|楽器|機械|装置|自動車|車両|航空機|艦|船|家具|衣服|衣類|帽子|靴|スポーツ用品|玩具|おもちゃ|文房具|食器|家電|カメラ|時計|電話|球技用|ボール|鞄|傘/;   // 手に持てる物は何でも武器になる
 const DG_FOOD=/料理|食品|食べ物|菓子|麺|飲料|飲み物|酒|果物|果実|野菜|パン|丼|寿司|茶|コーヒー|スープ|ラーメン|カレー|うどん|蕎麦|そば|調味料|チーズ|食材|郷土料理|和菓子|洋菓子|デザート|グルメ|主食|ご当地/;
 const dgKind=i=>{ const c=(CL[i]||[])[1]||''; if(!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター/.test(c)) return null; return DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null; };
 const DGI={w:'🗡️',f:'🍜'}, DGK={w:'武器になる物（持っているあいだ、技が1つ増える）',f:'食べ物（食べると体力が戻る）'};
-const dgKindL=c=>!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター|チェーン/.test(c)?null:DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null;
+const dgKindL=c=>!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター|チェーン|製造|メーカー|者$|団体|組織|施設|駅|路線|産業|工場|博物館/.test(c)?null:DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null;
 // 落とし物：リンク先の記事を Wikidata の分類（P31）でまとめて調べ、武器になる物か食べ物を1つ選ぶ（日付と部屋で決まる）
 async function dgFindItem(titles){ if(!titles.length) return null; const W='https://www.wikidata.org/w/api.php?', P='https://ja.wikipedia.org/w/api.php?';
-  const pp=await fetch(P+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:titles.join('|')})).then(r=>r.json()); const q={};
-  for(const pg of Object.values((pp.query||{}).pages||{})){ const id=pg.pageprops&&pg.pageprops.wikibase_item; if(id) q[pg.title]=id; }
-  const ids=Object.values(q); if(!ids.length) return null;
-  const e=(await fetch(W+new URLSearchParams({format:'json',origin:'*',action:'wbgetentities',ids:ids.join('|'),props:'claims'})).then(r=>r.json())).entities||{};
+  const get=(u,p)=>fetch(u+new URLSearchParams({format:'json',origin:'*',...p})).then(r=>r.json());
+  const ch=(a,n)=>{ const o=[]; for(let k=0;k<a.length;k+=n) o.push(a.slice(k,k+n)); return o; };
+  const q={}; for(const pp of await Promise.all(ch(titles,50).map(c=>get(P,{action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:c.join('|')}))))
+    for(const pg of Object.values((pp.query||{}).pages||{})){ const id=pg.pageprops&&pg.pageprops.wikibase_item; if(id) q[pg.title]=id; }
+  const ids=Object.values(q); if(!ids.length) return null; const e={};
+  for(const r of await Promise.all(ch(ids,50).map(c=>get(W,{action:'wbgetentities',ids:c.join('|'),props:'claims'})))) Object.assign(e,r.entities||{});
   const cls={}; for(const [t,id] of Object.entries(q)){ const c=((((e[id]||{}).claims||{}).P31)||[]).map(x=>x.mainsnak.datavalue&&x.mainsnak.datavalue.value.id).filter(Boolean)[0]; if(c) cls[t]=c; }
-  const cq=[...new Set(Object.values(cls))]; if(!cq.length) return null;
-  const lb=(await fetch(W+new URLSearchParams({format:'json',origin:'*',action:'wbgetentities',ids:cq.slice(0,50).join('|'),props:'labels',languages:'ja'})).then(r=>r.json())).entities||{};
+  const cq=[...new Set(Object.values(cls))]; if(!cq.length) return null; const lb={};
+  for(const r of await Promise.all(ch(cq,50).map(c=>get(W,{action:'wbgetentities',ids:c.join('|'),props:'labels',languages:'ja'})))) Object.assign(lb,r.entities||{});
   for(const t of titles){ const c=cls[t]; const lab=c&&lb[c]&&lb[c].labels&&lb[c].labels.ja&&lb[c].labels.ja.value; const k=dgKindL(lab); if(!k) continue;
     const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||NORAND.has(F[i][1])||i===DG.me) continue; return {i,k,lab}; }
   return null; }
@@ -1707,7 +1709,7 @@ function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found;
 function dgFight(d){ const me=DG.me, mods=dgMods(), an=dgSim(()=>analyze(me,d),mods), r=an.r, w=r.w, before=DG.hp;
   const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move);
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
-  DG.hp=an.type==='kurabe'?before:Math.max(1,Math.round(before-(before-Math.min(before,r.hp[0]))/2));   // 受けた傷の半分を次の階に持ち越す（試合のあとに一息つく）。比べ合い（事実の比べっこ）では減らない
+  DG.hp=an.type==='kurabe'?before:Math.max(1,Math.round(before-(before-Math.min(before,r.hp[0]))/3));   // 受けた傷の3分の1を次の階に持ち越す（試合のあとに一息つく）。比べ合い（事実の比べっこ）では減らない
   const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
   if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
