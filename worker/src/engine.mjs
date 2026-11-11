@@ -252,9 +252,10 @@ function pickMoves(i,j){
 const BIG=m=>m&&(m[0]==='SUMMON'||(m[0]==='STRIKE'&&m[4]>=4)||(m[0]==='MULTI'&&m[4]>=4));
 // 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）
 function disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }
+let SIMX=null;   // 百科ダンジョン用：{記事番号:{hp, moves}}。ふだんは null
 function simulate(ai,bi,opt={}){ disamb(ai,bi);
-  const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
-    moves:opt.noMoves?[]:pickMoves(i,o).filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
+  const mk=(i,o)=>{const f=F[i], s=f[3], X=SIMX&&SIMX[i]; return {i,name:f[0],maxhp:s[0],hp:X&&X.hp>0?Math.min(s[0],X.hp):s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
+    moves:opt.noMoves?[]:[...((X&&X.moves)||[]),...pickMoves(i,o)].filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
   const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
   if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});
   const baseDmg=(x,y)=>Math.max(1,x.atk+x.atkb-Math.floor(y.df/2));
