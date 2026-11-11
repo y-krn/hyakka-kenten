@@ -377,7 +377,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:4px}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overflow-x:clip;max-width:100%}
-input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>.btn,.fgo>.btn{display:inline-flex;align-items:center;justify-content:center}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box}#dg .dgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dg .dgpair .btn{box-sizing:border-box}#dg .dgsub{display:flex;gap:8px}#dg .dgstack{display:grid;gap:8px}#dg .dghp{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}#dg .dgbar{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}#dg .dgbar i{display:block;height:100%;background:var(--ink)}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
+input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>.btn,.fgo>.btn{display:inline-flex;align-items:center;justify-content:center}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box}#dg .dgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dg .dgpair .btn{box-sizing:border-box}#dg .dgsub{display:flex;gap:8px}#dg .dgstack{display:grid;gap:8px}#dg .dgtr{border-style:dashed}#dg .dghp{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}#dg .dgbar{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}#dg .dgbar i{display:block;height:100%;background:var(--ink)}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}   /* iPhoneは16px未満の入力欄に触れると画面を拡大し、横にずれる */
 </style>
 </head>
 <body>
@@ -1627,7 +1627,7 @@ function settleTo(el){ let touched=false; const mark=()=>{ touched=true; }; ['to
 let DG=null;   // {day, me（自分の選手）, pos（いまいる記事）, floor, path:[{t, ev}], seen:Set}
 // 扉に出さない記事：年・日付・一覧と、どこからでもつながる大きすぎる記事
 const DG_NG=/^(紀元前)?\d+年(代)?$|^\d+月\d+日$|^\d+月$|^\d+世紀$|一覧|^日本$|^日本語$|^英語$|^アメリカ合衆国$|^東京都$|^ウィキ|^Wikipedia|^ISBN|^国際標準|^バーチャル国際典拠|^典拠管理|^世界の国/;
-const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀'};
+const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀',item:'🎁'};
 async function dgLinks(t){ const out=[]; let cont={};
   for(let k=0;k<3;k++){ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'links',titles:t,plnamespace:0,pllimit:'max',redirects:1,...cont})).then(r=>r.json()).catch(()=>null);
     if(!j){ if(k===0) throw new Error('links'); break; }   // 最初の問い合わせに失敗したら、扉を出せないものとして知らせる
@@ -1647,7 +1647,11 @@ async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await
       const w=dgSim(()=>analyze(me,i,true)).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
   let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }   // 足りなければ、見つかった順に足す
   const item=await itemP; DG.found=item&&!out.includes(item.i)&&!DG.items.some(x=>x.i===item.i)?item:null;
-  return out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1])); }
+  out=out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1]));
+  DG.tr=null; const th=hash('dg-tr/'+DG.day+'/'+DG.floor+'/'+here);
+  if(DG.floor>1&&th%3===0&&out.length>=2){ const t=await dgTreasure(th).catch(()=>null);
+    if(t&&!out.includes(t.i)){ const lose=out.map((d,k)=>[d,k]).filter(([d])=>dgSim(()=>analyze(me,d,true)).r.w===d); DG.tr={...t,at:(lose.length?lose[lose.length-1]:[0,out.length-1])[1]}; } }
+  return out; }
 // 扉の手がかり：分類と、その記事らしい事実を1つだけ（数値の能力は出さない。知識で読む余地を残す）
 const dgClue=i=>{ const c=(CL[i]||[])[1], m=(POOL[i]||[]).find(m=>m[3]&&/：/.test(m[3])&&!/^(Wikidataでの分類|別名)/.test(m[3])&&m[0]!=='NAME'&&m[0]!=='SENIORITY'&&!/マウント|長文|リンク|注目|カテゴリ|見出し|画像|名前/.test(m[1])); const fact=m?m[3]:''; return `<span class="dgc">${[c,fact].filter(Boolean).map(esc).join('｜')}</span>`; };
 // 道のり：くぐった扉ごとに階の番号を付ける（🏁入口 → 1階 🤝… → 2階 ⚔️… → 3階 💀…）
@@ -1656,8 +1660,13 @@ const dgPath=path=>path.map((p,k)=>`${k?`<span class="dgn">${k}階</span>`:''}${
 const dgLine=(path,end)=>{ const n=path.length-1; if(end==='lose'||(!end&&path[n].ev==='lose')) return n+'階で力尽きた'; return (n+1)+'階で'+(end==='dead'?'行き止まり':'引き返した'); };
 // 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
 const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length>1?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
-function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done,end:end||''})); }catch(_){} }
+function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw'||p.ev==='item').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done,end:end||''})); }catch(_){} }
 function dgShare(day,path,end,got){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}${got&&got.length?'\n拾ったもの：'+got.map(x=>DGI[x.k]+F[x.i][0]).join(' '):''}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
+// 宝の扉：武器になる物・食べ物の記事の一覧（data/dgitems.json。tools/build_dgitems.py で作る）から、日付と部屋で決まる1つ
+let DGT=null; const dgItemsList=()=>DGT||(DGT=fetch('data/dgitems.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ DGT=null; throw e; }));
+async function dgTreasure(h){ const L=await dgItemsList(), k=h%7<4?'w':'f', A=L.filter(x=>x[1]===k);   // 武器になる物と食べ物はおよそ4対3
+  for(let n=0;n<5;n++){ const x=A[(h>>>3)%A.length+n]||A[n]; if(!x) break; const i=await loadTitle(x[0]).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!NORAND.has(F[i][1])&&i!==DG.me&&!DG.items.some(y=>y.i===i)) return {i,k,lab:x[2]}; }
+  return null; }
 // ---- 装備と体力（百科ダンジョンの中だけで効く。SIMX に入れて戦闘エンジンに渡す） ----
 //   武器：持っているあいだ、その記事のいちばん強い攻めの技が1つ増える。食べ物：食べると体力が戻る（1回で使い切り）。持てるのは2つまで
 //   体力は、受けた傷の3分の1を次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
@@ -1680,7 +1689,7 @@ async function dgFindItem(titles){ if(!titles.length) return null; const W='http
   for(const t of titles){ const c=cls[t]; const lab=c&&lb[c]&&lb[c].labels&&lb[c].labels.ja&&lb[c].labels.ja.value; const k=dgKindL(lab); if(!k) continue;
     const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||NORAND.has(F[i][1])||i===DG.me) continue; return {i,k,lab}; }
   return null; }
-function dgWeaponMove(i){ const ms=(POOL[i]||[]).filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).sort((a,b)=>b[4]-a[4]);
+function dgWeaponMove(i){ const ms=(POOL[i]||[]).filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).sort((a,b)=>(CLASH[b[1]]?1:0)-(CLASH[a[1]]?1:0)||(a[0]==='SUMMON')-(b[0]==='SUMMON')||b[4]-a[4]);   // 長さ・重さなど物の事実で比べる技を先に、仲間を呼ぶ技は後に
   const m=ms[0]||['STRIKE','体当たり',F[i][0],'',2,0,null]; const x=m.slice(); x[1]=F[i][0]+'・'+m[1]; return x; }
 const dgMods=()=>({[DG.me]:{hp:DG.hp,moves:DG.items.filter(x=>x.k==='w').map(x=>dgWeaponMove(x.i))}});
 function dgSim(fn,mods){ SIMX=mods||dgMods(); try{ return fn(); } finally{ SIMX=null; } }
@@ -1695,15 +1704,17 @@ async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst
   DG.doors=doors; dgRender(); }
 // 階の画面：落とし物（あれば）・持ち物の食べ物・扉
 function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found;
-  let found=''; if(f){ found=`<div class="dgres">${DGI[f.k]} <b>${esc(F[f.i][0])}</b>が落ちている<div class="dgc">${esc(f.lab||'')}${f.lab?'｜':''}${DGK[f.k]}</div></div>`+
+  let found=''; if(f){ found=`<div class="dgres">${DGI[f.k]} <b>${esc(F[f.i][0])}</b>が${f.tr?'置いてある':'落ちている'}<div class="dgc">${esc(f.lab||'')}${f.lab?'｜':''}${DGK[f.k]}</div></div>`+
     (DG.items.length<2?`<div class="dgpair"><button type="button" class="btn" id="dgget">拾う</button><button type="button" class="btn" id="dgleave">拾わない</button></div>`
       :`<div class="dgstack">${DG.items.map((x,k)=>`<button type="button" class="btn" data-swap="${k}">${esc(F[x.i][0])}を捨てて拾う</button>`).join('')}<button type="button" class="btn" id="dgleave">拾わない</button></div>`); }
   const foods=DG.items.map((x,k)=>[x,k]).filter(([x])=>x.k==='f');
-  box.innerHTML=`<div class="dgst">${dgHead()}</div>${found}${f?'':`<div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div>`}<div class="dgsub">${f?'':foods.map(([x,k])=>`<button type="button" class="btn small" data-eat="${k}">${DGI.f}${esc(F[x.i][0])}を食べる</button>`).join('')}${f?'':'<button type="button" class="btn small" id="dgquit">引き返す</button>'}</div>`;
-  box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
-  const take=k=>{ if(k!==undefined) DG.items.splice(k,1); DG.items.push(f); DG.got.push(f); DG.found=null; dgRender(); };
+  box.innerHTML=`<div class="dgst">${dgHead()}</div>${found}${f?'':`<div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>DG.tr&&DG.tr.at===k?`<button type="button" class="btn dgd dgtr" id="dgtr"><span>🎁 <b>宝の扉</b><br><span class="dgc">${DGI[DG.tr.k]}${esc(F[DG.tr.i][0])}が置いてある（戦わずに先へ進める）</span></span></button>`:`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div>`}<div class="dgsub">${f?'':foods.map(([x,k])=>`<button type="button" class="btn small" data-eat="${k}">${DGI.f}${esc(F[x.i][0])}を食べる</button>`).join('')}${f?'':'<button type="button" class="btn small" id="dgquit">引き返す</button>'}</div>`;
+  box.querySelectorAll('.dgd[data-k]').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
+  if($('#dgtr')) $('#dgtr').onclick=()=>{ const t=DG.tr; DG.tr=null; DG.path.push({t:F[t.i][1],ev:'item'}); DG.seen.add(F[t.i][1]); DG.pos=t.i; dgSave(false); DG.found={...t,tr:true}; dgRender(); };   // 宝の部屋：拾うか決めたら、次の階へ
+  const next=()=>{ if(f&&f.tr){ DG.found=null; DG.floor++; dgFloor(); } else { DG.found=null; dgRender(); } };
+  const take=k=>{ if(k!==undefined) DG.items.splice(k,1); DG.items.push(f); DG.got.push(f); next(); };
   if($('#dgget')) $('#dgget').onclick=()=>take(); box.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>take(+b.dataset.swap));
-  if($('#dgleave')) $('#dgleave').onclick=()=>{ DG.found=null; dgRender(); };
+  if($('#dgleave')) $('#dgleave').onclick=()=>next();
   box.querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>{ DG.items.splice(+b.dataset.eat,1); DG.hp=Math.min(dgMax(),DG.hp+Math.round(dgMax()*0.4)); dgRender(); });   // 食べると、体力の4割が戻る
   if($('#dgquit')) $('#dgquit').onclick=()=>dgEnd('🏳️ 引き返した',undefined,'quit'); }
 function dgFight(d){ const me=DG.me, mods=dgMods(), an=dgSim(()=>analyze(me,d),mods), r=an.r, w=r.w, before=DG.hp;
