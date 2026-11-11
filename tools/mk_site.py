@@ -1747,14 +1747,14 @@ async function dgLinks(t){ const out=[]; let cont={};
 //   1〜3階は3つのうち2つ、4階からは1つが勝てる扉。どれが勝てる扉かは見せない。リンク先に勝てる記事がなければ、そのまま出す
 async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await dgLinks(here))].filter(t=>!DG_NG.test(t)&&!DG.seen.has(t));
   const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
-  const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set(); let item=null;
-  for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW||(!item&&k<24));k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
+  const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set();
+  const itemP=DG.floor>1?dgFindItem(order.slice(0,50)).catch(()=>null):Promise.resolve(null);   // 落とし物は2階から
+  for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW);k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
     const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
     for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)||NORAND.has(F[i][1])) continue; seen.add(i);   // 性的な内容の記事（data/norand.json）は扉に出さない
-      if(!item&&DG.floor>1&&dgKind(i)&&!DG.items.some(x=>x.i===i)){ item={i,k:dgKind(i)}; continue; }   // 武器・食べ物の記事は、扉ではなく落とし物にする（2階から）
       const w=dgSim(()=>analyze(me,i,true)).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
-  let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)&&!(item&&item.i===i)) out.push(i); }   // 足りなければ、見つかった順に足す
-  DG.found=item;
+  let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }   // 足りなければ、見つかった順に足す
+  const item=await itemP; DG.found=item&&!out.includes(item.i)&&!DG.items.some(x=>x.i===item.i)?item:null;
   return out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1])); }
 // 扉の手がかり：分類と、その記事らしい事実を1つだけ（数値の能力は出さない。知識で読む余地を残す）
 const dgClue=i=>{ const c=(CL[i]||[])[1], m=(POOL[i]||[]).find(m=>m[3]&&/：/.test(m[3])&&!/^(Wikidataでの分類|別名)/.test(m[3])&&m[0]!=='NAME'&&m[0]!=='SENIORITY'&&!/マウント|長文|リンク|注目|カテゴリ|見出し|画像|名前/.test(m[1])); const fact=m?m[3]:''; return `<span class="dgc">${[c,fact].filter(Boolean).map(esc).join('｜')}</span>`; };
@@ -1769,10 +1769,23 @@ function dgShare(day,path,end,got){ const md=day.slice(5).replace('-','/').repla
 // ---- 装備と体力（百科ダンジョンの中だけで効く。SIMX に入れて戦闘エンジンに渡す） ----
 //   武器：持っているあいだ、その記事のいちばん強い攻めの技が1つ増える。食べ物：食べると体力が戻る（1回で使い切り）。持てるのは2つまで
 //   体力は、受けた傷の半分を次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
-const DG_WEAPON=/刀|剣|槍|弓|銃|砲|武器|兵器|斧|ナイフ|ハンマー|ミサイル|戦車|爆弾|棍|鎌|盾|鎧|甲冑|手裏剣|鞭|弾薬|鈍器/;
-const DG_FOOD=/料理|食品|食べ物|菓子|麺|飲料|飲み物|酒|果物|果実|野菜|パン|丼|寿司|茶|コーヒー|スープ|ラーメン|カレー|うどん|蕎麦|そば|調味料|チーズ|食材|郷土料理|和菓子|洋菓子|デザート/;
+const DG_WEAPON=/刀|剣|槍|弓|銃|砲|武器|兵器|斧|ナイフ|ハンマー|ミサイル|戦車|爆弾|棍|鎌|盾|鎧|甲冑|手裏剣|鞭|弾薬|鈍器|道具|工具|器具|楽器|機械|装置|自動車|車両|航空機|艦|船|家具|衣服|衣類|帽子|靴|スポーツ用品|玩具|おもちゃ|文房具|食器|家電|カメラ|時計|電話|球技用|ボール|鞄|傘/;   // 手に持てる物は何でも武器になる
+const DG_FOOD=/料理|食品|食べ物|菓子|麺|飲料|飲み物|酒|果物|果実|野菜|パン|丼|寿司|茶|コーヒー|スープ|ラーメン|カレー|うどん|蕎麦|そば|調味料|チーズ|食材|郷土料理|和菓子|洋菓子|デザート|グルメ|主食|ご当地/;
 const dgKind=i=>{ const c=(CL[i]||[])[1]||''; if(!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター/.test(c)) return null; return DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null; };
-const DGI={w:'🗡️',f:'🍜'}, DGK={w:'武器（持っているあいだ、技が1つ増える）',f:'食べ物（食べると体力が戻る）'};
+const DGI={w:'🗡️',f:'🍜'}, DGK={w:'武器になる物（持っているあいだ、技が1つ増える）',f:'食べ物（食べると体力が戻る）'};
+const dgKindL=c=>!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター|チェーン/.test(c)?null:DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null;
+// 落とし物：リンク先の記事を Wikidata の分類（P31）でまとめて調べ、武器になる物か食べ物を1つ選ぶ（日付と部屋で決まる）
+async function dgFindItem(titles){ if(!titles.length) return null; const W='https://www.wikidata.org/w/api.php?', P='https://ja.wikipedia.org/w/api.php?';
+  const pp=await fetch(P+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:titles.join('|')})).then(r=>r.json()); const q={};
+  for(const pg of Object.values((pp.query||{}).pages||{})){ const id=pg.pageprops&&pg.pageprops.wikibase_item; if(id) q[pg.title]=id; }
+  const ids=Object.values(q); if(!ids.length) return null;
+  const e=(await fetch(W+new URLSearchParams({format:'json',origin:'*',action:'wbgetentities',ids:ids.join('|'),props:'claims'})).then(r=>r.json())).entities||{};
+  const cls={}; for(const [t,id] of Object.entries(q)){ const c=((((e[id]||{}).claims||{}).P31)||[]).map(x=>x.mainsnak.datavalue&&x.mainsnak.datavalue.value.id).filter(Boolean)[0]; if(c) cls[t]=c; }
+  const cq=[...new Set(Object.values(cls))]; if(!cq.length) return null;
+  const lb=(await fetch(W+new URLSearchParams({format:'json',origin:'*',action:'wbgetentities',ids:cq.slice(0,50).join('|'),props:'labels',languages:'ja'})).then(r=>r.json())).entities||{};
+  for(const t of titles){ const c=cls[t]; const lab=c&&lb[c]&&lb[c].labels&&lb[c].labels.ja&&lb[c].labels.ja.value; const k=dgKindL(lab); if(!k) continue;
+    const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||NORAND.has(F[i][1])||i===DG.me) continue; return {i,k,lab}; }
+  return null; }
 function dgWeaponMove(i){ const ms=(POOL[i]||[]).filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).sort((a,b)=>b[4]-a[4]);
   const m=ms[0]||['STRIKE','体当たり',F[i][0],'',2,0,null]; const x=m.slice(); x[1]=F[i][0]+'・'+m[1]; return x; }
 const dgMods=()=>({[DG.me]:{hp:DG.hp,moves:DG.items.filter(x=>x.k==='w').map(x=>dgWeaponMove(x.i))}});
@@ -1788,7 +1801,7 @@ async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst
   DG.doors=doors; dgRender(); }
 // 階の画面：落とし物（あれば）・持ち物の食べ物・扉
 function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found;
-  let found=''; if(f){ found=`<div class="dgres">${DGI[f.k]} <b>${esc(F[f.i][0])}</b>が落ちている<div class="dgc">${DGK[f.k]}</div></div>`+
+  let found=''; if(f){ found=`<div class="dgres">${DGI[f.k]} <b>${esc(F[f.i][0])}</b>が落ちている<div class="dgc">${esc(f.lab||'')}${f.lab?'｜':''}${DGK[f.k]}</div></div>`+
     (DG.items.length<2?`<div class="dgpair"><button type="button" class="btn" id="dgget">拾う</button><button type="button" class="btn" id="dgleave">拾わない</button></div>`
       :`<div class="dgstack">${DG.items.map((x,k)=>`<button type="button" class="btn" data-swap="${k}">${esc(F[x.i][0])}を捨てて拾う</button>`).join('')}<button type="button" class="btn" id="dgleave">拾わない</button></div>`); }
   const foods=DG.items.map((x,k)=>[x,k]).filter(([x])=>x.k==='f');
