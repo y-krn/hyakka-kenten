@@ -1915,6 +1915,7 @@ repall("const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[
        "const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});\n  const sx=()=>SIMX?[ai,bi].map(i=>SIMX[i]&&SIMX[i].say).filter(Boolean).map(s=>sys(s,(r.log[0]||{}).hp)):[];   // 百科ダンジョン：装備や傷の一言")
 repall("Wikidataに書いてあるからだ。'],{A,B})),\n      ...midKai(", "Wikidataに書いてあるからだ。'],{A,B})),\n      ...sx(),...midKai(")
 repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx()];")
+repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...hits.slice(-2)];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx(),...hits.slice(-2)];")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')

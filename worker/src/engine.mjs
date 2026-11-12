@@ -450,7 +450,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
       log.push(kai(P(['差は{rt}です。これを試合と呼んでいいのか、我々はいまも議論を続けています','{lab}で{rt}の差。戦術や気合いでどうにかなる差ではありません','{L}は何も悪くありません。ただ、{lab}が足りなかった','正直に申し上げて、組み合わせを決めた人に問題があります','{L}陣営、試合後のコメントは「比較の対象として不適切」とのことです','実況席から見えていたのは、ほぼ{W}だけでした'],o),hp));
       an.r={...r,log,w,kind:'KO',tick:1,hp,how:lab+'の差で瞬殺',summoned:[]}; an.tail='差は'+rt+'。勝負にならなかった。'; an.dec=[]; an.upset=false; return an; }
     const wS=r.w===ai?0:1, W=F[r.w][0], L=r.w===ai?B:A; const hits=r.log.filter(x=>x.side===wS);
-    const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...hits.slice(-2)];
+    const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx(),...hits.slice(-2)];
     log.push(sys(P(['{L}は反撃の機会をうかがっていた。うかがっているうちに終わった。','{L}、まだ自分の技を一つも説明していない。','{L}陣営、タオルを投げる準備すら間に合わなかった。'],{W,L}),endHP()));
     log.push(kai(P(['{W}の残りHPは'+r.hp[wS]+'。ほぼ無傷です。{L}にとっては、事実の暴力でした','技の解説をしようと思っていたのですが、終わってしまいました','{L}は悪くありません。相手が{W}だった、それだけです'],{W,L}),endHP()));
     an.r={...r,log}; an.dec=an.dec.filter(d=>d.who===r.w); return an; }
