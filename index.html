@@ -845,6 +845,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
   const K0=F[ai][2]+'/'+F[bi][2]; let ln=0;
   const sys=(s,hp)=>({t:0,side:-1,s,d:0,hp:hp||[r.max[0],r.max[1]]});
   const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});
+  const sx=()=>SIMX?[ai,bi].map(i=>SIMX[i]&&SIMX[i].say).filter(Boolean).map(s=>sys(s,(r.log[0]||{}).hp)):[];   // 百科ダンジョン：装備や傷の一言
   const P=(arr,o)=>fill(PK(arr,K0+'#'+(ln++)),o||{});
   const endHP=()=>{ const l=r.log[r.log.length-1]; return l?l.hp:[r.max[0],r.max[1]]; };
 
@@ -853,7 +854,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     const log=[sys('【因縁の対決】'+rv+'。'),
       sys(P(['この一点において、両者は決して相容れない。','この記述がある限り、両者が同じリングに上がる日は来ないはずだった。','長年、誰も触れずにきた因縁である。'])),
       sys(P(['{A}と{B}、ついに相まみえる。','{A}、入場。{B}、入場。会場が静まり返る。','両者、目を合わせない。Wikidataに書いてあるからだ。'],{A,B})),
-      ...midKai(r.log.filter(x=>x.side>=0),K0,ai,bi)];
+      ...sx(),...midKai(r.log.filter(x=>x.side>=0),K0,ai,bi)];
     const W=r.w===null?null:F[r.w][0], L=r.w===null?null:F[r.w===ai?bi:ai][0];
     log.push(sys(r.w===null?'因縁、決着つかず。この続きは記事の編集合戦に持ち越された。':P(['因縁、決着。{W}が{L}を下した。','{W}、因縁を断ち切った。少なくとも今日のところは。','{L}、膝をつく。因縁の記述だけが、静かに残った。'],{W,L}),endHP()));
     log.push(kai(P(['Wikidataの記述は変わりません。ただ、今日の勝敗は語り継がれるでしょう。どこにも書かれませんが','因縁は、終わりませんね。データがそう言っている以上は','両陣営とも、編集履歴に恥じない戦いでした','明日になれば、両者はまた何事もなかったようにリンクで結ばれています','この因縁を記述した編集者に、今日の試合を見せたかった']),endHP()));
@@ -864,7 +865,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     if(gap){ const w=gap.a>gap.b?ai:bi, W=F[w][0], L=w===ai?B:A, hp=[r.max[0],r.max[1]]; hp[w===ai?1:0]=0;
       const rt=gap.r>=1e8?jn(gap.r)+'倍':ratioTxt(gap.r), vw=fmtR(gap.k,Math.max(gap.a,gap.b)), vl=fmtR(gap.k,Math.min(gap.a,gap.b)), lab=RLAB[gap.k];
       const o={W,L,vw,vl,lab,rt,n:Math.max(gap.a,gap.b),m:Math.min(gap.a,gap.b)};
-      const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];
+      const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx()];
       if(gap.k==='_pv'){
         log.push(sys(P(['{L}、名乗りを上げる。客席の反応は控えめだった。','{L}、深く一礼して入場する。拍手は、まばらだった。','{L}、入場。会場の何人かが、記事名を検索し始めた。'],o)));
         log.push(sys(P(['{W}が入場すると、{vw}読まれてきた視線が一斉に{L}へ向いた。','{W}は名乗る必要がない。{vw}読まれているので、全員もう知っている。','{L}の記事は{vl}、{W}は{vw}。読まれた回数の差が、そのまま圧になった。'],o)));

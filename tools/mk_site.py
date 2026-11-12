@@ -1910,6 +1910,12 @@ repall("(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';", "(same&&cs[1]===
 repall("function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];",
        "function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];\n  if(an.kbx){ const k=Math.max(0,r.log.findIndex(x=>x.side>=0)); r.log.splice(k,0,{t:0,side:-1,s:an.kbx,d:0,hp:(r.log[k-1]||r.log[0]||{hp:[r.max[0],r.max[1]]}).hp}); }   // 百科ダンジョン：比べ合いのはずが、武器で殴り合いになった")
 
+# ---- 80. 試作（プレビューだけ）：因縁の対決・瞬殺でも、百科ダンジョンの装備や傷の一言を出す（専用の実況を組む型なので、ここで足す） ----
+repall("const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});",
+       "const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});\n  const sx=()=>SIMX?[ai,bi].map(i=>SIMX[i]&&SIMX[i].say).filter(Boolean).map(s=>sys(s,(r.log[0]||{}).hp)):[];   // 百科ダンジョン：装備や傷の一言")
+repall("Wikidataに書いてあるからだ。'],{A,B})),\n      ...midKai(", "Wikidataに書いてあるからだ。'],{A,B})),\n      ...sx(),...midKai(")
+repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx()];")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
