@@ -258,6 +258,7 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
     moves:opt.noMoves?[]:[...((X&&X.moves)||[]),...pickMoves(i,o)].filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
   const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
   if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});
+  for(const x of [A,B]){ const X=SIMX&&SIMX[x.i]; if(X&&X.say) log.push({t:0,side:-1,s:X.say,d:0,hp:[A.hp,B.hp]}); }   // 百科ダンジョン：装備や傷の一言
   const baseDmg=(x,y)=>Math.max(1,x.atk+x.atkb-Math.floor(y.df/2));
   const left=x=>x.moves.filter(m=>!x.used[m[1]]&&!(m[0]==='SENIORITY'&&senUsed));
   const est=(x,y,m)=>{ const b0=baseDmg(x,y), T=m[4]; return m[0]==='STRIKE'?b0*(1+0.15*T):m[0]==='MULTI'?(1+Math.floor(T/2))*Math.max(1,Math.round(b0*0.45)):m[0]==='SUMMON'?b0*1.5+5:m[0]==='NAME'?b0:b0*0.6; };
@@ -294,6 +295,7 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
       if(ck&&QT[x.i]&&QT[y.i]&&QT[x.i][ck[0]]>0&&QT[y.i][ck[0]]>0){ const [k,lab]=ck, va=QT[x.i][k], vb=QT[y.i][k], df0=Math.abs(va-vb), df=(Math.min(va,vb)>=10&&df0>=1)?Math.round(df0):df0, dtx=unitv(k,df);
         if(vb>va&&jn(df)!=='0'){ d=Math.max(1,Math.round(d*0.6)); line+='……が、{B}の'+lab+'は'+unitv(k,vb)+'。'+lab+'で挑んだ{A}、'+dtx+'足りなかった。威力は控えめ。'; }
         else if(va>vb&&jn(df)!=='0') line+=pickT(['（'+lab+'比べは'+dtx+'差で{A}の勝ち）','（{B}の'+unitv(k,vb)+'を'+dtx+'上回った）'],k+key); }
+      if(mv.it) line+='（拾った'+mv.it+'で）';   // 百科ダンジョン：武器の技
       line=tag+line;
     }
     if(x.first&&riv&&d>0){ d=Math.round(d*1.5); line+='（因縁で1.5倍）'; }

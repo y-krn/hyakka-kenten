@@ -1798,8 +1798,10 @@ async function dgFindItem(titles){ if(!titles.length) return null; const W='http
     const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||NORAND.has(F[i][1])||i===DG.me) continue; return {i,k,lab}; }
   return null; }
 function dgWeaponMove(i){ const ms=(POOL[i]||[]).filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).sort((a,b)=>(CLASH[b[1]]?1:0)-(CLASH[a[1]]?1:0)||(a[0]==='SUMMON')-(b[0]==='SUMMON')||b[4]-a[4]);   // 長さ・重さなど物の事実で比べる技を先に、仲間を呼ぶ技は後に
-  const m=ms[0]||['STRIKE','体当たり',F[i][0],'',2,0,null]; const x=m.slice(); x[1]=F[i][0]+'・'+m[1]; return x; }
-const dgMods=()=>({[DG.me]:{hp:DG.hp,moves:DG.items.filter(x=>x.k==='w').map(x=>dgWeaponMove(x.i))}});
+  const m=ms[0]||['STRIKE','体当たり',F[i][0],'',2,0,null]; const x=m.slice(); x[1]=F[i][0]+'・'+m[1]; x.it=F[i][0]; return x; }
+const dgMods=()=>{ const w=DG.items.filter(x=>x.k==='w'), hurt=DG.hp<dgMax();
+  const say=[w.length?F[DG.me][0]+'は、拾った'+w.map(x=>F[x.i][0]).join('と')+'を構えた。':'', hurt?F[DG.me][0]+'には、前の階の傷が残っている。':''].join('');
+  return {[DG.me]:{hp:DG.hp,moves:w.map(x=>dgWeaponMove(x.i)),say}}; };
 function dgSim(fn,mods){ SIMX=mods||dgMods(); try{ return fn(); } finally{ SIMX=null; } }
 const dgMax=()=>F[DG.me][3][0];
 const dgItems=()=>DG.items.length?DG.items.map(x=>DGI[x.k]+esc(F[x.i][0])).join(' '):'なし';
@@ -1888,6 +1890,9 @@ repall("input,select,textarea{font-size:16px!important}", "input,select,textarea
 repall("function simulate(ai,bi,opt={}){ disamb(ai,bi);", "let SIMX=null;   // 百科ダンジョン用：{記事番号:{hp, moves}}。ふだんは null\nfunction simulate(ai,bi,opt={}){ disamb(ai,bi);")
 repall("const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],", "const mk=(i,o)=>{const f=F[i], s=f[3], X=SIMX&&SIMX[i]; return {i,name:f[0],maxhp:s[0],hp:X&&X.hp>0?Math.min(s[0],X.hp):s[0],")
 repall("moves:opt.noMoves?[]:pickMoves(i,o).filter(", "moves:opt.noMoves?[]:[...((X&&X.moves)||[]),...pickMoves(i,o)].filter(")
+repall("if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});",
+       "if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});\n  for(const x of [A,B]){ const X=SIMX&&SIMX[x.i]; if(X&&X.say) log.push({t:0,side:-1,s:X.say,d:0,hp:[A.hp,B.hp]}); }   // 百科ダンジョン：装備や傷の一言")
+repall("      line=tag+line;", "      if(mv.it) line+='（拾った'+mv.it+'で）';   // 百科ダンジョン：武器の技\n      line=tag+line;")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
