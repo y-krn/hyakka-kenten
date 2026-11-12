@@ -1653,7 +1653,7 @@ async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await
   const item=await itemP; DG.found=item&&!out.includes(item.i)&&!DG.items.some(x=>x.i===item.i)?item:null;
   out=out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1]));
   DG.tr=null; const th=hash('dg-tr/'+DG.day+'/'+DG.floor+'/'+here);
-  if(DG.floor>1&&th%3===0&&out.length>=2){ const t=await dgTreasure(th).catch(()=>null);
+  if(DG.floor>1&&th%5===0&&out.length>=2){   // 宝の扉は、およそ5階に1回 const t=await dgTreasure(th).catch(()=>null);
     if(t&&!out.includes(t.i)){ const lose=out.map((d,k)=>[d,k]).filter(([d])=>dgSim(()=>analyze(me,d,true)).r.w===d); DG.tr={...t,at:(lose.length?lose[lose.length-1]:[0,out.length-1])[1]}; } }
   return out; }
 // 扉の手がかり：分類と、その記事らしい事実を1つだけ（数値の能力は出さない。知識で読む余地を残す）
