@@ -1704,7 +1704,7 @@ function dgWeaponMove(i,ex){ const P=POOL[i]||[], lab=(CL[i]||[])[1]||'', nm=F[i
   return ['STRIKE',nm+'で'+v[1],fact,fact,T,0,['{A}の【{N}】！ '+(fact?fact+'。':'')+'その'+nm+'で{B}に'+v[2]+'。','{A}、拾った'+nm+'を手に{B}へ'+v[2]+'。'+(fact?'（'+fact+'）':'')]]; }
 const dgMods=()=>{ const w=DG.items.filter(x=>x.k==='w'), hurt=DG.hp<dgMax();
   const say=[w.length?F[DG.me][0]+'は、拾った'+w.map(x=>F[x.i][0]).join('と')+'を構えた。':'', hurt?F[DG.me][0]+'には、前の階の傷が残っている。':''].join('');
-  return {[DG.me]:{hp:DG.hp,moves:w.map(x=>dgWeaponMove(x.i,x.ex)),say},nokb:w.length?F[DG.me][0]+'が'+w.map(x=>F[x.i][0]).join('と')+'を抜いた。もう、事実の比べっこでは済まない。':''}; };   // 武器を持っていると、比べ合いにならない（瞬殺はそのまま）
+  return {[DG.me]:{hp:DG.hp,moves:w.map(x=>dgWeaponMove(x.i,x.ex)),say},nokb:w.length?'武器が出た以上、事実の比べっこでは済まない。':''}; };   // 武器を持っていると、比べ合いにならない（瞬殺はそのまま）
 // 武器の記事の書き出しの一文（読みがなのかっこは除く）。拾う前に取り寄せておく
 async function dgExtract(i){ try{ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',prop:'extracts',exsentences:1,explaintext:1,redirects:1,titles:F[i][1],format:'json',origin:'*'})).then(r=>r.json());
   let t=(Object.values((j.query||{}).pages||{})[0]||{}).extract||''; t=t.split('\n')[0].replace(/[（(][^）)]*[）)]/g,'').replace(/\s+/g,'').replace(/。$/,''); return t.length>48?t.slice(0,47)+'…':t; }catch(_){ return ''; } }
