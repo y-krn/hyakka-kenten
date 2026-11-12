@@ -346,7 +346,7 @@ function matchType(ai,bi,an){ const r=an.r;
   const same=cs&&cb&&cs[0]===cb[0];
   const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
   if(gap) return 'shunsatsu';
-  if(R.length>=3&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';
+  if(R.length>=3&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))){ if(SIMX&&SIMX.nokb){ an.kbx=SIMX.nokb; return 'normal'; } return 'kurabe'; }
   if(r.w!==null&&r.kind==='KO'){ const w=r.w===ai?0:1; if(r.hp[w]/r.max[w]>=0.6) return 'shunsatsu'; }
   if((Math.max(realN(ai),realN(bi))<=1&&Math.min(realN(ai),realN(bi))===0)||(r.kind==='判定'&&Math.abs(r.hp[0]/r.max[0]-r.hp[1]/r.max[1])<0.12)) return 'doro';
   return 'normal'; }
@@ -414,6 +414,7 @@ function midKai(log,key,ai,bi){ const out=[]; let n=0, gap=0; const usedP=new Se
       const P=pool(e); out.push({t:x.t,side:-1,d:0,hp:x.hp,s:'解説「'+P[hash(key+'/'+k+'/'+idx)%P.length]+'」',kai:1}); n++; gap=0; break; } });
   return out; }
 function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];
+  if(an.kbx){ const k=Math.max(0,r.log.findIndex(x=>x.side>=0)); r.log.splice(k,0,{t:0,side:-1,s:an.kbx,d:0,hp:(r.log[k-1]||r.log[0]||{hp:[r.max[0],r.max[1]]}).hp}); }   // 百科ダンジョン：比べ合いのはずが、武器で殴り合いになった
   const K0=F[ai][2]+'/'+F[bi][2]; let ln=0;
   const sys=(s,hp)=>({t:0,side:-1,s,d:0,hp:hp||[r.max[0],r.max[1]]});
   const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});

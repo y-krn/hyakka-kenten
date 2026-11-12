@@ -1801,15 +1801,18 @@ async function dgFindItem(titles){ if(!titles.length) return null; const W='http
 //   事実の順：長さ・重さなど物の事実で比べる技 → 材料・用途・開発などの事実 → 分類名。威力はその物の記事のいちばん強い技と同じ
 const DGV=[[/刀|剣|ナイフ|鎌|斧|包丁/,'斬る','斬りかかる'],[/銃|砲|ミサイル|弾|兵器|爆弾|魚雷/,'撃つ','撃ち込む'],[/弓/,'射る','射かける'],[/楽器|ギター|ピアノ|太鼓/,'かき鳴らす','音をぶつける'],
   [/自動車|車両|鉄道|電車|気動車|機関車|バス|航空機|戦闘機|艦|船|戦車|潜水/,'はね飛ばす','突っ込む'],[/./,'殴る','殴りかかる']];
-function dgWeaponMove(i){ const P=POOL[i]||[], lab=(CL[i]||[])[1]||'', nm=F[i][0];
+function dgWeaponMove(i,ex){ const P=POOL[i]||[], lab=(CL[i]||[])[1]||'', nm=F[i][0];
   const v=DGV.find(([re])=>re.test(lab)||re.test(nm));
   const fm=P.find(m=>CLASH[m[1]]&&m[3])||P.find(m=>m[3]&&/^(材料|素材|用途|使用|構成要素|原産|発祥|開発|製造|設計|口径|全長|重量|射程|最高速度|主な原料|産地)/.test(m[3]));   // どちらもなければ分類名（記事の長さなど、物と関係ない事実は使わない）
-  const fact=(fm?fm[3]:lab?'分類：'+lab:'').replace(/^体重/,'重さ');   // 物の重さを「体重」と書かない
+  const fact=(fm?fm[3]:ex?ex:lab?'分類：'+lab:'').replace(/^体重/,'重さ');   // 物の事実がなければ、記事の書き出しの一文   // 物の重さを「体重」と書かない
   const T=Math.max(2,Math.min(5,Math.max(0,...P.filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).map(m=>m[4]))||2));
   return ['STRIKE',nm+'で'+v[1],fact,fact,T,0,['{A}の【{N}】！ '+(fact?fact+'。':'')+'その'+nm+'で{B}に'+v[2]+'。','{A}、拾った'+nm+'を手に{B}へ'+v[2]+'。'+(fact?'（'+fact+'）':'')]]; }
 const dgMods=()=>{ const w=DG.items.filter(x=>x.k==='w'), hurt=DG.hp<dgMax();
   const say=[w.length?F[DG.me][0]+'は、拾った'+w.map(x=>F[x.i][0]).join('と')+'を構えた。':'', hurt?F[DG.me][0]+'には、前の階の傷が残っている。':''].join('');
-  return {[DG.me]:{hp:DG.hp,moves:w.map(x=>dgWeaponMove(x.i)),say}}; };
+  return {[DG.me]:{hp:DG.hp,moves:w.map(x=>dgWeaponMove(x.i,x.ex)),say},nokb:w.length?F[DG.me][0]+'が'+w.map(x=>F[x.i][0]).join('と')+'を抜いた。もう、事実の比べっこでは済まない。':''}; };   // 武器を持っていると、比べ合いにならない（瞬殺はそのまま）
+// 武器の記事の書き出しの一文（読みがなのかっこは除く）。拾う前に取り寄せておく
+async function dgExtract(i){ try{ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',prop:'extracts',exsentences:1,explaintext:1,redirects:1,titles:F[i][1],format:'json',origin:'*'})).then(r=>r.json());
+  let t=(Object.values((j.query||{}).pages||{})[0]||{}).extract||''; t=t.split('\n')[0].replace(/[（(][^）)]*[）)]/g,'').replace(/\s+/g,'').replace(/。$/,''); return t.length>48?t.slice(0,47)+'…':t; }catch(_){ return ''; } }
 function dgSim(fn,mods){ SIMX=mods||dgMods(); try{ return fn(); } finally{ SIMX=null; } }
 const dgMax=()=>F[DG.me][3][0];
 const dgItems=()=>DG.items.length?DG.items.map(x=>DGI[x.k]+esc(F[x.i][0])).join(' '):'なし';
@@ -1821,7 +1824,7 @@ async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst
   if(!doors.length){ dgEnd('🧱 この先に扉がない',undefined,'dead'); return; }
   DG.doors=doors; dgRender(); }
 // 階の画面：落とし物（あれば）・持ち物の食べ物・扉
-function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found;
+function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found; if(f&&f.k==='w'&&f.ex===undefined){ f.ex=''; dgExtract(f.i).then(t=>{ f.ex=t; }); }
   let found=''; if(f){ found=`<div class="dgres">${DGI[f.k]} <b>${esc(F[f.i][0])}</b>が${f.tr?'置いてある':'落ちている'}<div class="dgc">${esc(f.lab||'')}${f.lab?'｜':''}${DGK[f.k]}</div></div>`+
     (DG.items.length<2?`<div class="dgpair"><button type="button" class="btn" id="dgget">拾う</button><button type="button" class="btn" id="dgleave">拾わない</button></div>`
       :`<div class="dgstack">${DG.items.map((x,k)=>`<button type="button" class="btn" data-swap="${k}">${esc(F[x.i][0])}を捨てて拾う</button>`).join('')}<button type="button" class="btn" id="dgleave">拾わない</button></div>`); }
@@ -1901,6 +1904,11 @@ repall("moves:opt.noMoves?[]:pickMoves(i,o).filter(", "moves:opt.noMoves?[]:[...
 repall("if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});",
        "if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});\n  for(const x of [A,B]){ const X=SIMX&&SIMX[x.i]; if(X&&X.say) log.push({t:0,side:-1,s:X.say,d:0,hp:[A.hp,B.hp]}); }   // 百科ダンジョン：装備や傷の一言")
 repall("      line=tag+line;", "      if(mv.it) line+='（拾った'+mv.it+'で）';   // 百科ダンジョン：武器の技\n      line=tag+line;")
+
+# ---- 79. 試作（プレビューだけ）：百科ダンジョンで武器を持っていると、比べ合いにならず殴り合いになる（SIMX.nokb）。瞬殺はそのまま ----
+repall("(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';", "(same&&cs[1]==='ヒト'&&nReal>=2))){ if(SIMX&&SIMX.nokb){ an.kbx=SIMX.nokb; return 'normal'; } return 'kurabe'; }")
+repall("function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];",
+       "function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];\n  if(an.kbx){ const k=Math.max(0,r.log.findIndex(x=>x.side>=0)); r.log.splice(k,0,{t:0,side:-1,s:an.kbx,d:0,hp:(r.log[k-1]||r.log[0]||{hp:[r.max[0],r.max[1]]}).hp}); }   // 百科ダンジョン：比べ合いのはずが、武器で殴り合いになった")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
