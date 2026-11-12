@@ -1803,7 +1803,7 @@ const DGV=[[/刀|剣|ナイフ|鎌|斧|包丁/,'斬る','斬りかかる'],[/銃
   [/自動車|車両|鉄道|電車|気動車|機関車|バス|航空機|戦闘機|艦|船|戦車|潜水/,'はね飛ばす','突っ込む'],[/./,'殴る','殴りかかる']];
 function dgWeaponMove(i){ const P=POOL[i]||[], lab=(CL[i]||[])[1]||'', nm=F[i][0];
   const v=DGV.find(([re])=>re.test(lab)||re.test(nm));
-  const fm=P.find(m=>CLASH[m[1]]&&m[3])||P.find(m=>m[3]&&/^(材料|素材|用途|使用|原産|発祥|開発|製造|設計|口径|全長|重量|射程|最高速度|主な原料|産地)/.test(m[3]))||P.find(m=>m[3]&&/：/.test(m[3])&&!/^(Wikidataでの分類|別名|掲載|載っている)/.test(m[3])&&!['NAME','SENIORITY'].includes(m[0]));
+  const fm=P.find(m=>CLASH[m[1]]&&m[3])||P.find(m=>m[3]&&/^(材料|素材|用途|使用|原産|発祥|開発|製造|設計|口径|全長|重量|射程|最高速度|主な原料|産地)/.test(m[3]));   // どちらもなければ分類名（記事の長さなど、物と関係ない事実は使わない）
   const fact=(fm?fm[3]:lab?'分類：'+lab:'').replace(/^体重/,'重さ');   // 物の重さを「体重」と書かない
   const T=Math.max(2,Math.min(5,Math.max(0,...P.filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).map(m=>m[4]))||2));
   return ['STRIKE',nm+'で'+v[1],fact,fact,T,0,['{A}の【{N}】！ '+(fact?fact+'。':'')+'その'+nm+'で{B}に'+v[2]+'。','{A}、拾った'+nm+'を手に{B}へ'+v[2]+'。'+(fact?'（'+fact+'）':'')]]; }
