@@ -1061,7 +1061,7 @@ function showResult(){
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
-  const PB=rec.best; rec.battles++; if(upset) rec.upsets++; if(!current.mode) addPlay();
+  rec.battles++; if(upset) rec.upsets++; if(!current.mode) addPlay();
   const M=current.mode;
   if(M) streak={idx:null,n:0};
   else if(w!==null){ if(streak.idx===w) streak.n++; else streak={idx:w,n:1}; rec.best=Math.max(rec.best,streak.n); } else streak={idx:null,n:0};
@@ -1123,8 +1123,7 @@ function showResult(){
   $('#res').innerHTML=`
   <div class="result">
     <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>
-    ${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中${streak.n>PB?'。あなたが見た中で最長':''}</div>`:''}${(()=>{ const B=rec.battles, ms=B===10||B===50||(B>0&&B%100===0);   // 番狂わせは毎回、観戦数は節目だけ
-      const t=[upset?`番狂わせを見たのは${rec.upsets}回目`:'', ms?`${B}試合目の観戦`:''].filter(Boolean); return t.length?`<div class="sub recnote">${t.join('。')}</div>`:''; })()}
+    ${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中</div>`:''}
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
