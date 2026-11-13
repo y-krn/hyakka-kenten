@@ -1917,6 +1917,15 @@ repall("Wikidataに書いてあるからだ。'],{A,B})),\n      ...midKai(", "W
 repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx()];")
 repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...hits.slice(-2)];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx(),...hits.slice(-2)];")
 
+# ---- 81. 百科ダンジョンの対戦も、みんなの対戦数に数える（遊び方の内訳 d）。ダンジョンからの観戦は、勝負をつけたときに数えてあるので数えない ----
+rep("function addPlay(){ setPend(pend()+1); { const c=current||{},", "function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; setPend(pend()+1); { const c=current||{},")
+rep("for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }", "for(const x of ['t','m','f','d']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }")
+rep("function dgFight(d){ const me=DG.me, mods=dgMods(),",
+    "function dgPlay(){ setPend(pend()+1); const o=pendK(); o.d=(o.d||0)+1; setPendK(o); if(ALL){ ALL.plays++; renderRec(); } }   // ダンジョンの1戦を数える\nfunction dgFight(d){ dgPlay(); const me=DG.me, mods=dgMods(),")
+repall("MODE=null; dgSim(()=>startBattle([me,d]),mods);", "MODE=null; ORIG={k:'dg'}; dgSim(()=>startBattle([me,d]),mods);")
+repall("MODE=null; dgSim(()=>startBattle([me,foe]),mods);", "MODE=null; ORIG={k:'dg'}; dgSim(()=>startBattle([me,foe]),mods);")
+rep("c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')", "c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
