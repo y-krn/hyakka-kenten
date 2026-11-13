@@ -1926,6 +1926,12 @@ repall("MODE=null; dgSim(()=>startBattle([me,d]),mods);", "MODE=null; ORIG={k:'d
 repall("MODE=null; dgSim(()=>startBattle([me,foe]),mods);", "MODE=null; ORIG={k:'dg'}; dgSim(()=>startBattle([me,foe]),mods);")
 rep("c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')", "c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')")
 
+# ---- 82. 試作（プレビューだけ）：記録が増えた瞬間に、結果の下へ一言添える（番狂わせの回数・連勝の自己ベスト・観戦の節目）。画面の配置は変えない ----
+rep("  rec.battles++; if(upset) rec.upsets++;", "  const PB=rec.best; rec.battles++; if(upset) rec.upsets++;")
+rep("""    ${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中</div>`:''}""",
+    """    ${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中${streak.n>PB?'。あなたが見た中で最長':''}</div>`:''}${(()=>{ const B=rec.battles, ms=B===10||B===50||(B>0&&B%100===0);   // 番狂わせは毎回、観戦数は節目だけ
+      const t=[upset?`番狂わせを見たのは${rec.upsets}回目`:'', ms?`${B}試合目の観戦`:''].filter(Boolean); return t.length?`<div class="sub recnote">${t.join('。')}</div>`:''; })()}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
