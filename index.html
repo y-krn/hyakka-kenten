@@ -1017,7 +1017,7 @@ $('#fight').onclick=()=>startBattle();
 
 /* ---------- 対戦 ---------- */
 let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
-function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間図鑑から':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')+'</div>';
+function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間図鑑から':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')+'</div>';
   return `<div class="ringhead th">${m.replay?'王座戦の記録（'+esc(dt(m.res.at))+'）':'王座戦'} ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
@@ -1478,9 +1478,9 @@ function setPend(n){ try{ localStorage.setItem(PEND_KEY,String(Math.max(0,n))); 
 const PENDK_KEY='hk-plays-k';
 function pendK(){ try{ const o=JSON.parse(localStorage.getItem(PENDK_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(_){ return {}; } }
 function setPendK(o){ try{ localStorage.setItem(PENDK_KEY,JSON.stringify(o)); }catch(_){} }
-function addPlay(){ setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
+function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
 function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
-function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
+function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f','d']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
   const body=JSON.stringify({n,k,client:clientId()}); let ok=false;
   try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
     else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
@@ -1664,7 +1664,8 @@ async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst
   box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div><div class="trow"><button type="button" class="btn small" id="dgquit">引き返す</button></div>`;
   box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
   $('#dgquit').onclick=()=>dgEnd('🏳️ 引き返した',undefined,'quit'); }
-function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
+function dgPlay(){ setPend(pend()+1); const o=pendK(); o.d=(o.d||0)+1; setPendK(o); if(ALL){ ALL.plays++; renderRec(); } }   // ダンジョンの1戦を数える
+function dgFight(d){ dgPlay(); const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move);
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
   const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
@@ -1675,12 +1676,12 @@ function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">🤝 <b>${esc(F[d][0])}</b>と引き分け</div><button type="button" class="btn big dgin" id="dgkeep">進む</button><div class="dgsub">${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; }
   else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`💀 <b>${esc(F[d][0])}</b>に負けた<div class="dgc">相手の${esc(how)}${key}</div>`,d,'lose'); }
-  const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
+  const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,d]); }; }
 function dgEnd(msg,foe,end){ const box=$('#dgbox'), pr=DG.practice; dgSave(true,end);
   const share=dgShare(DG.day,DG.path,end), me=DG.me;
   box.innerHTML=`<div class="dgfl">${dgLine(DG.path,end)}</div><div class="dgres lose">${msg}</div><div class="dgpath">${dgPath(DG.path)}</div>${pr?'':'<button type="button" class="btn big dgin" id="dgcopy">'+dgShareLab()+'</button>'}<div class="dgsub">${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
   if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
-  if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
+  if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,foe]); };
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
 // スマホでは共有の画面を開き、パソコンではコピーする。ボタンの名前もそれに合わせる
 const dgShareLab=()=>navigator.share&&TOUCH?'結果を共有':'結果をコピー';

@@ -1829,6 +1829,15 @@ repall("""<div class="mact"><button type="button" class="btn big" id="mrepgo"${o
        """<div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button></div><div class="mact"><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>""")
 repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>.btn,.fgo>.btn{display:inline-flex;align-items:center;justify-content:center}")
 
+# ---- 81. 百科ダンジョンの対戦も、みんなの対戦数に数える（遊び方の内訳 d）。ダンジョンからの観戦は、勝負をつけたときに数えてあるので数えない ----
+rep("function addPlay(){ setPend(pend()+1); { const c=current||{},", "function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; setPend(pend()+1); { const c=current||{},")
+rep("for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }", "for(const x of ['t','m','f','d']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }")
+rep("function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;",
+    "function dgPlay(){ setPend(pend()+1); const o=pendK(); o.d=(o.d||0)+1; setPendK(o); if(ALL){ ALL.plays++; renderRec(); } }   // ダンジョンの1戦を数える\nfunction dgFight(d){ dgPlay(); const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;")
+repall("onclick=()=>{ MODE=null; startBattle([me,d]); };", "onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,d]); };")
+repall("onclick=()=>{ MODE=null; startBattle([me,foe]); };", "onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,foe]); };")
+rep("c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')", "c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

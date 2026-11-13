@@ -79,8 +79,11 @@ L.push(`- 対戦（王座戦以外）  ${n(pw.n)}戦 ${diff(pw.n, pp.n)}、遊�
 try {
   const KQ = "SELECT COALESCE(SUM(kt),0) AS t, COALESCE(SUM(km),0) AS m, COALESCE(SUM(kf),0) AS f, COUNT(DISTINCT CASE WHEN kt > 0 THEN COALESCE(client, iphash) END) AS tu, COUNT(DISTINCT CASE WHEN km > 0 THEN COALESCE(client, iphash) END) AS mu, COUNT(DISTINCT CASE WHEN kf > 0 THEN COALESCE(client, iphash) END) AS fu FROM plays WHERE at >= ? AND at < ?";
   const [kw, kp] = await Promise.all([one(KQ, W), one(KQ, P)]);
-  const free = pw.n - kw.t - kw.m - kw.f, freeP = pp.n - kp.t - kp.m - kp.f;
-  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}（${n(kw.tu)}ブラウザ）`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}（${n(kw.mu)}ブラウザ）`, `  - 仲間図鑑から ${n(kw.f)}戦 ${diff(kw.f, kp.f)}（${n(kw.fu)}ブラウザ）`, `  - 自由対戦 ${n(free)}戦 ${diff(free, freeP)}`);
+  // 百科ダンジョン（2026年11月13日から数えている。列がまだなければ0）
+  const DQ = "SELECT COALESCE(SUM(kd),0) AS d, COUNT(DISTINCT CASE WHEN kd > 0 THEN COALESCE(client, iphash) END) AS du FROM plays WHERE at >= ? AND at < ?";
+  const [dw, dp] = await Promise.all([one(DQ, W), one(DQ, P)]).catch(() => [{ d: 0, du: 0 }, { d: 0, du: 0 }]);
+  const free = pw.n - kw.t - kw.m - kw.f - dw.d, freeP = pp.n - kp.t - kp.m - kp.f - dp.d;
+  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}（${n(kw.tu)}ブラウザ）`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}（${n(kw.mu)}ブラウザ）`, `  - 仲間図鑑から ${n(kw.f)}戦 ${diff(kw.f, kp.f)}（${n(kw.fu)}ブラウザ）`, `  - 百科ダンジョン ${n(dw.d)}戦 ${diff(dw.d, dp.d)}（${n(dw.du)}ブラウザ）`, `  - 自由対戦 ${n(free)}戦 ${diff(free, freeP)}`);
   if (start < new Date('2026-11-12T15:00:00Z')) L.push('  - ※内訳は11月5日夜から数え始めたので、この週と前の週の比べは参考になりません');
   globalThis.KW = kw;
 } catch (_) {}
