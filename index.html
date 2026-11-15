@@ -467,7 +467,7 @@ async function suggest(v,exclude){
   const pre=fetch('https://ja.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&redirects=resolve&limit=15&search='+encodeURIComponent(v)).then(r=>r.json()).then(async j=>{ const c=[...new Set(j[1]||[])]; const ok=await Promise.all(c.map(t=>inData(t))); return c.filter((t,i)=>ok[i]); }).catch(()=>[]);
   const [a,b]=await Promise.all([pre,partial(v).catch(()=>[])]); const n=normQ(v);
   const all=[...new Set([...b.filter(t=>normQ(t)===n),...a.filter(t=>normQ(t)===n),...b,...a])];   // 完全一致のあとは、よく読まれている順
-  return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }
+  return all.filter(t=>!EXCL.has(t)&&!(exclude&&exclude(t))).slice(0,12); }
 // 候補リスト：ブラウザごとの絞り込みに左右されないよう自前で出す（タップ・↑↓・Enterで選べる）
 const TOUCH=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
 function fitSugg(inp,ul){ if(ul.hidden) return; const vv=window.visualViewport; const r=inp.getBoundingClientRect();
@@ -491,7 +491,7 @@ async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch('data/a/'+k+'.json.gz?v
     const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
 const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）
 function redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }
-async function loadTitle(t,rd){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t) return -1; if(TIX[t]!==undefined) return TIX[t];
+async function loadTitle(t,rd){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1; if(TIX[t]!==undefined) return TIX[t];
   const b=await bucket(fnv(t)%NB); const rec=b[t]; if(rec) return register(rec); if(rd) return -1; const to=await redirTo(t); return to&&to!==t?loadTitle(to,1):-1; }
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));

@@ -1913,6 +1913,10 @@ repall(".reads a:hover{background:rgba(255,255,255,.12)}", ".reads a:hover{opaci
 repall("<div class=\"share\"><output id=\"share\">${esc(share)}</output>${navigator.share?'':'<button type=\"button\" class=\"btn small\" id=\"copy\">コピー</button>'}</div>", "<div class=\"share\"><output id=\"share\">${esc(share)}</output></div>")
 repall("${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nshare\">共有</button>':''}<a class=\"url\"", "${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nshare\">共有</button>':'<button type=\"button\" class=\"btn small\" id=\"copy\">コピー</button>'}<a class=\"url\"")
 
+# ---- 93. 対戦から外す記事（data/exclude.json：長い記事から切り出された一部など）は、収録していない扱いにする。入力候補にも出さない ----
+repall("t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t) return -1;", "t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1;")
+repall("return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }", "return all.filter(t=>!EXCL.has(t)&&!(exclude&&exclude(t))).slice(0,12); }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

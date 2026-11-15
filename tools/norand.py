@@ -1,7 +1,8 @@
 # ランダム（初期表示・ランダムボタン・おまかせ）に出さない記事を選ぶ。今日の一戦・百科ダンジョンの扉の候補からも外れる。
 #   対戦から外すわけではなく、自分で名前を入れれば選べる。
 #   ・性的な内容の記事
-#   ・長くなった記事から切り出された一部（「浜崎あゆみのディスコグラフィ」「らき☆すたの登場人物」など。親の記事が収録されているものだけ）
+# あわせて、長くなった記事から切り出された一部（「浜崎あゆみのディスコグラフィ」「らき☆すたの登場人物」など。親の記事が収録されているものだけ）を
+#   data/exclude.json に書き出し、対戦そのものから外す（収録していない扱い。名前を入れても選べない）。exclude.json に手で足した記事はそのまま残す
 #   性的指向・LGBT・医学一般は対象にしない。言葉の一部だけが一致する誤検出（サセックス、ピエロ、官能基 など）は避ける。
 #   python3 tools/norand.py data  → data/norand.json（記事名の一覧）
 import json, gzip, glob, re, os, sys
@@ -26,12 +27,12 @@ SPLIT = re.compile(r'^(.+?)の(ディスコグラフィ|作品|作品一覧|登�
 files = sorted(glob.glob(os.path.join(D, 'a', '*.json.gz')))
 ALLT = set()
 for f in files: ALLT.update(json.loads(gzip.open(f).read()).keys())
-out = []; nsplit = 0
+out = []; split = []
 for f in files:
     for t, r in json.loads(gzip.open(f).read()).items():
         if t in ALLOW: continue
         m = SPLIT.match(t)
-        if m and m.group(1) in ALLT: out.append(t); nsplit += 1; continue
+        if m and m.group(1) in ALLT: split.append(t); continue
         g = r.get('gen', {})
         meta = [g.get('c') or ''] + list(g.get('cc', [])) + [x for e in r.get('ext', []) if e[0] != '_m' and isinstance(e[2], list) for x in e[2] if isinstance(x, str)]
         sig = {m for m in meta if META.search(m) and not IGNORE.search(m)}
@@ -39,4 +40,9 @@ for f in files:
         if TITLE.search(t) or len(sig) >= (2 if r.get('p') else 1): out.append(t)
 out.sort()
 json.dump(out, open(os.path.join(D, 'norand.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
-print('ランダムに出さない記事', len(out), '（うち切り出された一部', nsplit, '）')
+print('ランダムに出さない記事', len(out))
+EX = os.path.join(D, 'exclude.json')
+old = json.load(open(EX)) if os.path.exists(EX) else []
+ex = sorted(set([t for t in old if not SPLIT.match(t)] + split))
+json.dump(ex, open(EX, 'w'), ensure_ascii=False, separators=(',', ':'))
+print('対戦から外す記事（exclude.json）', len(ex), '（うち切り出された一部', len(split), '）')
