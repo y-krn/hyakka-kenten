@@ -1904,6 +1904,11 @@ repall("<span>Wikipediaの中から、まだ知らない記事を探して、戦
 # ---- 89. 王座戦の「記事 ↗」だけ文字色の指定がなくブラウザ標準の青だったので、ほかの「記事 ↗」と同じ色にそろえる ----
 repall("#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}", "#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px;color:var(--muted)}")
 
+# ---- 91. 結果の札の「記事を読む」のリンクを、ほかのリンクと同じ下線付きの文字にそろえる（丸い枠のボタンのような形は、ボタンの3段階の決まりから外れていたため） ----
+repall(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}", ".reads{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;font-size:13px}")
+repall(".reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}", ".reads a{color:inherit;text-decoration:underline;text-underline-offset:3px;padding:8px 0;margin:-8px 0;overflow-wrap:anywhere}")
+repall(".reads a:hover{background:rgba(255,255,255,.12)}", ".reads a:hover{opacity:.8}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
