@@ -181,7 +181,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .result{padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--ink);color:var(--bg);border-radius:6px}
 .result .tdnote{margin:0;background:var(--hl);color:var(--ink);font-weight:700}
 #res .result{scroll-margin-top:120px}
-#today .mlink,#today .tdcal>summary,.flink{padding:10px 6px;margin:-4px -6px}
+#today .mlink,#today .tdcal>summary,.flink{padding:10px 0;margin:-4px 0}
 #throne details details>summary{padding:8px 0}
 .result .win{font-family:var(--f-display);font-size:24px;line-height:1.3}
 .result .sub{font-size:13px;opacity:.85}
@@ -228,7 +228,11 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .gloss dd a{font-family:var(--f-body);font-size:12px;color:var(--muted);margin-left:6px}
 @media (max-width:480px){.gloss dl{grid-template-columns:1fr}.gloss dd{margin-bottom:6px}}
 .record{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
-.record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
+.record .mine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px;max-width:420px}
+.record .you{grid-column:1/-1;justify-self:start}
+.record .st{display:flex;flex-direction:column;line-height:1.25}
+.record .st b{font-size:22px}
+.record .st small{font-size:11px}
 .record .all{font-size:14px;color:var(--ink)}
 .record .all b{font-size:24px}
 .record .you{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:0 8px}
@@ -245,8 +249,8 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #find .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
 @media (max-width:640px){#find .fgrid{grid-template-columns:1fr}}
 #zukan,#mine{display:flex;flex-direction:column;gap:8px;min-width:0}
-#zukan h3,#mine h3{margin:0;font-size:16px}
-.famcard{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:2px 12px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer}
+#zukan h3,#mine h3{margin:0;font-family:var(--f-cite);font-weight:900;font-size:19px;letter-spacing:.02em}
+.famcard{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:2px 12px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer}
 .famcard:hover{border-color:var(--ink)}
 .famcard small{grid-column:1;font-size:11px;color:var(--muted)}
 .famcard b{grid-column:1;font-size:16px;line-height:1.35;overflow-wrap:anywhere}
@@ -254,7 +258,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 #zukan .frow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .flink{font:inherit;font-size:13px;background:none;border:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 #zukan .fhint{font-size:11px;color:var(--muted)}
-@media (max-width:640px){#mine{border-top:1px solid var(--line);padding-top:14px;margin-top:4px}}#find .fsub{margin:0;font-size:12px;color:var(--muted)}
+@media (max-width:640px){#mine{border-top:1px solid var(--line);padding-top:14px;margin-top:4px}}#find .fsub{margin:0;font-size:12px;color:var(--muted);text-wrap:pretty}
 #zukan .trow,#mine .trow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #throne .thx>summary{display:inline-block;margin-top:10px;padding:8px 14px;border:1px solid var(--ink);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;list-style:none}
 #throne .thx>summary::-webkit-details-marker{display:none}
@@ -426,7 +430,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
 
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
-    <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
+    <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日や出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
   <dialog id="famdlg" aria-label="仲間さがし"></dialog>
 
   <footer>
@@ -966,7 +970,7 @@ let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
 const saveRec=()=>{ try{ localStorage.setItem(REC_KEY,JSON.stringify(rec)); }catch(_){} };
 function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span></div>`:'';
-  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>最長 <b>${rec.best}</b>連勝を目撃</span></div>`; }
+  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span class="st"><b>${rec.battles}</b><small>観戦した試合</small></span><span class="st"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>`; }
 
 /* ---------- 保留・通報・確認（判定できない記事の扱い） ---------- */
 const HOLD={};            // 事件の疑いがあり、確認するまで対戦させない記事 {index: 理由}

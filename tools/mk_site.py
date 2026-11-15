@@ -1891,6 +1891,16 @@ repall("  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').q
 
 repall("family=Zen+Old+Mincho:wght@600", "family=Zen+Old+Mincho:wght@600;900")   # 見出しの明朝は極太（900）で、ほかの書体に負けないように
 
+# ---- 88. 試作：見た目のバランスを整える（小見出しも明朝・「ほかの一門を見る」の左端・カードの角・1文字だけの行・画面下の記録） ----
+repall("#zukan h3,#mine h3{margin:0;font-size:16px}", "#zukan h3,#mine h3{margin:0;font-family:var(--f-cite);font-weight:900;font-size:19px;letter-spacing:.02em}")
+repall(".flink{padding:10px 6px;margin:-4px -6px}", ".flink{padding:10px 0;margin:-4px 0}")
+repall("border:1px solid var(--line);border-radius:12px;padding:10px 14px", "border:1px solid var(--line);border-radius:6px;padding:10px 14px")
+repall("<p class=\"fsub\">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p>", "<p class=\"fsub\">誕生日や出身地から、ゆかりのある人を代表に</p>")
+repall("#find .fsub{margin:0;font-size:12px;color:var(--muted)}", "#find .fsub{margin:0;font-size:12px;color:var(--muted);text-wrap:pretty}")
+repall("<div class=\"mine\"><span class=\"you\">あなた</span><span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>最長 <b>${rec.best}</b>連勝を目撃</span></div>",
+       "<div class=\"mine\"><span class=\"you\">あなた</span><span class=\"st\"><b>${rec.battles}</b><small>観戦した試合</small></span><span class=\"st\"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class=\"st\"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>")
+repall(".record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}", ".record .mine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px;max-width:420px}\n.record .you{grid-column:1/-1;justify-self:start}\n.record .st{display:flex;flex-direction:column;line-height:1.25}\n.record .st b{font-size:22px}\n.record .st small{font-size:11px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
