@@ -83,7 +83,7 @@ try {
   const DQ = "SELECT COALESCE(SUM(kd),0) AS d, COUNT(DISTINCT CASE WHEN kd > 0 THEN COALESCE(client, iphash) END) AS du FROM plays WHERE at >= ? AND at < ?";
   const [dw, dp] = await Promise.all([one(DQ, W), one(DQ, P)]).catch(() => [{ d: 0, du: 0 }, { d: 0, du: 0 }]);
   const free = pw.n - kw.t - kw.m - kw.f - dw.d, freeP = pp.n - kp.t - kp.m - kp.f - dp.d;
-  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}（${n(kw.tu)}ブラウザ）`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}（${n(kw.mu)}ブラウザ）`, `  - 仲間図鑑から ${n(kw.f)}戦 ${diff(kw.f, kp.f)}（${n(kw.fu)}ブラウザ）`, `  - 百科ダンジョン ${n(dw.d)}戦 ${diff(dw.d, dp.d)}（${n(dw.du)}ブラウザ）`, `  - 自由対戦 ${n(free)}戦 ${diff(free, freeP)}`);
+  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}（${n(kw.tu)}ブラウザ）`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}（${n(kw.mu)}ブラウザ）`, `  - 仲間さがしから ${n(kw.f)}戦 ${diff(kw.f, kp.f)}（${n(kw.fu)}ブラウザ）`, `  - 百科ダンジョン ${n(dw.d)}戦 ${diff(dw.d, dp.d)}（${n(dw.du)}ブラウザ）`, `  - 自由対戦 ${n(free)}戦 ${diff(free, freeP)}`);
   if (start < new Date('2026-11-12T15:00:00Z')) L.push('  - ※内訳は11月5日夜から数え始めたので、この週と前の週の比べは参考になりません');
   globalThis.KW = kw;
 } catch (_) {}

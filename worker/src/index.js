@@ -294,7 +294,7 @@ async function cardFor(env, u) {
   if (fk && /^[pcosw]Q\d{1,12}$/.test(fk)) {   // 仲間図鑑の一門
     const g = await famGet(env, fk);
     if (g) { const top = g.m.slice(0, 5).map(m => m[1]);
-      return { title: `${FAMK[g.k](g.n)} ${g.c}記事 ― 百科拳典 仲間図鑑`, url: SITE + '/?fam=' + fk,
+      return { title: `${FAMK[g.k](g.n)} ${g.c}記事 ― 百科拳典 仲間さがし`, url: SITE + '/?fam=' + fk,
         desc: top.join('、') + (g.c > top.length ? `…ほか${g.c - top.length}記事。` : '。') + 'Wikipediaのつながりから集めた仲間たち。' }; }
   }
   const a = q.get('a'), b = q.get('b');
