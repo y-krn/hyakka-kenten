@@ -1904,6 +1904,9 @@ repall(".record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
 
 repall("<span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span>", "<span>まだ知らない記事を探して、戦わせる</span>")   # スマホで「せる」だけの行にならないよう短く
 
+# ---- 89. 王座戦の「記事 ↗」だけ文字色の指定がなくブラウザ標準の青だったので、ほかの「記事 ↗」と同じ色にそろえる ----
+repall("#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}", "#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px;color:var(--muted)}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
