@@ -1872,6 +1872,35 @@ repall("if(x.k==='yr') intro=P([",
 repall("const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);", "const ratio=x.k==='yr'?(Math.abs(x.a-x.b)<=1?1.01:2):Math.max(x.a,x.b)/Math.min(x.a,x.b);")   # 生まれた年は比で測らない（1年差だけ僅差）
 repall("'{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。'", "'{n}本勝負。上回ったほうが1本を取る。それ以上でも以下でもない。'")
 
+# ---- 87. Wikipediaらしさを少し足す（「分かること」を情報ボックス風に・転送の注記）。書体・ボタン・配置は変えない ----
+repall(".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}", """:root{--ib-bg:#f8f9fa;--ib-hd:#eaecf0;--ib-bd:#a2a9b1;--ib-ink:#202122;--ib-mut:#54595d;--ib-ln:#3366cc}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}}
+:root[data-theme="dark"]{--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}
+.facts{border:1px solid var(--ib-bd);border-radius:2px;padding:0;background:var(--ib-bg);color:var(--ib-ink);overflow:hidden}""")
+repall(".facts .fh{font-weight:700;font-size:14px}", ".facts .fh{font-weight:700;font-size:14px;text-align:center;padding:8px 10px 6px}")
+repall(".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}", ".facts ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.6;overflow-wrap:anywhere}\n.facts li{display:grid;grid-template-columns:minmax(4.5em,30%) 1fr;gap:8px;padding:5px 10px;border-top:1px solid var(--ib-hd)}\n.facts li .ik{font-weight:700}\n.facts li .ik:only-child{grid-column:1/-1}")
+repall(".facts .fwho{font-weight:700;font-size:13px;margin-top:8px}.facts .fwho+ul{margin-top:2px}", ".facts .fwho{font-weight:700;font-size:13px;text-align:center;background:var(--ib-hd);padding:4px 10px}.facts .fwho+ul li:first-child{border-top:none}")
+repall(".facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}", ".facts .fsrc{font-size:11px;color:var(--ib-mut);padding:6px 10px 8px;line-height:1.5;border-top:1px solid var(--ib-hd)}\n.facts .fxgo,.facts .fxbad{color:var(--ib-ln)}\n.facts .fxhint,.facts .fxmsg{padding:0 10px 8px}")
+repall("`<li${fxa(f)}>${esc(f.t)}</li>`", "`<li${fxa(f)}>${ibx(f.t)}</li>`")
+repall("function fighterCard(i){", "// 情報ボックス風：「所在地：静岡県」を、項目名と中身の2列に分ける\nconst ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?'<span class=\"ik\">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class=\"ik\">'+esc(t)+'</span>'; };\nfunction fighterCard(i){")
+repall(".pmsg{font-size:13px;color:var(--b)}", ".pmsg{font-size:13px;color:var(--b)}.pmsg.hat{color:var(--muted)}")
+repall("    else sel[s]=i; }\n  for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);", "    else { sel[s]=i; if(F[i][1]!==t) hat[s]='（「'+t+'」から転送）'; } }   // Wikipediaと同じ書き方で、転送されたことを添える\n  for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);")
+repall("  const ids=[ia,ib]; const why=[];", "  const ids=[ia,ib]; const why=[], hat=[];")
+repall("  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }", "  for(const s of [0,1]) if(why[s]||hat[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n){ n.textContent=why[s]||hat[s]; n.classList.toggle('hat',!why[s]); } }")
+
+
+# ---- 88. 見た目のバランスを整える（「ほかの一門を見る」の左端・カードの角・1文字だけの行・画面下の記録） ----
+repall(".flink{padding:10px 6px;margin:-4px -6px}", ".flink{padding:10px 0;margin:-4px 0}")
+repall("border:1px solid var(--line);border-radius:12px;padding:10px 14px", "border:1px solid var(--line);border-radius:6px;padding:10px 14px")
+repall("<p class=\"fsub\">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p>", "<p class=\"fsub\">誕生日や出身地から、ゆかりのある人を代表に</p>")
+repall("#find .fsub{margin:0;font-size:12px;color:var(--muted)}", "#find .fsub{margin:0;font-size:12px;color:var(--muted);text-wrap:pretty}")
+repall(".sechead span{font-size:12px;color:var(--muted)}", ".sechead span{font-size:12px;color:var(--muted);text-wrap:pretty}")   # 見出しの説明も、1〜2文字だけの行を作らない
+repall("<div class=\"mine\"><span class=\"you\">あなた</span><span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>最長 <b>${rec.best}</b>連勝を目撃</span></div>",
+       "<div class=\"mine\"><span class=\"you\">あなた</span><span class=\"st\"><b>${rec.battles}</b><small>観戦した試合</small></span><span class=\"st\"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class=\"st\"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>")
+repall(".record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}", ".record .mine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px;max-width:420px}\n.record .you{grid-column:1/-1;justify-self:start}\n.record .st{display:flex;flex-direction:column;line-height:1.25}\n.record .st b{font-size:22px}\n.record .st small{font-size:11px}")
+
+repall("<span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span>", "<span>まだ知らない記事を探して、戦わせる</span>")   # スマホで「せる」だけの行にならないよう短く
+
 # ---- 89. 王座戦の「記事 ↗」だけ文字色の指定がなくブラウザ標準の青だったので、ほかの「記事 ↗」と同じ色にそろえる ----
 repall("#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}", "#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px;color:var(--muted)}")
 
