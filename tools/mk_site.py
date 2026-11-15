@@ -1857,6 +1857,21 @@ repall("仲間図鑑", "仲間さがし")
 repall("async function loadTitle(t){ t=String(t||'').trim();", "const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）\nfunction redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }\nasync function loadTitle(t,rd){ t=String(t||'').trim();")
 repall("const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }", "const b=await bucket(fnv(t)%NB); const rec=b[t]; if(rec) return register(rec); if(rd) return -1; const to=await redirTo(t); return to&&to!==t?loadTitle(to,1):-1; }")
 
+# ---- 85. 人物どうしの比べ合いを、記事の数字ではなくその人の事実で行う ----
+#   ・人物どうしでは、記事の文字数・閲覧数・言語版の数・載っている事典の数を比べない（その人の事実ではないため）。比べる事実が足りなければ、比べ合いにせず殴り合いにする
+#   ・受賞・代表作・子ども・職業の数には、代表的なもの1つの名前を添える（数だけでは何も分からないため）
+#   ・生まれた年は「先輩が1本」として見せる
+repall("function rounds(i,j){ const out=[]; const add=k=>{ if(k==='h'&&",
+       "const EXL={P166:'受賞',P800:'主要作品',P40:'子',P106:'職業'};\nconst exN=(i,k)=>{ const L=EXL[k]; if(!L) return ''; const m=(POOL[i]||F[i][7]||[]).find(m=>m&&m[3]&&String(m[3]).startsWith(L+'：')); if(!m) return ''; const n=String(m[3]).slice(L.length+1).split(/、| など/)[0].trim(); return n?'（'+n+'など）':''; };   // 数に添える代表例\nconst isH=(i,j)=>!!(CL[i]&&CL[j]&&CL[i][1]==='ヒト'&&CL[j][1]==='ヒト');\nfunction rounds(i,j){ const out=[]; const hh=isH(i,j); const add=k=>{ if(hh&&k==='P1343') return; if(k==='h'&&")
+repall("out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); METAD.forEach(add); return out; }",
+       "out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); if(!hh) METAD.forEach(add); return out; }")
+repall("const va=fmtR(x.k,x.a), vb=fmtR(x.k,x.b);", "const va=fmtR(x.k,x.a)+exN(ai,x.k), vb=fmtR(x.k,x.b)+exN(bi,x.k);")
+repall("if(x.k==='yr') intro=P([",
+       "if(x.k==='yr'&&isH(ai,bi)) intro=P(['{k}本目、年功序列。{A}は{va}生まれ、{B}は{vb}生まれ。先に生まれたほうが1本。','{k}本目、生まれた年。{A}、{va}。{B}、{vb}。先輩が1本を取る決まりだ。'],o);\n      else if(x.k==='yr') intro=P([")
+
+repall("const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);", "const ratio=x.k==='yr'?(Math.abs(x.a-x.b)<=1?1.01:2):Math.max(x.a,x.b)/Math.min(x.a,x.b);")   # 生まれた年は比で測らない（1年差だけ僅差）
+repall("'{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。'", "'{n}本勝負。上回ったほうが1本を取る。それ以上でも以下でもない。'")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
