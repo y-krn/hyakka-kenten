@@ -1915,6 +1915,11 @@ repall("  <div id=\"res\"></div>`;\n  ring.scrollIntoView(", """  <div id="res">
 repall("function showResult(){\n  if(!current||current.shown) return; current.shown=true;", "function showResult(){\n  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す")
 repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}", ".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}\n.log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}\n.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}")
 
+# ---- 91. 結果の札の「記事を読む」のリンクを、ほかのリンクと同じ下線付きの文字にそろえる（丸い枠のボタンのような形は、ボタンの3段階の決まりから外れていたため） ----
+repall(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}", ".reads{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;font-size:13px}")
+repall(".reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}", ".reads a{color:inherit;text-decoration:underline;text-underline-offset:3px;padding:8px 0;margin:-8px 0;overflow-wrap:anywhere}")
+repall(".reads a:hover{background:rgba(255,255,255,.12)}", ".reads a:hover{opacity:.8}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
