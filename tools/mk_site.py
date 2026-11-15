@@ -1917,6 +1917,10 @@ repall("${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nsha
 repall("t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t) return -1;", "t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1;")
 repall("return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }", "return all.filter(t=>!EXCL.has(t)&&!(exclude&&exclude(t))).slice(0,12); }")
 
+# ---- 94. 訂正表（fix.json）で、事実の一覧（所属グループ・所属チームなど、MAP の見出しの名前）も差し替えられるようにする。
+#   例：{"長濱ねる": {"所属グループ": ["欅坂46（現・櫻坂46）", "けやき坂46（現・日向坂46）"]}}。改名したグループが今の名前で出てしまうときに使う
+repall("    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){", "    for(const [p,d] of Object.entries(MAP)) if(Array.isArray(fx[d[2]])&&fx[d[2]].length) rec.ext=(rec.ext||[]).map(e=>e[0]===p?[e[0],e[1],fx[d[2]]]:e);\n    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
