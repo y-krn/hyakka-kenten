@@ -1904,17 +1904,6 @@ repall("<span>Wikipediaの中から、まだ知らない記事を探して、戦
 # ---- 89. 王座戦の「記事 ↗」だけ文字色の指定がなくブラウザ標準の青だったので、ほかの「記事 ↗」と同じ色にそろえる ----
 repall("#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}", "#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px;color:var(--muted)}")
 
-# ---- 90. 試作：実況の事実に脚注番号を付け、試合の最後に「脚注」として出どころを並べる（Wikipediaの脚注にならう） ----
-repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {r}=an; const ring=$('#ring'); ring.hidden=false;
-  // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
-  const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t}); n=FN.length-1; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
-  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';""")
-repall("<div class=\"bub\"><div>${mark(l.s)}</div>${l.d>0?", "<div class=\"bub\"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?")
-repall("  <div id=\"res\"></div>`;\n  ring.scrollIntoView(", """  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a> — ${esc(x.t)}（${fnSrc(x.t)}）</li>`).join('')}</ol></div>`:''}`;
-  ring.scrollIntoView(""")
-repall("function showResult(){\n  if(!current||current.shown) return; current.shown=true;", "function showResult(){\n  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す")
-repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}", ".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}\n.log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}\n.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}")
-
 # ---- 91. 結果の札の「記事を読む」のリンクを、ほかのリンクと同じ下線付きの文字にそろえる（丸い枠のボタンのような形は、ボタンの3段階の決まりから外れていたため） ----
 repall(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}", ".reads{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;font-size:13px}")
 repall(".reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}", ".reads a{color:inherit;text-decoration:underline;text-underline-offset:3px;padding:8px 0;margin:-8px 0;overflow-wrap:anywhere}")
@@ -1923,6 +1912,10 @@ repall(".reads a:hover{background:rgba(255,255,255,.12)}", ".reads a:hover{opaci
 # ---- 92. 結果の札の「コピー」を、共有文の横（縦に伸びていた）から「Xに投稿」の並びへ移す。「共有」が使える端末と同じ位置にそろう ----
 repall("<div class=\"share\"><output id=\"share\">${esc(share)}</output>${navigator.share?'':'<button type=\"button\" class=\"btn small\" id=\"copy\">コピー</button>'}</div>", "<div class=\"share\"><output id=\"share\">${esc(share)}</output></div>")
 repall("${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nshare\">共有</button>':''}<a class=\"url\"", "${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nshare\">共有</button>':'<button type=\"button\" class=\"btn small\" id=\"copy\">コピー</button>'}<a class=\"url\"")
+
+# ---- 93. 対戦から外す記事（data/exclude.json：長い記事から切り出された一部など）は、収録していない扱いにする。入力候補にも出さない ----
+repall("t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t) return -1;", "t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1;")
+repall("return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }", "return all.filter(t=>!EXCL.has(t)&&!(exclude&&exclude(t))).slice(0,12); }")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
