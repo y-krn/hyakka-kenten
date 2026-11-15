@@ -1865,6 +1865,9 @@ repall("const va=fmtR(x.k,x.a), vb=fmtR(x.k,x.b);", "const va=fmtR(x.k,x.a)+exN(
 repall("if(x.k==='yr') intro=P([",
        "if(x.k==='yr'&&isH(ai,bi)) intro=P(['{k}本目、年功序列。{A}は{va}生まれ、{B}は{vb}生まれ。先に生まれたほうが1本。','{k}本目、生まれた年。{A}、{va}。{B}、{vb}。先輩が1本を取る決まりだ。'],o);\n      else if(x.k==='yr') intro=P([")
 
+repall("const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);", "const ratio=x.k==='yr'?(Math.abs(x.a-x.b)<=1?1.01:2):Math.max(x.a,x.b)/Math.min(x.a,x.b);")   // 生まれた年は比で測らない（1年差だけ僅差）
+repall("'{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。'", "'{n}本勝負。上回ったほうが1本を取る。それ以上でも以下でもない。'")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
