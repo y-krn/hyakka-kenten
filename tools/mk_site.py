@@ -1902,6 +1902,8 @@ repall("<div class=\"mine\"><span class=\"you\">あなた</span><span><b>${rec.b
        "<div class=\"mine\"><span class=\"you\">あなた</span><span class=\"st\"><b>${rec.battles}</b><small>観戦した試合</small></span><span class=\"st\"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class=\"st\"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>")
 repall(".record .mine{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}", ".record .mine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px;max-width:420px}\n.record .you{grid-column:1/-1;justify-self:start}\n.record .st{display:flex;flex-direction:column;line-height:1.25}\n.record .st b{font-size:22px}\n.record .st small{font-size:11px}")
 
+repall("<span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span>", "<span>まだ知らない記事を探して、戦わせる</span>")   # スマホで「せる」だけの行にならないよう短く
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
