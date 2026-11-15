@@ -1904,6 +1904,17 @@ repall("<span>Wikipediaの中から、まだ知らない記事を探して、戦
 # ---- 89. 王座戦の「記事 ↗」だけ文字色の指定がなくブラウザ標準の青だったので、ほかの「記事 ↗」と同じ色にそろえる ----
 repall("#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px}", "#throne .champ a{font-family:var(--f-body);font-size:12px;margin-left:8px;color:var(--muted)}")
 
+# ---- 90. 試作：実況の事実に脚注番号を付け、試合の最後に「脚注」として出どころを並べる（Wikipediaの脚注にならう） ----
+repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
+  const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t}); n=FN.length-1; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
+  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';""")
+repall("<div class=\"bub\"><div>${mark(l.s)}</div>${l.d>0?", "<div class=\"bub\"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?")
+repall("  <div id=\"res\"></div>`;\n  ring.scrollIntoView(", """  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a> — ${esc(x.t)}（${fnSrc(x.t)}）</li>`).join('')}</ol></div>`:''}`;
+  ring.scrollIntoView(""")
+repall("function showResult(){\n  if(!current||current.shown) return; current.shown=true;", "function showResult(){\n  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す")
+repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}", ".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}\n.log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}\n.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

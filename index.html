@@ -164,6 +164,8 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .logbar h3{margin:0;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:500}
 ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}
+.log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}
+.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}
 .log .t{font-family:var(--f-display);font-size:12px;color:var(--muted);text-align:right;padding-top:9px;font-variant-numeric:tabular-nums}
 .log .bub{padding:8px 12px;border-radius:6px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--side);min-width:0}
 .log li.A{--side:var(--a)} .log li.B{--side:var(--b)}
@@ -1044,6 +1046,9 @@ function startBattle(pair){
   const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;
   if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; } const an=analyze(ai,bi); current={ai,bi,an,mode:MODE,today:TODAYF,orig:ORIG}; MODE=null; TODAYF=null; ORIG=null; try{ history.replaceState(null,'',battleURL()); }catch(_){}
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
+  const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t}); n=FN.length-1; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
+  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';
   (current.mode?$('#throne'):current.today?$('#today'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
@@ -1057,8 +1062,8 @@ function startBattle(pair){
   <ol class="log" id="log">${r.log.map(l=>{
     if(l.side<0) return `<li class="${l.kai?'kai':'sys'} hide"><span class="t"></span><div class="bub">${mark(l.s)}</div></li>`;
     const tgt=l.side===0?F[bi][0]:F[ai][0]; const rem=l.side===0?l.hp[1]:l.hp[0];
-    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
-  <div id="res"></div>`;
+    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
+  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a> — ${esc(x.t)}（${fnSrc(x.t)}）</li>`).join('')}</ol></div>`:''}`;
   ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
@@ -1072,7 +1077,7 @@ function startBattle(pair){
   $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); };
 }
 function showResult(){
-  if(!current||current.shown) return; current.shown=true; if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
+  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
