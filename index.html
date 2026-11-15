@@ -118,7 +118,7 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .mvs .mvp{font-size:12px}
 .mvs[open] .mvp{display:none}
 .mvs .empty{margin:6px 0}
-.pmsg{font-size:13px;color:var(--b)}
+.pmsg{font-size:13px;color:var(--b)}.pmsg.hat{color:var(--muted)}
 .pmsg:empty{display:none}
 .matchup{font-family:var(--f-display);font-weight:400;font-size:18px;line-height:1.35;text-align:center;overflow-wrap:anywhere}
 .matchup .a{color:var(--a)} .matchup .b{color:var(--b)} .matchup .vs{color:var(--muted);font-size:14px;margin:0 .5em}
@@ -195,11 +195,20 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .sg li{padding:9px 12px;cursor:pointer;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
 .sg li:hover,.sg li.on{background:var(--a-soft)}
 .reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}
-.facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}
-.facts .fh{font-weight:700;font-size:14px}
-.facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}
-.facts .fwho{font-weight:700;font-size:13px;margin-top:8px}.facts .fwho+ul{margin-top:2px}
-.facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}
+:root{--ib-bg:#f8f9fa;--ib-hd:#eaecf0;--ib-bd:#a2a9b1;--ib-ink:#202122;--ib-mut:#54595d;--ib-ln:#3366cc}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}}
+:root[data-theme="dark"]{--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}
+.sechead h2{font-family:var(--f-cite);font-weight:600;letter-spacing:.02em}
+.facts{border:1px solid var(--ib-bd);border-radius:2px;padding:0;background:var(--ib-bg);color:var(--ib-ink);overflow:hidden}
+.facts .fh{font-family:var(--f-cite);font-weight:600;font-size:15px;text-align:center;padding:8px 10px 6px}
+.facts ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.facts li{display:grid;grid-template-columns:minmax(4.5em,30%) 1fr;gap:8px;padding:5px 10px;border-top:1px solid var(--ib-hd)}
+.facts li .ik{font-weight:700}
+.facts li .ik:only-child{grid-column:1/-1}
+.facts .fwho{font-weight:700;font-size:13px;text-align:center;background:var(--ib-hd);padding:4px 10px}.facts .fwho+ul li:first-child{border-top:none}
+.facts .fsrc{font-size:11px;color:var(--ib-mut);padding:6px 10px 8px;line-height:1.5;border-top:1px solid var(--ib-hd)}
+.facts .fxgo,.facts .fxbad{color:var(--ib-ln)}
+.facts .fxhint,.facts .fxmsg{padding:0 10px 8px}
 .reads span{opacity:.75;margin-right:2px}
 .reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}
 .reads a:hover{background:rgba(255,255,255,.12)}
@@ -989,6 +998,8 @@ async function rnd(ex,pop){ for(let k=0;k<12;k++){ let t;
     if(NORAND.has(t)) continue;
     const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) return i; }
   return ex.includes(0)?1:0; }
+// 情報ボックス風：「所在地：静岡県」を、項目名と中身の2列に分ける
+const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?'<span class="ik">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class="ik">'+esc(t)+'</span>'; };
 function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="fams" data-fi="${i}"></div>
@@ -1129,7 +1140,7 @@ function showResult(){
     ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
     ${facts.length||API?`<div class="facts">${facts.length?'<div class="fh">2つの記事から分かること</div>':''}${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
-      return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${esc(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}${API?'<button type="button" class="fxbad">不適切な内容を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div><div class="fxmsg" aria-live="polite"></div></div>`:''}
+      return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${ibx(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${ibx(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}${API?'<button type="button" class="fxbad">不適切な内容を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div><div class="fxmsg" aria-live="polite"></div></div>`:''}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     <div class="share"><output id="share">${esc(share)}</output>${navigator.share?'':'<button type="button" class="btn small" id="copy">コピー</button>'}</div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
@@ -1507,14 +1518,14 @@ async function openShared(){ const q=new URLSearchParams(location.search);
       const [c,d]=await Promise.all([rnd([a,b]),rnd([a,b])]); sel[0]=c; sel[1]=d===c?await rnd([a,b,c]):d; renderPick(0); renderPick(1); updateFight(); return true; }catch(_){ return false; } }
   const ta=q.get('a'), tb=q.get('b'); if(!ta||!tb) return false;
   const [,ia,ib]=await Promise.all([loadThrone(), loadTitle(ta).catch(()=>-1), loadTitle(tb).catch(()=>-1)]);
-  const ids=[ia,ib]; const why=[];
+  const ids=[ia,ib]; const why=[], hat=[];
   for(const s of [0,1]){ const i=ids[s], t=[ta,tb][s];
     if(i<0) why[s]='「'+t+'」は収録していないので、別の記事にしました';
     else if(BLOCK.has(i)) why[s]='「'+t+'」は確認中なので、別の記事にしました';
-    else sel[s]=i; }
+    else { sel[s]=i; if(F[i][1]!==t) hat[s]='（「'+t+'」から転送）'; } }   // Wikipediaと同じ書き方で、転送されたことを添える
   for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);
   renderPick(0); renderPick(1); updateFight();
-  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }
+  for(const s of [0,1]) if(why[s]||hat[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n){ n.textContent=why[s]||hat[s]; n.classList.toggle('hat',!why[s]); } }
   if(!why[0]&&!why[1]){ const ch=isChamp(sel[0])||isChamp(sel[1]); startBattle(ch?[sel[0],sel[1]]:undefined);   // 王者が出ている共有の対戦も、観戦はできる
     if(ch) for(const s of [0,1]) if(isChamp(sel[s])){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者です。共有された対戦の観戦だけで、王座は動きません'; } }
   return true; }

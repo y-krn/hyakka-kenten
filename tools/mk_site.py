@@ -1872,6 +1872,23 @@ repall("'{n}本勝負。数字の大きいほうが1本を取る。それ以上�
 repall("async function loadTitle(t){ t=String(t||'').trim();", "const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）\nfunction redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }\nasync function loadTitle(t,rd){ t=String(t||'').trim();")
 repall("const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }", "const b=await bucket(fnv(t)%NB); const rec=b[t]; if(rec) return register(rec); if(rd) return -1; const to=await redirTo(t); return to&&to!==t?loadTitle(to,1):-1; }")
 
+# ---- 87. 試作：Wikipediaらしさを少し足す（見出しを明朝に・「分かること」を情報ボックス風に・転送の注記）。ボタンや配置は変えない ----
+repall(".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}", """:root{--ib-bg:#f8f9fa;--ib-hd:#eaecf0;--ib-bd:#a2a9b1;--ib-ink:#202122;--ib-mut:#54595d;--ib-ln:#3366cc}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}}
+:root[data-theme="dark"]{--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}
+.sechead h2{font-family:var(--f-cite);font-weight:600;letter-spacing:.02em}
+.facts{border:1px solid var(--ib-bd);border-radius:2px;padding:0;background:var(--ib-bg);color:var(--ib-ink);overflow:hidden}""")
+repall(".facts .fh{font-weight:700;font-size:14px}", ".facts .fh{font-family:var(--f-cite);font-weight:600;font-size:15px;text-align:center;padding:8px 10px 6px}")
+repall(".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}", ".facts ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.6;overflow-wrap:anywhere}\n.facts li{display:grid;grid-template-columns:minmax(4.5em,30%) 1fr;gap:8px;padding:5px 10px;border-top:1px solid var(--ib-hd)}\n.facts li .ik{font-weight:700}\n.facts li .ik:only-child{grid-column:1/-1}")
+repall(".facts .fwho{font-weight:700;font-size:13px;margin-top:8px}.facts .fwho+ul{margin-top:2px}", ".facts .fwho{font-weight:700;font-size:13px;text-align:center;background:var(--ib-hd);padding:4px 10px}.facts .fwho+ul li:first-child{border-top:none}")
+repall(".facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}", ".facts .fsrc{font-size:11px;color:var(--ib-mut);padding:6px 10px 8px;line-height:1.5;border-top:1px solid var(--ib-hd)}\n.facts .fxgo,.facts .fxbad{color:var(--ib-ln)}\n.facts .fxhint,.facts .fxmsg{padding:0 10px 8px}")
+repall("`<li${fxa(f)}>${esc(f.t)}</li>`", "`<li${fxa(f)}>${ibx(f.t)}</li>`")
+repall("function fighterCard(i){", "// 情報ボックス風：「所在地：静岡県」を、項目名と中身の2列に分ける\nconst ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?'<span class=\"ik\">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class=\"ik\">'+esc(t)+'</span>'; };\nfunction fighterCard(i){")
+repall(".pmsg{font-size:13px;color:var(--b)}", ".pmsg{font-size:13px;color:var(--b)}.pmsg.hat{color:var(--muted)}")
+repall("    else sel[s]=i; }\n  for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);", "    else { sel[s]=i; if(F[i][1]!==t) hat[s]='（「'+t+'」から転送）'; } }   // Wikipediaと同じ書き方で、転送されたことを添える\n  for(const s of [0,1]) if(why[s]) sel[s]=await rnd([sel[1-s]]);")
+repall("  const ids=[ia,ib]; const why=[];", "  const ids=[ia,ib]; const why=[], hat=[];")
+repall("  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }", "  for(const s of [0,1]) if(why[s]||hat[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n){ n.textContent=why[s]||hat[s]; n.classList.toggle('hat',!why[s]); } }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
