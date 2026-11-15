@@ -418,7 +418,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>Wikipediaの中から、まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
     <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
-  <dialog id="famdlg" aria-label="仲間図鑑"></dialog>
+  <dialog id="famdlg" aria-label="仲間さがし"></dialog>
 
   <footer>
     <div class="record" id="record"></div>
@@ -951,7 +951,7 @@ let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
 const saveRec=()=>{ try{ localStorage.setItem(REC_KEY,JSON.stringify(rec)); }catch(_){} };
 function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span></div>`:'';
-  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>勝ち抜き最高 <b>${rec.best}</b>連勝</span></div>`; }
+  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span><b>${rec.battles}</b>戦観戦</span><span><b>${rec.upsets}</b>回の番狂わせを目撃</span><span>最長 <b>${rec.best}</b>連勝を目撃</span></div>`; }
 
 /* ---------- 保留・通報・確認（判定できない記事の扱い） ---------- */
 const HOLD={};            // 事件の疑いがあり、確認するまで対戦させない記事 {index: 理由}
@@ -1017,7 +1017,7 @@ $('#fight').onclick=()=>startBattle();
 
 /* ---------- 対戦 ---------- */
 let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
-function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間図鑑から':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')+'</div>';
+function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間さがしから':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')+'</div>';
   return `<div class="ringhead th">${m.replay?'王座戦の記録（'+esc(dt(m.res.at))+'）':'王座戦'} ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
@@ -1216,7 +1216,7 @@ function showResult(){
 /* ---------- 王座戦 ---------- */
 const API=(location.hostname.endsWith('github.io')?'https://hyakka-kenten-api.y-krn.workers.dev':location.origin);
 let THRONE=null, CHOPT=new Set();
-/* ---------- 仲間図鑑 ---------- */
+/* ---------- 仲間さがし ---------- */
 const FAMK={p:n=>n+'の一門',c:n=>n+'が生んだもの',o:n=>n+'から名前をもらったもの',s:n=>/シリーズ$/.test(n)?n:n+'シリーズ',w:n=>n+'が戦った戦い'};
 const FKIND={'親分召喚':'p','生みの親召喚':'c','本家召喚':'o','シリーズ召喚':'s','両陣営召喚':'w'};
 let FAMNB=512, FEAT=[]; const FAMB={};
@@ -1230,7 +1230,7 @@ async function famFill(el){ const box=el.querySelector('.fams'); if(!box) return
   box.querySelectorAll('[data-fam]').forEach(b=>b.onclick=()=>openFam(b.dataset.fam,F[i][1])); }
 const jpv=v=>v>=1e8?(Math.round(v/1e7)/10)+'億':v>=1e4?(Math.round(v/1e3)/10)+'万':v.toLocaleString('ja-JP');
 async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg'); if(!g||!dlg) return;
-  dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間図鑑</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div>
+  dlg.innerHTML=`<div class="fhead"><div><div class="fk">仲間さがし</div><h3>${esc(FAMK[g.k](g.n))}</h3>${g.d?`<div class="fd">${esc(g.n)}：${esc(g.d)}</div>`:''}<div class="fc">${g.c}記事${g.c>g.m.length?`（よく読まれている${g.m.length}件を表示）`:'（よく読まれている順）'}</div>
   <div class="fsh"><a class="btn small" id="famtw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(famText(g))}&url=${encodeURIComponent(famURL(key))}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="famshare">共有</button>':'<button type="button" class="btn small" id="famcopy">URLをコピー</button>'}</div></div><button type="button" class="btn small" id="famx" autofocus>閉じる</button></div>
   <ol class="flist">${g.m.map(m=>`<li${m[0]===cur?' class="cur"':''}><div class="fn"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(m[0])}" target="_blank" rel="noopener">${esc(m[1])}</a>${m[2]?`<span class="fpv">年${jpv(m[2])}回</span>`:''}</div><div class="fb">${m[0]===champTitle()?'<span class="fch">王者（自由対戦には出せません）</span>':`<button type="button" class="btn small fa" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="0" aria-pressed="false">青コーナーへ</button><button type="button" class="btn small fbb" data-t="${esc(m[0])}" data-n="${esc(m[1])}" data-s="1" aria-pressed="false">赤コーナーへ</button>`}</div></li>`).join('')}</ol>
   <div class="fnote">Wikipedia（Wikidata）に書かれたつながりから見つけた仲間です。すべてを網羅しているわけではありません。</div>
@@ -1238,7 +1238,7 @@ async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg
   // 選んでいる途中の組み合わせ（はじめは、いま自由対戦に入っている2記事）
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
-  if($('#famshare')) $('#famshare').onclick=()=>{ navigator.share({title:'百科拳典 仲間図鑑',text:famText(g),url:famURL(key)}).catch(()=>{}); };
+  if($('#famshare')) $('#famshare').onclick=()=>{ navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)}).catch(()=>{}); };
   if($('#famcopy')) $('#famcopy').onclick=async e=>{ try{ await navigator.clipboard.writeText(famURL(key)); e.target.textContent='コピーしました'; }catch(_){ e.target.textContent=famURL(key); } };
   dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n};
     if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s];   // 反対側に入っている記事なら、入れ替える
@@ -1247,7 +1247,7 @@ async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg
   famMark(); if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
 let FP=[null,null];
 const famURL=key=>location.origin+'/?fam='+encodeURIComponent(key);
-function famText(g){ const top=g.m.slice(0,3).map(m=>m[1]); return `【百科拳典 仲間図鑑】${FAMK[g.k](g.n)}は${g.c}記事。${top.join('、')}${g.c>top.length?'…':''}
+function famText(g){ const top=g.m.slice(0,3).map(m=>m[1]); return `【百科拳典 仲間さがし】${FAMK[g.k](g.n)}は${g.c}記事。${top.join('、')}${g.c>top.length?'…':''}
 Wikipediaのつながりから見つけた仲間たち`; }
 function famMark(){ const dlg=$('#famdlg'); if(!dlg) return;
   dlg.querySelectorAll('.flist li').forEach(li=>{ const b=li.querySelectorAll('[data-t]'); const t=b[0]?b[0].dataset.t:null;
@@ -1374,7 +1374,7 @@ function openMine(){ const dlg=$('#famdlg'); if(!dlg) return; const sv=mineLoad(
   $('#mclr').onclick=()=>{ mineSave(null); $('#mkeep').checked=false; ['mm','md','my','mp'].forEach(k=>$('#'+k).value=''); $('#mst').textContent=''; };
   if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; if(sv||MINE_LAST) run(); }
 function mineInit(){ const b=$('#mineopen'); if(b) b.onclick=openMine; if(new URLSearchParams(location.search).has('me')) openMine(); if(new URLSearchParams(location.search).has('hall')) openHall();
-  const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間図鑑')); }
+  const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('close',()=>dlg.setAttribute('aria-label','仲間さがし')); }
 /* ---------- 今日の一戦 ---------- */
 var TODAYF=null, TD=null, THOPEN=false, ORIG=null, MINE_LAST=null;
 const TD_K='hk_today';
@@ -1463,7 +1463,7 @@ async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
     let k=hash('fam'+day), other=false; const draw=()=>{ const f=pickF(k); const g={k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]};
       z.querySelector('.today').innerHTML=`<button type="button" class="famcard" data-fam="${g.k}${esc(g.q)}"><small>${other?'こんな一門も':'今日の一門'}</small><b>${esc(FAMK[g.k](g.n))}</b><span>${g.c}記事 ›</span></button>`; z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
-    z.innerHTML=`<h3>仲間図鑑</h3><p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;
+    z.innerHTML=`<h3>仲間さがし</h3><p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;
     z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); other=true; draw(); }; }
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
   const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\d+$/.test(q)) openFam(q); }
