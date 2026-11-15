@@ -1868,6 +1868,10 @@ repall("if(x.k==='yr') intro=P([",
 repall("const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);", "const ratio=x.k==='yr'?(Math.abs(x.a-x.b)<=1?1.01:2):Math.max(x.a,x.b)/Math.min(x.a,x.b);")   # 生まれた年は比で測らない（1年差だけ僅差）
 repall("'{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。'", "'{n}本勝負。上回ったほうが1本を取る。それ以上でも以下でもない。'")
 
+# ---- 86. 転送ページの名前でも記事を開けるようにする（例：北野武 → ビートたけし）。見つからなかったときだけ、Wikipediaに転送先を1回問い合わせる ----
+repall("async function loadTitle(t){ t=String(t||'').trim();", "const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）\nfunction redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }\nasync function loadTitle(t,rd){ t=String(t||'').trim();")
+repall("const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }", "const b=await bucket(fnv(t)%NB); const rec=b[t]; if(rec) return register(rec); if(rd) return -1; const to=await redirTo(t); return to&&to!==t?loadTitle(to,1):-1; }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
