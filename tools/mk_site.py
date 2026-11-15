@@ -1909,6 +1909,10 @@ repall(".reads{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-s
 repall(".reads a{color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}", ".reads a{color:inherit;text-decoration:underline;text-underline-offset:3px;padding:8px 0;margin:-8px 0;overflow-wrap:anywhere}")
 repall(".reads a:hover{background:rgba(255,255,255,.12)}", ".reads a:hover{opacity:.8}")
 
+# ---- 92. 結果の札の「コピー」を、共有文の横（縦に伸びていた）から「Xに投稿」の並びへ移す。「共有」が使える端末と同じ位置にそろう ----
+repall("<div class=\"share\"><output id=\"share\">${esc(share)}</output>${navigator.share?'':'<button type=\"button\" class=\"btn small\" id=\"copy\">コピー</button>'}</div>", "<div class=\"share\"><output id=\"share\">${esc(share)}</output></div>")
+repall("${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nshare\">共有</button>':''}<a class=\"url\"", "${navigator.share?'<button type=\"button\" class=\"btn small\" id=\"nshare\">共有</button>':'<button type=\"button\" class=\"btn small\" id=\"copy\">コピー</button>'}<a class=\"url\"")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
