@@ -1729,13 +1729,13 @@ repall('  <section id="setup" class="card" style="padding:16px;display:flex;flex
   </section>
 
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">''')
-repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box}#dg .dgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dg .dgpair .btn{box-sizing:border-box}#dg .dgsub{display:flex;gap:8px}#dg .dgstack{display:grid;gap:8px}#dg .dgtr{border-style:dashed}#dg .dghp{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}#dg .dgbar{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}#dg .dgbar i{display:block;height:100%;background:var(--ink)}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}")
+repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}#dg .dgbox{display:flex;flex-direction:column;gap:10px}#dg .dgst{font-size:13px;color:var(--muted);line-height:1.6}#dg .dgst b{color:var(--ink)}#dg .dgq{font-weight:700}#dg .dgn{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}#dg .dgfl{font-size:22px;font-weight:800;color:var(--ink)}#dg .dgin{width:100%;box-sizing:border-box}#dg .dgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dg .dgpair .btn{box-sizing:border-box}#dg .dgsub{display:flex;gap:8px}#dg .dgres .dgc{display:block;margin-top:2px}#dg .dgdoors{display:flex;flex-direction:column;gap:8px}#dg #dgpin{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px}#dg .dgd{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.5;padding:10px 12px}#dg .dgc{font-size:12px;font-weight:normal;color:var(--muted)}#dg .dgres{border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}#dg .dgres.lose{border-color:var(--red,#c33)}#dg .dgpath{font-size:13px;line-height:1.7}#dg .dgshare{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}")
 _dg = r"""
 // ---- 百科ダンジョン（試作） ----
 let DG=null;   // {day, me（自分の選手）, pos（いまいる記事）, floor, path:[{t, ev}], seen:Set}
 // 扉に出さない記事：年・日付・一覧と、どこからでもつながる大きすぎる記事
 const DG_NG=/^(紀元前)?\d+年(代)?$|^\d+月\d+日$|^\d+月$|^\d+世紀$|一覧|^日本$|^日本語$|^英語$|^アメリカ合衆国$|^東京都$|^ウィキ|^Wikipedia|^ISBN|^国際標準|^バーチャル国際典拠|^典拠管理|^世界の国/;
-const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀',item:'🎁'};
+const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀'};
 async function dgLinks(t){ const out=[]; let cont={};
   for(let k=0;k<3;k++){ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',action:'query',prop:'links',titles:t,plnamespace:0,pllimit:'max',redirects:1,...cont})).then(r=>r.json()).catch(()=>null);
     if(!j){ if(k===0) throw new Error('links'); break; }   // 最初の問い合わせに失敗したら、扉を出せないものとして知らせる
@@ -1748,115 +1748,48 @@ async function dgLinks(t){ const out=[]; let cont={};
 async function dgDoors(){ const here=F[DG.pos][1], me=DG.me, L=[...new Set(await dgLinks(here))].filter(t=>!DG_NG.test(t)&&!DG.seen.has(t));
   const order=L.map(t=>[t,hash('dg/'+DG.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
   const wantW=DG.floor<=3?2:1, W=[], X=[], seen=new Set();
-  const itemP=DG.floor>1?dgFindItem(order.slice(0,100)).catch(()=>null):Promise.resolve(null);   // 落とし物は2階から
   for(let k=0;k<order.length&&k<36&&(W.length<wantW||X.length<3-wantW);k+=12){   // 12件ずつまとめて読み、36件までで打ち切る（待ち時間を抑える）
     const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
     for(const i of ids){ if(i<0||BLOCK.has(i)||isChamp(i)||i===me||seen.has(i)||NORAND.has(F[i][1])) continue; seen.add(i);   // 性的な内容の記事（data/norand.json）は扉に出さない
-      const w=dgSim(()=>analyze(me,i,true)).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
+      const w=analyze(me,i,true).r.w; if(w!==i){ if(W.length<wantW) W.push(i); } else if(X.length<3-wantW) X.push(i); } }
   let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }   // 足りなければ、見つかった順に足す
-  const item=await itemP; DG.found=item&&!out.includes(item.i)&&!DG.items.some(x=>x.i===item.i)?item:null;
-  out=out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1]));
-  DG.tr=null; const th=hash('dg-tr/'+DG.day+'/'+DG.floor+'/'+here);
-  if(DG.floor>1&&th%5===0&&out.length>=2){ /* 宝の扉は、およそ5階に1回 */ const t=await dgTreasure(th).catch(()=>null);
-    if(t&&!out.includes(t.i)){ const lose=out.map((d,k)=>[d,k]).filter(([d])=>dgSim(()=>analyze(me,d,true)).r.w===d); DG.tr={...t,at:(lose.length?lose[lose.length-1]:[0,out.length-1])[1]}; } }
-  return out; }
+  return out.slice(0,3).sort((a,b)=>hash('dg-door/'+DG.day+'/'+F[a][1])-hash('dg-door/'+DG.day+'/'+F[b][1])); }
 // 扉の手がかり：分類と、その記事らしい事実を1つだけ（数値の能力は出さない。知識で読む余地を残す）
 const dgClue=i=>{ const c=(CL[i]||[])[1], m=(POOL[i]||[]).find(m=>m[3]&&/：/.test(m[3])&&!/^(Wikidataでの分類|別名)/.test(m[3])&&m[0]!=='NAME'&&m[0]!=='SENIORITY'&&!/マウント|長文|リンク|注目|カテゴリ|見出し|画像|名前/.test(m[1])); const fact=m?m[3]:''; return `<span class="dgc">${[c,fact].filter(Boolean).map(esc).join('｜')}</span>`; };
 // 道のり：くぐった扉ごとに階の番号を付ける（🏁入口 → 1階 🤝… → 2階 ⚔️… → 3階 💀…）
 const dgPath=path=>path.map((p,k)=>`${k?`<span class="dgn">${k}階</span>`:''}${DGE[p.ev]}${esc(p.t)}`).join(' → ');
 // 結果の一言：負けたら「3階で力尽きた」、やめたら「3階で引き返した」（階は、くぐった扉の数で数える）
 const dgLine=(path,end)=>{ const n=path.length-1; if(end==='lose'||(!end&&path[n].ev==='lose')) return n+'階で力尽きた'; return (n+1)+'階で'+(end==='dead'?'行き止まり':'引き返した'); };
+const dgHead=()=>`<div class="dgfl">${DG.floor}階</div><div>あなた：<b>${esc(F[DG.me][0])}</b>　${dgClue(DG.me)}</div><div class="dgpath">${dgPath(DG.path)}</div>`;
 // 今日の挑戦は1日1回。記録は hk-dg {day, deep, path, done}。途中で離れたら、そこまでで終わり
 const dgRec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg')||'{}'); return o.day===jstDay()&&Array.isArray(o.path)&&o.path.length>1?o:null; }catch(_){ return null; } };   // 最初の試作の記録（{day, best}）は読まない
-function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw'||p.ev==='item').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done,end:end||''})); }catch(_){} }
-function dgShare(day,path,end,got){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}${got&&got.length?'\n拾ったもの：'+got.map(x=>DGI[x.k]+F[x.i][0]).join(' '):''}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
-// 宝の扉：武器になる物・食べ物の記事の一覧（data/dgitems.json。tools/build_dgitems.py で作る）から、日付と部屋で決まる1つ
-let DGT=null; const dgItemsList=()=>DGT||(DGT=fetch('data/dgitems.json?v='+VER).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(e=>{ DGT=null; throw e; }));
-async function dgTreasure(h){ const L=await dgItemsList(), k=h%7<4?'w':'f', A=L.filter(x=>x[1]===k);   // 武器になる物と食べ物はおよそ4対3
-  for(let n=0;n<5;n++){ const x=A[(h>>>3)%A.length+n]||A[n]; if(!x) break; const i=await loadTitle(x[0]).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!NORAND.has(F[i][1])&&i!==DG.me&&!DG.items.some(y=>y.i===i)) return {i,k,lab:x[2]}; }
-  return null; }
-// ---- 装備と体力（百科ダンジョンの中だけで効く。SIMX に入れて戦闘エンジンに渡す） ----
-//   武器：持っているあいだ、その記事のいちばん強い攻めの技が1つ増える。食べ物：食べると体力が戻る（1回で使い切り）。持てるのは2つまで
-//   体力は、受けた傷の3分の1を次の階に持ち越す。乗り換えたときは、体力の割合を引き継ぐ
-const DG_WEAPON=/刀|剣|槍|弓|銃|砲|武器|兵器|斧|ナイフ|ハンマー|ミサイル|戦車|爆弾|棍|鎌|盾|鎧|甲冑|手裏剣|鞭|弾薬|鈍器|道具|工具|器具|楽器|機械|装置|自動車|車両|航空機|艦|船|家具|衣服|衣類|帽子|靴|スポーツ用品|玩具|おもちゃ|文房具|食器|家電|カメラ|時計|電話|球技用|ボール|鞄|傘/;   // 手に持てる物は何でも武器になる
-const DG_FOOD=/料理|食品|食べ物|菓子|麺|飲料|飲み物|酒|果物|果実|野菜|パン|丼|寿司|茶|コーヒー|スープ|ラーメン|カレー|うどん|蕎麦|そば|調味料|チーズ|食材|郷土料理|和菓子|洋菓子|デザート|グルメ|主食|ご当地/;
-const dgKind=i=>{ const c=(CL[i]||[])[1]||''; if(!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター/.test(c)) return null; return DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null; };
-const DGI={w:'🗡️',f:'🍜'}, DGK={w:'武器になる物（持っているあいだ、技が1つ増える）',f:'食べ物（食べると体力が戻る）'};
-const dgKindL=c=>!c||/ヒト|人物|企業|会社|ブランド|店|番組|曲|アルバム|映画|作品|漫画|小説|ゲーム|雑誌|キャラクター|チェーン|製造|メーカー|者$|団体|組織|施設|駅|路線|産業|工場|博物館/.test(c)?null:DG_WEAPON.test(c)?'w':DG_FOOD.test(c)?'f':null;
-// 落とし物：リンク先の記事を Wikidata の分類（P31）でまとめて調べ、武器になる物か食べ物を1つ選ぶ（日付と部屋で決まる）
-async function dgFindItem(titles){ if(!titles.length) return null; const W='https://www.wikidata.org/w/api.php?', P='https://ja.wikipedia.org/w/api.php?';
-  const get=(u,p)=>fetch(u+new URLSearchParams({format:'json',origin:'*',...p})).then(r=>r.json());
-  const ch=(a,n)=>{ const o=[]; for(let k=0;k<a.length;k+=n) o.push(a.slice(k,k+n)); return o; };
-  const q={}; for(const pp of await Promise.all(ch(titles,50).map(c=>get(P,{action:'query',prop:'pageprops',ppprop:'wikibase_item',titles:c.join('|')}))))
-    for(const pg of Object.values((pp.query||{}).pages||{})){ const id=pg.pageprops&&pg.pageprops.wikibase_item; if(id) q[pg.title]=id; }
-  const ids=Object.values(q); if(!ids.length) return null; const e={};
-  for(const r of await Promise.all(ch(ids,50).map(c=>get(W,{action:'wbgetentities',ids:c.join('|'),props:'claims'})))) Object.assign(e,r.entities||{});
-  const cls={}; for(const [t,id] of Object.entries(q)){ const c=((((e[id]||{}).claims||{}).P31)||[]).map(x=>x.mainsnak.datavalue&&x.mainsnak.datavalue.value.id).filter(Boolean)[0]; if(c) cls[t]=c; }
-  const cq=[...new Set(Object.values(cls))]; if(!cq.length) return null; const lb={};
-  for(const r of await Promise.all(ch(cq,50).map(c=>get(W,{action:'wbgetentities',ids:c.join('|'),props:'labels',languages:'ja'})))) Object.assign(lb,r.entities||{});
-  for(const t of titles){ const c=cls[t]; const lab=c&&lb[c]&&lb[c].labels&&lb[c].labels.ja&&lb[c].labels.ja.value; const k=dgKindL(lab); if(!k) continue;
-    const i=await loadTitle(t).catch(()=>-1); if(i<0||BLOCK.has(i)||NORAND.has(F[i][1])||i===DG.me) continue; return {i,k,lab}; }
-  return null; }
-// 武器の技：武器専用の「◯◯で斬る」などを作る。動きは物の分類で、添える事実はその物の記事から、物らしいものを選ぶ
-//   事実の順：長さ・重さなど物の事実で比べる技 → 材料・用途・開発などの事実 → 分類名。威力はその物の記事のいちばん強い技と同じ
-const DGV=[[/刀|剣|ナイフ|鎌|斧|包丁/,'斬る','斬りかかる'],[/銃|砲|ミサイル|弾|兵器|爆弾|魚雷/,'撃つ','撃ち込む'],[/弓/,'射る','射かける'],[/楽器|ギター|ピアノ|太鼓/,'かき鳴らす','音をぶつける'],
-  [/自動車|車両|鉄道|電車|気動車|機関車|バス|航空機|戦闘機|艦|船|戦車|潜水/,'はね飛ばす','突っ込む'],[/./,'殴る','殴りかかる']];
-function dgWeaponMove(i,ex){ const P=POOL[i]||[], lab=(CL[i]||[])[1]||'', nm=F[i][0];
-  const v=DGV.find(([re])=>re.test(lab)||re.test(nm));
-  const fm=P.find(m=>CLASH[m[1]]&&m[3])||P.find(m=>m[3]&&/^(材料|素材|用途|使用|構成要素|原産|発祥|開発|製造|設計|口径|全長|重量|射程|最高速度|主な原料|産地)/.test(m[3]));   // どちらもなければ分類名（記事の長さなど、物と関係ない事実は使わない）
-  const fact=(fm?fm[3]:ex?ex:lab?'分類：'+lab:'').replace(/^体重/,'重さ');   // 物の事実がなければ、記事の書き出しの一文   // 物の重さを「体重」と書かない
-  const T=Math.max(2,Math.min(5,Math.max(0,...P.filter(m=>['STRIKE','MULTI','SUMMON','BIND','SLOW','HASTE'].includes(m[0])).map(m=>m[4]))||2));
-  return ['STRIKE',nm+'で'+v[1],fact,fact,T,0,['{A}の【{N}】！ '+(fact?fact+'。':'')+'その'+nm+'で{B}に'+v[2]+'。','{A}、拾った'+nm+'を手に{B}へ'+v[2]+'。'+(fact?'（'+fact+'）':'')]]; }
-const dgMods=()=>{ const w=DG.items.filter(x=>x.k==='w'), hurt=DG.hp<dgMax();
-  const say=[w.length?F[DG.me][0]+'は、拾った'+w.map(x=>F[x.i][0]).join('と')+'を構えた。':'', hurt?F[DG.me][0]+'には、前の階の傷が残っている。':''].join('');
-  return {[DG.me]:{hp:DG.hp,moves:w.map(x=>dgWeaponMove(x.i,x.ex)),say},nokb:w.length?'武器が出た以上、事実の比べっこでは済まない。':''}; };   // 武器を持っていると、比べ合いにならない（瞬殺はそのまま）
-// 武器の記事の書き出しの一文（読みがなのかっこは除く）。拾う前に取り寄せておく
-async function dgExtract(i){ try{ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',prop:'extracts',exsentences:1,explaintext:1,redirects:1,titles:F[i][1],format:'json',origin:'*'})).then(r=>r.json());
-  let t=(Object.values((j.query||{}).pages||{})[0]||{}).extract||''; t=t.split('\n')[0].replace(/[（(][^）)]*[）)]/g,'').replace(/\s+/g,'').replace(/。$/,''); return t.length>48?t.slice(0,47)+'…':t; }catch(_){ return ''; } }
-function dgSim(fn,mods){ SIMX=mods||dgMods(); try{ return fn(); } finally{ SIMX=null; } }
-const dgMax=()=>F[DG.me][3][0];
-const dgItems=()=>DG.items.length?DG.items.map(x=>DGI[x.k]+esc(F[x.i][0])).join(' '):'なし';
-const dgHead=()=>`<div class="dgfl">${DG.floor}階</div><div>あなた：<b>${esc(F[DG.me][0])}</b>　${dgClue(DG.me)}</div><div class="dghp"><span>体力</span><span class="dgbar"><i style="width:${Math.max(2,Math.round(DG.hp/dgMax()*100))}%"></i></span></div><div class="dgst">持ち物：${dgItems()}</div><div class="dgpath">${dgPath(DG.path)}</div>`;
-function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]]),hp:F[i][3][0],items:[],got:[],found:null,doors:null}; dgFloor(); }   // 記録は最初の勝負がついたときから（扉が出る前に止まっても、今日の挑戦は使わない）
+function dgSave(done,end){ if(!DG||DG.practice) return; const deep=DG.path.filter(p=>p.ev==='win'||p.ev==='switch'||p.ev==='draw').length; try{ localStorage.setItem('hk-dg',JSON.stringify({day:DG.day,deep,path:DG.path,done:!!done,end:end||''})); }catch(_){} }
+function dgShare(day,path,end){ const md=day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${path[0].t}から潜って ${dgLine(path,end)}\n${path.map(p=>DGE[p.ev]).join('')}\n${path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
+function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgFloor(); }   // 記録は最初の勝負がついたときから（扉が出る前に止まっても、今日の挑戦は使わない）
 async function dgFloor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgst">扉を探しています…</div>`;
   let doors; try{ doors=await dgDoors(); }catch(_){ doors=null; } if(!DG) return;
   if(!doors){ box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">扉を開けませんでした（通信を確かめてください）</div><button type="button" class="btn big dgin" id="dgretry">もう一度</button>`; $('#dgretry').onclick=()=>dgFloor(); return; }
   if(!doors.length){ dgEnd('🧱 この先に扉がない',undefined,'dead'); return; }
-  DG.doors=doors; dgRender(); }
-// 階の画面：落とし物（あれば）・持ち物の食べ物・扉
-function dgRender(){ const box=$('#dgbox'), doors=DG.doors, f=DG.found; if(f&&f.k==='w'&&f.ex===undefined){ f.ex=''; dgExtract(f.i).then(t=>{ f.ex=t; }); }
-  let found=''; if(f){ found=`<div class="dgres">${DGI[f.k]} <b>${esc(F[f.i][0])}</b>が${f.tr?'置いてある':'落ちている'}<div class="dgc">${esc(f.lab||'')}${f.lab?'｜':''}${DGK[f.k]}</div></div>`+
-    (DG.items.length<2?`<div class="dgpair"><button type="button" class="btn" id="dgget">拾う</button><button type="button" class="btn" id="dgleave">拾わない</button></div>`
-      :`<div class="dgstack">${DG.items.map((x,k)=>`<button type="button" class="btn" data-swap="${k}">${esc(F[x.i][0])}を捨てて拾う</button>`).join('')}<button type="button" class="btn" id="dgleave">拾わない</button></div>`); }
-  const foods=DG.items.map((x,k)=>[x,k]).filter(([x])=>x.k==='f');
-  box.innerHTML=`<div class="dgst">${dgHead()}</div>${found}${f?'':`<div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>DG.tr&&DG.tr.at===k?`<button type="button" class="btn dgd dgtr" id="dgtr"><span>🎁 <b>宝の扉</b><br><span class="dgc">${DGI[DG.tr.k]}${esc(F[DG.tr.i][0])}が置いてある（戦わずに先へ進める）</span></span></button>`:`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div>`}<div class="dgsub">${f?'':foods.map(([x,k])=>`<button type="button" class="btn small" data-eat="${k}">${DGI.f}${esc(F[x.i][0])}を食べる</button>`).join('')}${f?'':'<button type="button" class="btn small" id="dgquit">引き返す</button>'}</div>`;
-  box.querySelectorAll('.dgd[data-k]').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
-  if($('#dgtr')) $('#dgtr').onclick=()=>{ const t=DG.tr; DG.tr=null; DG.path.push({t:F[t.i][1],ev:'item'}); DG.seen.add(F[t.i][1]); DG.pos=t.i; dgSave(false); DG.found={...t,tr:true}; dgRender(); };   // 宝の部屋：拾うか決めたら、次の階へ
-  const next=()=>{ if(f&&f.tr){ DG.found=null; DG.floor++; dgFloor(); } else { DG.found=null; dgRender(); } };
-  const take=k=>{ if(k!==undefined) DG.items.splice(k,1); DG.items.push(f); DG.got.push(f); next(); };
-  if($('#dgget')) $('#dgget').onclick=()=>take(); box.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>take(+b.dataset.swap));
-  if($('#dgleave')) $('#dgleave').onclick=()=>next();
-  box.querySelectorAll('[data-eat]').forEach(b=>b.onclick=()=>{ DG.items.splice(+b.dataset.eat,1); DG.hp=Math.min(dgMax(),DG.hp+Math.round(dgMax()*0.4)); dgRender(); });   // 食べると、体力の4割が戻る
-  if($('#dgquit')) $('#dgquit').onclick=()=>dgEnd('🏳️ 引き返した',undefined,'quit'); }
-function dgFight(d){ const me=DG.me, mods=dgMods(), an=dgSim(()=>analyze(me,d),mods), r=an.r, w=r.w, before=DG.hp;
+  box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgq">どの扉に入る？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>🚪 <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div><div class="trow"><button type="button" class="btn small" id="dgquit">引き返す</button></div>`;
+  box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dgFight(doors[+b.dataset.k]));
+  $('#dgquit').onclick=()=>dgEnd('🏳️ 引き返した',undefined,'quit'); }
+function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;
   const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move);
   const key=dm?`。決め手は【${esc(dm.move)}】`:''; DG.seen.add(F[d][1]); const box=$('#dgbox');
-  DG.hp=an.type==='kurabe'?before:Math.max(1,Math.round(before-(before-Math.min(before,r.hp[0]))/3));   // 受けた傷の3分の1を次の階に持ち越す（試合のあとに一息つく）。比べ合い（事実の比べっこ）では減らない
   const watch=`<button type="button" class="btn small" id="dgw">観戦</button>`;
   if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres win">⚔️ <b>${esc(F[d][0])}</b>に勝った<div class="dgc">${esc(how)}${key}</div></div><div class="dgpair"><button type="button" class="btn" id="dgkeep">このまま進む</button><button type="button" class="btn" id="dgsw">乗り換えて進む</button></div><div class="dgsub">${watch}</div>`;
-    $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); };
-    $('#dgsw').onclick=()=>{ const ratio=DG.hp/dgMax(); DG.me=d; DG.hp=Math.max(1,Math.round(dgMax()*ratio)); DG.path[DG.path.length-1].ev='switch'; dgSave(false); DG.floor++; dgFloor(); }; }   // 乗り換えても、体力の割合は引き継ぐ
+    $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; $('#dgsw').onclick=()=>{ DG.me=d; DG.path[DG.path.length-1].ev='switch'; dgSave(false); DG.floor++; dgFloor(); }; }
   else if(w===null){ DG.path.push({t:F[d][1],ev:'draw'}); DG.pos=d; dgSave(false);
     box.innerHTML=`<div class="dgst">${dgHead()}</div><div class="dgres">🤝 <b>${esc(F[d][0])}</b>と引き分け</div><button type="button" class="btn big dgin" id="dgkeep">進む</button><div class="dgsub">${watch}</div>`;
     $('#dgkeep').onclick=()=>{ DG.floor++; dgFloor(); }; }
-  else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`💀 <b>${esc(F[d][0])}</b>に負けた<div class="dgc">相手の${esc(how)}${key}</div>`,d,'lose',mods); }
-  const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; dgSim(()=>startBattle([me,d]),mods); }; }
-function dgEnd(msg,foe,end,mods){ const box=$('#dgbox'), pr=DG.practice; dgSave(true,end);
-  const share=dgShare(DG.day,DG.path,end,DG.got), me=DG.me;
-  box.innerHTML=`<div class="dgfl">${dgLine(DG.path,end)}</div><div class="dgres lose">${msg}</div><div class="dgpath">${dgPath(DG.path)}</div>${DG.got.length?`<div class="dgst">拾ったもの：${DG.got.map(x=>DGI[x.k]+esc(F[x.i][0])).join(' ')}</div>`:''}${pr?'':'<button type="button" class="btn big dgin" id="dgcopy">'+dgShareLab()+'</button>'}<div class="dgsub">${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
+  else { DG.path.push({t:F[d][1],ev:'lose'}); dgEnd(`💀 <b>${esc(F[d][0])}</b>に負けた<div class="dgc">相手の${esc(how)}${key}</div>`,d,'lose'); }
+  const wb=$('#dgw'); if(wb) wb.onclick=()=>{ MODE=null; startBattle([me,d]); }; }
+function dgEnd(msg,foe,end){ const box=$('#dgbox'), pr=DG.practice; dgSave(true,end);
+  const share=dgShare(DG.day,DG.path,end), me=DG.me;
+  box.innerHTML=`<div class="dgfl">${dgLine(DG.path,end)}</div><div class="dgres lose">${msg}</div><div class="dgpath">${dgPath(DG.path)}</div>${pr?'':'<button type="button" class="btn big dgin" id="dgcopy">'+dgShareLab()+'</button>'}<div class="dgsub">${foe!==undefined?`<button type="button" class="btn small" id="dgw">観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
   if($('#dgcopy')) $('#dgcopy').onclick=()=>dgCopy(share);
-  if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; dgSim(()=>startBattle([me,foe]),mods); };
+  if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; startBattle([me,foe]); };
   $('#dgagain').onclick=()=>{ DG=null; dgInit(); }; }
 // スマホでは共有の画面を開き、パソコンではコピーする。ボタンの名前もそれに合わせる
 const dgShareLab=()=>navigator.share&&TOUCH?'結果を共有':'結果をコピー';
@@ -1896,34 +1829,13 @@ repall("""<div class="mact"><button type="button" class="btn big" id="mrepgo"${o
        """<div class="mact"><button type="button" class="btn big" id="mrepgo"${opp?'':' disabled'}>この対戦を見る</button></div><div class="mact"><button type="button" class="btn small" id="mshr" aria-expanded="false"${opp?'':' disabled'}>共有</button></div>""")
 repall("input,select,textarea{font-size:16px!important}", "input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>.btn,.fgo>.btn{display:inline-flex;align-items:center;justify-content:center}")
 
-# ---- 78. 試作（プレビューだけ）：百科ダンジョンの装備と体力。戦闘エンジンに、ダンジョンの中だけで効く「体力」と「追加の技」を渡す口（SIMX）を作る ----
-#   SIMX はふだん null。自由対戦・王座戦・サーバーの判定の結果は変わらない
-repall("function simulate(ai,bi,opt={}){ disamb(ai,bi);", "let SIMX=null;   // 百科ダンジョン用：{記事番号:{hp, moves}}。ふだんは null\nfunction simulate(ai,bi,opt={}){ disamb(ai,bi);")
-repall("const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],", "const mk=(i,o)=>{const f=F[i], s=f[3], X=SIMX&&SIMX[i]; return {i,name:f[0],maxhp:s[0],hp:X&&X.hp>0?Math.min(s[0],X.hp):s[0],")
-repall("moves:opt.noMoves?[]:pickMoves(i,o).filter(", "moves:opt.noMoves?[]:[...((X&&X.moves)||[]),...pickMoves(i,o)].filter(")
-repall("if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});",
-       "if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});\n  for(const x of [A,B]){ const X=SIMX&&SIMX[x.i]; if(X&&X.say) log.push({t:0,side:-1,s:X.say,d:0,hp:[A.hp,B.hp]}); }   // 百科ダンジョン：装備や傷の一言")
-repall("      line=tag+line;", "      if(mv.it) line+='（拾った'+mv.it+'で）';   // 百科ダンジョン：武器の技\n      line=tag+line;")
-
-# ---- 79. 試作（プレビューだけ）：百科ダンジョンで武器を持っていると、比べ合いにならず殴り合いになる（SIMX.nokb）。瞬殺はそのまま ----
-repall("(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';", "(same&&cs[1]==='ヒト'&&nReal>=2))){ if(SIMX&&SIMX.nokb){ an.kbx=SIMX.nokb; return 'normal'; } return 'kurabe'; }")
-repall("function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];",
-       "function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];\n  if(an.kbx){ const k=Math.max(0,r.log.findIndex(x=>x.side>=0)); r.log.splice(k,0,{t:0,side:-1,s:an.kbx,d:0,hp:(r.log[k-1]||r.log[0]||{hp:[r.max[0],r.max[1]]}).hp}); }   // 百科ダンジョン：比べ合いのはずが、武器で殴り合いになった")
-
-# ---- 80. 試作（プレビューだけ）：因縁の対決・瞬殺でも、百科ダンジョンの装備や傷の一言を出す（専用の実況を組む型なので、ここで足す） ----
-repall("const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});",
-       "const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});\n  const sx=()=>SIMX?[ai,bi].map(i=>SIMX[i]&&SIMX[i].say).filter(Boolean).map(s=>sys(s,(r.log[0]||{}).hp)):[];   // 百科ダンジョン：装備や傷の一言")
-repall("Wikidataに書いてあるからだ。'],{A,B})),\n      ...midKai(", "Wikidataに書いてあるからだ。'],{A,B})),\n      ...sx(),...midKai(")
-repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx()];")
-repall("const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...hits.slice(-2)];", "const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx(),...hits.slice(-2)];")
-
 # ---- 81. 百科ダンジョンの対戦も、みんなの対戦数に数える（遊び方の内訳 d）。ダンジョンからの観戦は、勝負をつけたときに数えてあるので数えない ----
 rep("function addPlay(){ setPend(pend()+1); { const c=current||{},", "function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; setPend(pend()+1); { const c=current||{},")
 rep("for(const x of ['t','m','f']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }", "for(const x of ['t','m','f','d']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }")
-rep("function dgFight(d){ const me=DG.me, mods=dgMods(),",
-    "function dgPlay(){ setPend(pend()+1); const o=pendK(); o.d=(o.d||0)+1; setPendK(o); if(ALL){ ALL.plays++; renderRec(); } }   // ダンジョンの1戦を数える\nfunction dgFight(d){ dgPlay(); const me=DG.me, mods=dgMods(),")
-repall("MODE=null; dgSim(()=>startBattle([me,d]),mods);", "MODE=null; ORIG={k:'dg'}; dgSim(()=>startBattle([me,d]),mods);")
-repall("MODE=null; dgSim(()=>startBattle([me,foe]),mods);", "MODE=null; ORIG={k:'dg'}; dgSim(()=>startBattle([me,foe]),mods);")
+rep("function dgFight(d){ const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;",
+    "function dgPlay(){ setPend(pend()+1); const o=pendK(); o.d=(o.d||0)+1; setPendK(o); if(ALL){ ALL.plays++; renderRec(); } }   // ダンジョンの1戦を数える\nfunction dgFight(d){ dgPlay(); const me=DG.me, an=analyze(me,d), r=an.r, w=r.w;")
+repall("onclick=()=>{ MODE=null; startBattle([me,d]); };", "onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,d]); };")
+repall("onclick=()=>{ MODE=null; startBattle([me,foe]); };", "onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,foe]); };")
 rep("c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')", "c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')")
 
 # ---- 83. 方針「数値の能力は出さない」に合わせる：試合中の体力の数字（96 / 96・残りN）を消し、「能力値」という言葉を「下馬評」に言い換える ----

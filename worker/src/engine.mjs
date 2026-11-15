@@ -252,13 +252,11 @@ function pickMoves(i,j){
 const BIG=m=>m&&(m[0]==='SUMMON'||(m[0]==='STRIKE'&&m[4]>=4)||(m[0]==='MULTI'&&m[4]>=4));
 // 表示名が同じ2記事は、記事名（括弧の説明つき）で表示する（この端末で開いている間ずっと）
 function disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0]){ F[a][0]=F[a][1]; F[b][0]=F[b][1]; } }
-let SIMX=null;   // 百科ダンジョン用：{記事番号:{hp, moves}}。ふだんは null
 function simulate(ai,bi,opt={}){ disamb(ai,bi);
-  const mk=(i,o)=>{const f=F[i], s=f[3], X=SIMX&&SIMX[i]; return {i,name:f[0],maxhp:s[0],hp:X&&X.hp>0?Math.min(s[0],X.hp):s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
-    moves:opt.noMoves?[]:[...((X&&X.moves)||[]),...pickMoves(i,o)].filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
+  const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
+    moves:opt.noMoves?[]:pickMoves(i,o).filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
   const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
   if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});
-  for(const x of [A,B]){ const X=SIMX&&SIMX[x.i]; if(X&&X.say) log.push({t:0,side:-1,s:X.say,d:0,hp:[A.hp,B.hp]}); }   // 百科ダンジョン：装備や傷の一言
   const baseDmg=(x,y)=>Math.max(1,x.atk+x.atkb-Math.floor(y.df/2));
   const left=x=>x.moves.filter(m=>!x.used[m[1]]&&!(m[0]==='SENIORITY'&&senUsed));
   const est=(x,y,m)=>{ const b0=baseDmg(x,y), T=m[4]; return m[0]==='STRIKE'?b0*(1+0.15*T):m[0]==='MULTI'?(1+Math.floor(T/2))*Math.max(1,Math.round(b0*0.45)):m[0]==='SUMMON'?b0*1.5+5:m[0]==='NAME'?b0:b0*0.6; };
@@ -295,7 +293,6 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
       if(ck&&QT[x.i]&&QT[y.i]&&QT[x.i][ck[0]]>0&&QT[y.i][ck[0]]>0){ const [k,lab]=ck, va=QT[x.i][k], vb=QT[y.i][k], df0=Math.abs(va-vb), df=(Math.min(va,vb)>=10&&df0>=1)?Math.round(df0):df0, dtx=unitv(k,df);
         if(vb>va&&jn(df)!=='0'){ d=Math.max(1,Math.round(d*0.6)); line+='……が、{B}の'+lab+'は'+unitv(k,vb)+'。'+lab+'で挑んだ{A}、'+dtx+'足りなかった。威力は控えめ。'; }
         else if(va>vb&&jn(df)!=='0') line+=pickT(['（'+lab+'比べは'+dtx+'差で{A}の勝ち）','（{B}の'+unitv(k,vb)+'を'+dtx+'上回った）'],k+key); }
-      if(mv.it) line+='（拾った'+mv.it+'で）';   // 百科ダンジョン：武器の技
       line=tag+line;
     }
     if(x.first&&riv&&d>0){ d=Math.round(d*1.5); line+='（因縁で1.5倍）'; }
@@ -346,7 +343,7 @@ function matchType(ai,bi,an){ const r=an.r;
   const same=cs&&cb&&cs[0]===cb[0];
   const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
   if(gap) return 'shunsatsu';
-  if(R.length>=3&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))){ if(SIMX&&SIMX.nokb){ an.kbx=SIMX.nokb; return 'normal'; } return 'kurabe'; }
+  if(R.length>=3&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';
   if(r.w!==null&&r.kind==='KO'){ const w=r.w===ai?0:1; if(r.hp[w]/r.max[w]>=0.6) return 'shunsatsu'; }
   if((Math.max(realN(ai),realN(bi))<=1&&Math.min(realN(ai),realN(bi))===0)||(r.kind==='判定'&&Math.abs(r.hp[0]/r.max[0]-r.hp[1]/r.max[1])<0.12)) return 'doro';
   return 'normal'; }
@@ -414,11 +411,9 @@ function midKai(log,key,ai,bi){ const out=[]; let n=0, gap=0; const usedP=new Se
       const P=pool(e); out.push({t:x.t,side:-1,d:0,hp:x.hp,s:'解説「'+P[hash(key+'/'+k+'/'+idx)%P.length]+'」',kai:1}); n++; gap=0; break; } });
   return out; }
 function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=F[ai][0], B=F[bi][0]; an.type=type; an.tlabel=TLAB[type];
-  if(an.kbx){ const k=Math.max(0,r.log.findIndex(x=>x.side>=0)); r.log.splice(k,0,{t:0,side:-1,s:an.kbx,d:0,hp:(r.log[k-1]||r.log[0]||{hp:[r.max[0],r.max[1]]}).hp}); }   // 百科ダンジョン：比べ合いのはずが、武器で殴り合いになった
   const K0=F[ai][2]+'/'+F[bi][2]; let ln=0;
   const sys=(s,hp)=>({t:0,side:-1,s,d:0,hp:hp||[r.max[0],r.max[1]]});
   const kai=(s,hp)=>({t:0,side:-1,s:'解説「'+s+'」',d:0,hp:hp||[r.max[0],r.max[1]],kai:1});
-  const sx=()=>SIMX?[ai,bi].map(i=>SIMX[i]&&SIMX[i].say).filter(Boolean).map(s=>sys(s,(r.log[0]||{}).hp)):[];   // 百科ダンジョン：装備や傷の一言
   const P=(arr,o)=>fill(PK(arr,K0+'#'+(ln++)),o||{});
   const endHP=()=>{ const l=r.log[r.log.length-1]; return l?l.hp:[r.max[0],r.max[1]]; };
 
@@ -427,7 +422,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     const log=[sys('【因縁の対決】'+rv+'。'),
       sys(P(['この一点において、両者は決して相容れない。','この記述がある限り、両者が同じリングに上がる日は来ないはずだった。','長年、誰も触れずにきた因縁である。'])),
       sys(P(['{A}と{B}、ついに相まみえる。','{A}、入場。{B}、入場。会場が静まり返る。','両者、目を合わせない。Wikidataに書いてあるからだ。'],{A,B})),
-      ...sx(),...midKai(r.log.filter(x=>x.side>=0),K0,ai,bi)];
+      ...midKai(r.log.filter(x=>x.side>=0),K0,ai,bi)];
     const W=r.w===null?null:F[r.w][0], L=r.w===null?null:F[r.w===ai?bi:ai][0];
     log.push(sys(r.w===null?'因縁、決着つかず。この続きは記事の編集合戦に持ち越された。':P(['因縁、決着。{W}が{L}を下した。','{W}、因縁を断ち切った。少なくとも今日のところは。','{L}、膝をつく。因縁の記述だけが、静かに残った。'],{W,L}),endHP()));
     log.push(kai(P(['Wikidataの記述は変わりません。ただ、今日の勝敗は語り継がれるでしょう。どこにも書かれませんが','因縁は、終わりませんね。データがそう言っている以上は','両陣営とも、編集履歴に恥じない戦いでした','明日になれば、両者はまた何事もなかったようにリンクで結ばれています','この因縁を記述した編集者に、今日の試合を見せたかった']),endHP()));
@@ -438,7 +433,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     if(gap){ const w=gap.a>gap.b?ai:bi, W=F[w][0], L=w===ai?B:A, hp=[r.max[0],r.max[1]]; hp[w===ai?1:0]=0;
       const rt=gap.r>=1e8?jn(gap.r)+'倍':ratioTxt(gap.r), vw=fmtR(gap.k,Math.max(gap.a,gap.b)), vl=fmtR(gap.k,Math.min(gap.a,gap.b)), lab=RLAB[gap.k];
       const o={W,L,vw,vl,lab,rt,n:Math.max(gap.a,gap.b),m:Math.min(gap.a,gap.b)};
-      const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx()];
+      const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];
       if(gap.k==='_pv'){
         log.push(sys(P(['{L}、名乗りを上げる。客席の反応は控えめだった。','{L}、深く一礼して入場する。拍手は、まばらだった。','{L}、入場。会場の何人かが、記事名を検索し始めた。'],o)));
         log.push(sys(P(['{W}が入場すると、{vw}読まれてきた視線が一斉に{L}へ向いた。','{W}は名乗る必要がない。{vw}読まれているので、全員もう知っている。','{L}の記事は{vl}、{W}は{vw}。読まれた回数の差が、そのまま圧になった。'],o)));
@@ -450,7 +445,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
       log.push(kai(P(['差は{rt}です。これを試合と呼んでいいのか、我々はいまも議論を続けています','{lab}で{rt}の差。戦術や気合いでどうにかなる差ではありません','{L}は何も悪くありません。ただ、{lab}が足りなかった','正直に申し上げて、組み合わせを決めた人に問題があります','{L}陣営、試合後のコメントは「比較の対象として不適切」とのことです','実況席から見えていたのは、ほぼ{W}だけでした'],o),hp));
       an.r={...r,log,w,kind:'KO',tick:1,hp,how:lab+'の差で瞬殺',summoned:[]}; an.tail='差は'+rt+'。勝負にならなかった。'; an.dec=[]; an.upset=false; return an; }
     const wS=r.w===ai?0:1, W=F[r.w][0], L=r.w===ai?B:A; const hits=r.log.filter(x=>x.side===wS);
-    const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...sx(),...hits.slice(-2)];
+    const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...hits.slice(-2)];
     log.push(sys(P(['{L}は反撃の機会をうかがっていた。うかがっているうちに終わった。','{L}、まだ自分の技を一つも説明していない。','{L}陣営、タオルを投げる準備すら間に合わなかった。'],{W,L}),endHP()));
     log.push(kai(P(['{W}はほぼ無傷です。{L}にとっては、事実の暴力でした','技の解説をしようと思っていたのですが、終わってしまいました','{L}は悪くありません。相手が{W}だった、それだけです'],{W,L}),endHP()));
     an.r={...r,log}; an.dec=an.dec.filter(d=>d.who===r.w); return an; }
