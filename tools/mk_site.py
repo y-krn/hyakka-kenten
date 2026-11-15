@@ -1853,7 +1853,11 @@ repall("'ジャッジ陣、残りHPの差で'", "'ジャッジ陣、残りの体
 repall("<span>勝ち抜き最高 <b>${rec.best}</b>連勝</span>", "<span>最長 <b>${rec.best}</b>連勝を目撃</span>")
 repall("仲間図鑑", "仲間さがし")
 
-# ---- 85. 試作：人物どうしの比べ合いを、記事の数字ではなくその人の事実で行う ----
+# ---- 86. 転送ページの名前でも記事を開けるようにする（例：北野武 → ビートたけし）。見つからなかったときだけ、Wikipediaに転送先を1回問い合わせる ----
+repall("async function loadTitle(t){ t=String(t||'').trim();", "const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）\nfunction redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }\nasync function loadTitle(t,rd){ t=String(t||'').trim();")
+repall("const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }", "const b=await bucket(fnv(t)%NB); const rec=b[t]; if(rec) return register(rec); if(rd) return -1; const to=await redirTo(t); return to&&to!==t?loadTitle(to,1):-1; }")
+
+# ---- 85. 人物どうしの比べ合いを、記事の数字ではなくその人の事実で行う ----
 #   ・人物どうしでは、記事の文字数・閲覧数・言語版の数・載っている事典の数を比べない（その人の事実ではないため）。比べる事実が足りなければ、比べ合いにせず殴り合いにする
 #   ・受賞・代表作・子ども・職業の数には、代表的なもの1つの名前を添える（数だけでは何も分からないため）
 #   ・生まれた年は「先輩が1本」として見せる
@@ -1868,17 +1872,12 @@ repall("if(x.k==='yr') intro=P([",
 repall("const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);", "const ratio=x.k==='yr'?(Math.abs(x.a-x.b)<=1?1.01:2):Math.max(x.a,x.b)/Math.min(x.a,x.b);")   # 生まれた年は比で測らない（1年差だけ僅差）
 repall("'{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。'", "'{n}本勝負。上回ったほうが1本を取る。それ以上でも以下でもない。'")
 
-# ---- 86. 転送ページの名前でも記事を開けるようにする（例：北野武 → ビートたけし）。見つからなかったときだけ、Wikipediaに転送先を1回問い合わせる ----
-repall("async function loadTitle(t){ t=String(t||'').trim();", "const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）\nfunction redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }\nasync function loadTitle(t,rd){ t=String(t||'').trim();")
-repall("const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; return register(rec); }", "const b=await bucket(fnv(t)%NB); const rec=b[t]; if(rec) return register(rec); if(rd) return -1; const to=await redirTo(t); return to&&to!==t?loadTitle(to,1):-1; }")
-
-# ---- 87. 試作：Wikipediaらしさを少し足す（見出しを明朝に・「分かること」を情報ボックス風に・転送の注記）。ボタンや配置は変えない ----
+# ---- 87. Wikipediaらしさを少し足す（「分かること」を情報ボックス風に・転送の注記）。書体・ボタン・配置は変えない ----
 repall(".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}", """:root{--ib-bg:#f8f9fa;--ib-hd:#eaecf0;--ib-bd:#a2a9b1;--ib-ink:#202122;--ib-mut:#54595d;--ib-ln:#3366cc}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}}
 :root[data-theme="dark"]{--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}
-.sechead h2{font-family:var(--f-cite);font-weight:900;font-size:24px;letter-spacing:.03em}
 .facts{border:1px solid var(--ib-bd);border-radius:2px;padding:0;background:var(--ib-bg);color:var(--ib-ink);overflow:hidden}""")
-repall(".facts .fh{font-weight:700;font-size:14px}", ".facts .fh{font-family:var(--f-cite);font-weight:900;font-size:16px;text-align:center;padding:8px 10px 6px}")
+repall(".facts .fh{font-weight:700;font-size:14px}", ".facts .fh{font-weight:700;font-size:14px;text-align:center;padding:8px 10px 6px}")
 repall(".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}", ".facts ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.6;overflow-wrap:anywhere}\n.facts li{display:grid;grid-template-columns:minmax(4.5em,30%) 1fr;gap:8px;padding:5px 10px;border-top:1px solid var(--ib-hd)}\n.facts li .ik{font-weight:700}\n.facts li .ik:only-child{grid-column:1/-1}")
 repall(".facts .fwho{font-weight:700;font-size:13px;margin-top:8px}.facts .fwho+ul{margin-top:2px}", ".facts .fwho{font-weight:700;font-size:13px;text-align:center;background:var(--ib-hd);padding:4px 10px}.facts .fwho+ul li:first-child{border-top:none}")
 repall(".facts .fsrc{font-size:11px;opacity:.7;margin-top:6px;line-height:1.5}", ".facts .fsrc{font-size:11px;color:var(--ib-mut);padding:6px 10px 8px;line-height:1.5;border-top:1px solid var(--ib-hd)}\n.facts .fxgo,.facts .fxbad{color:var(--ib-ln)}\n.facts .fxhint,.facts .fxmsg{padding:0 10px 8px}")
@@ -1889,10 +1888,8 @@ repall("    else sel[s]=i; }\n  for(const s of [0,1]) if(why[s]) sel[s]=await rn
 repall("  const ids=[ia,ib]; const why=[];", "  const ids=[ia,ib]; const why=[], hat=[];")
 repall("  for(const s of [0,1]) if(why[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent=why[s]; }", "  for(const s of [0,1]) if(why[s]||hat[s]){ const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n){ n.textContent=why[s]||hat[s]; n.classList.toggle('hat',!why[s]); } }")
 
-repall("family=Zen+Old+Mincho:wght@600", "family=Zen+Old+Mincho:wght@600;900")   # 見出しの明朝は極太（900）で、ほかの書体に負けないように
 
-# ---- 88. 試作：見た目のバランスを整える（小見出しも明朝・「ほかの一門を見る」の左端・カードの角・1文字だけの行・画面下の記録） ----
-repall("#zukan h3,#mine h3{margin:0;font-size:16px}", "#zukan h3,#mine h3{margin:0;font-family:var(--f-cite);font-weight:900;font-size:19px;letter-spacing:.02em}")
+# ---- 88. 見た目のバランスを整える（「ほかの一門を見る」の左端・カードの角・1文字だけの行・画面下の記録） ----
 repall(".flink{padding:10px 6px;margin:-4px -6px}", ".flink{padding:10px 0;margin:-4px 0}")
 repall("border:1px solid var(--line);border-radius:12px;padding:10px 14px", "border:1px solid var(--line);border-radius:6px;padding:10px 14px")
 repall("<p class=\"fsub\">誕生日・生まれた年・出身地から、ゆかりのある人を代表に</p>", "<p class=\"fsub\">誕生日や出身地から、ゆかりのある人を代表に</p>")
