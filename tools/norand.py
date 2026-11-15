@@ -1,5 +1,7 @@
-# ランダム（初期表示・ランダムボタン・おまかせ）に出さない記事を選ぶ。
-#   性的な内容の記事。対戦から外すわけではなく、自分で名前を入れれば選べる。
+# ランダム（初期表示・ランダムボタン・おまかせ）に出さない記事を選ぶ。今日の一戦・百科ダンジョンの扉の候補からも外れる。
+#   対戦から外すわけではなく、自分で名前を入れれば選べる。
+#   ・性的な内容の記事
+#   ・長くなった記事から切り出された一部（「浜崎あゆみのディスコグラフィ」「らき☆すたの登場人物」など。親の記事が収録されているものだけ）
 #   性的指向・LGBT・医学一般は対象にしない。言葉の一部だけが一致する誤検出（サセックス、ピエロ、官能基 など）は避ける。
 #   python3 tools/norand.py data  → data/norand.json（記事名の一覧）
 import json, gzip, glob, re, os, sys
@@ -18,10 +20,18 @@ TITLE = re.compile(r'性交|体位|射精|自慰|オナニー|マスターベー
                    r'成人映画|ピンク映画|性風俗|フェティシズム|BDSM|SMプレイ|エロゲ|エロ漫画|エロ本|官能小説|セクシー女優|性欲|乳房縛り|性器ピアス|ペニスフェンシング|手コキ|パイズリ|お掃除フェラ|巨根|マイル・ハイ・クラブ|' + SX + r'|' + K + r'エロ(?![ァ-ヶーイスン])')
 IGNORE = re.compile(r'ロマンポルノ|ポルノグラフィティ|セックスシンボル')   # セックスシンボルは人気の人物・キャラクターに付く呼び名なので、手がかりにしない   # 映画史の一ジャンル・バンド名なので、手がかりにしない
 ALLOW = {'ポルノグラフィティ', 'セックス・ピストルズ', 'Fate/stay night'}   # 一般に広く知られていて、ランダムに出ても差し支えないもの
-out = []
-for f in sorted(glob.glob(os.path.join(D, 'a', '*.json.gz'))):
+# 切り出された一部：「（親の記事名）の◯◯」で、親の記事も収録されているもの。事実がほとんどなく、記事の長さだけで親に勝ってしまうことがある
+#   「〜の歴史」は、それ自体が題材として成り立つ記事が多いので外さない
+SPLIT = re.compile(r'^(.+?)の(ディスコグラフィ|作品|作品一覧|登場人物|年表|受賞リスト|受賞記録|受賞歴|受賞とノミネート|出演作品|映像作品)$')
+files = sorted(glob.glob(os.path.join(D, 'a', '*.json.gz')))
+ALLT = set()
+for f in files: ALLT.update(json.loads(gzip.open(f).read()).keys())
+out = []; nsplit = 0
+for f in files:
     for t, r in json.loads(gzip.open(f).read()).items():
         if t in ALLOW: continue
+        m = SPLIT.match(t)
+        if m and m.group(1) in ALLT: out.append(t); nsplit += 1; continue
         g = r.get('gen', {})
         meta = [g.get('c') or ''] + list(g.get('cc', [])) + [x for e in r.get('ext', []) if e[0] != '_m' and isinstance(e[2], list) for x in e[2] if isinstance(x, str)]
         sig = {m for m in meta if META.search(m) and not IGNORE.search(m)}
@@ -29,4 +39,4 @@ for f in sorted(glob.glob(os.path.join(D, 'a', '*.json.gz'))):
         if TITLE.search(t) or len(sig) >= (2 if r.get('p') else 1): out.append(t)
 out.sort()
 json.dump(out, open(os.path.join(D, 'norand.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
-print('ランダムに出さない記事', len(out))
+print('ランダムに出さない記事', len(out), '（うち切り出された一部', nsplit, '）')
