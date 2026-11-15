@@ -1838,6 +1838,17 @@ repall("onclick=()=>{ MODE=null; startBattle([me,d]); };", "onclick=()=>{ MODE=n
 repall("onclick=()=>{ MODE=null; startBattle([me,foe]); };", "onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle([me,foe]); };")
 rep("c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':'自由対戦')", "c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')")
 
+# ---- 83. 方針「数値の能力は出さない」に合わせる：試合中の体力の数字（96 / 96・残りN）を消し、「能力値」という言葉を「下馬評」に言い換える ----
+repall("<span class=\"hpn\" id=\"hpnA\">${r.max[0]} / ${r.max[0]}</span>", "")
+repall("<span class=\"hpn\" id=\"hpnB\">${r.max[1]} / ${r.max[1]}</span>", "")
+repall(" $('#hpnA').textContent=l.hp[0]+' / '+r.max[0]; $('#hpnB').textContent=l.hp[1]+' / '+r.max[1];", "")
+repall("<b>−${l.d}</b>${esc(tgt)} 残り${rem}</div>", "<b>−${l.d}</b>${esc(tgt)}</div>")
+repall("'能力値では{L}が上でした。事実は、能力値より強い'", "'下馬評では{L}が上でした。事実は、下馬評より強い'")
+repall("${upset?'能力値では負けていた番狂わせ。':''}", "${upset?'下馬評を覆す番狂わせ。':''}")
+repall("'{W}の残りHPは'+r.hp[wS]+'。ほぼ無傷です。{L}にとっては、事実の暴力でした'", "'{W}はほぼ無傷です。{L}にとっては、事実の暴力でした'")
+repall("'{W}、残りHPわずか。勝者も満身創痍です'", "'{W}、体力はわずか。勝者も満身創痍です'")
+repall("'ジャッジ陣、残りHPの差で'", "'ジャッジ陣、残りの体力の差で'")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

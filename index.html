@@ -874,7 +874,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     const wS=r.w===ai?0:1, W=F[r.w][0], L=r.w===ai?B:A; const hits=r.log.filter(x=>x.side===wS);
     const log=[sys('【瞬殺】試合開始のゴングが鳴る。'),...hits.slice(-2)];
     log.push(sys(P(['{L}は反撃の機会をうかがっていた。うかがっているうちに終わった。','{L}、まだ自分の技を一つも説明していない。','{L}陣営、タオルを投げる準備すら間に合わなかった。'],{W,L}),endHP()));
-    log.push(kai(P(['{W}の残りHPは'+r.hp[wS]+'。ほぼ無傷です。{L}にとっては、事実の暴力でした','技の解説をしようと思っていたのですが、終わってしまいました','{L}は悪くありません。相手が{W}だった、それだけです'],{W,L}),endHP()));
+    log.push(kai(P(['{W}はほぼ無傷です。{L}にとっては、事実の暴力でした','技の解説をしようと思っていたのですが、終わってしまいました','{L}は悪くありません。相手が{W}だった、それだけです'],{W,L}),endHP()));
     an.r={...r,log}; an.dec=an.dec.filter(d=>d.who===r.w); return an; }
 
   /* ---------- 比べ合い ---------- */
@@ -922,7 +922,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
         log.push({...last,side:-1,d:0,s:'ジャッジ陣は苦渋の決断として、勝敗を「'+c[1]+'」で決めると発表した。'+A+'、'+fa+'。'+B+'、'+fb+'。'+c[2]+'、'+W+'の勝ち。'});
         log.push({...last,side:-1,d:0,s:P(['{L}陣営から抗議の声が上がったが、受理されなかった。','{L}、判定に一礼する。納得はしていない。','{W}、勝ち名乗りを受ける。本人が一番驚いている。'],{W,L})});
         an.tail='泥仕合の末、判定基準は「'+c[1]+'」。'; }
-      else log.push({...last,side:-1,d:0,s:'ジャッジ陣、残りHPの差で'+(w===null?'引き分け':F[w][0]+'の勝ち')+'を宣告。異論は出なかった。誰も見ていなかったからだ。'});
+      else log.push({...last,side:-1,d:0,s:'ジャッジ陣、残りの体力の差で'+(w===null?'引き分け':F[w][0]+'の勝ち')+'を宣告。異論は出なかった。誰も見ていなかったからだ。'});
       log.push(kai(P(['泥仕合でした。いい意味でも悪い意味でもなく、泥仕合でした','両者とも、記事がもう少し長ければ違う展開もあったでしょう','この試合で得たものは何か。我々は答えを持ち合わせていません','判定基準を決めたジャッジ陣の勇気を、まず称えたいと思います','記録上は決着です。記憶には、たぶん残りません']),last.hp));
       an.r={...r,log,w,how:'泥仕合の末に判定勝ち'}; if(w!==r.w){ an.dec=[]; an.upset=false; } return an; }
     log.push({...last,side:-1,d:0,s:r.w===null?'泥仕合の末、両者同時に倒れた。ジャッジ陣は顔を見合わせた。':P(['泥仕合の末、{W}がかろうじて立っていた。理由は誰にも分からない。','{L}、ゆっくりと倒れる。{W}も倒れかけたが、踏みとどまった。','決着。{W}の勝ち。ただし、勝ったという実感は本人にもない。'],{W:F[r.w][0],L:F[r.w===ai?bi:ai][0]})});
@@ -935,10 +935,10 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     const o={W,L,lm:lm||'通常攻撃'};
     const wS=r.w===ai?0:1, rem=r.w===null?0:r.hp[wS]/r.max[wS];
     const pool=r.w===null?['相打ちです。事実と事実がぶつかると、こういうことも起きます','両者同時に倒れました。Wikidata上は、どちらも健在です','引き分け。記事の編集合戦なら、まだ続いていたでしょう']
-      :an.upset?['能力値では{L}が上でした。事実は、能力値より強い','番狂わせです。Wikidataの記述ひとつで、ここまで変わるものなんですね','{L}陣営は、記事のどの一行に負けたのかを調べることになるでしょう','下馬評を覆しました。下馬評を出していたのは私です']
+      :an.upset?['下馬評では{L}が上でした。事実は、下馬評より強い','番狂わせです。Wikidataの記述ひとつで、ここまで変わるものなんですね','{L}陣営は、記事のどの一行に負けたのかを調べることになるでしょう','下馬評を覆しました。下馬評を出していたのは私です']
       :r.kind==='判定'?['判定です。両者、記事の続きで巻き返してほしい','15カウントでは決着がつきませんでした。記事の長さが足りなかったのかもしれません','判定勝ち。勝った側も、少し申し訳なさそうです']
       :r.tick<=4?['{W}、{t}カウントで終わらせました。記事を読む時間もありませんでした','早い。{L}は自己紹介の途中でした','開始早々の決着。{L}の記事は、いまも静かに公開されています']
-      :rem<0.1?['{W}、残りHPわずか。勝者も満身創痍です','紙一重でした。一行の加筆で結果は逆だったでしょう','{W}、立ってはいますが、記事の半分は持っていかれた気分でしょう']
+      :rem<0.1?['{W}、体力はわずか。勝者も満身創痍です','紙一重でした。一行の加筆で結果は逆だったでしょう','{W}、立ってはいますが、記事の半分は持っていかれた気分でしょう']
       :lm?['フィニッシュは【{lm}】。事実で殴るとは、こういうことです','最後は【{lm}】。{W}、記事に書いてあることを全部使い切りました','【{lm}】で決着。{L}も、書いてあることで精一杯戦いました','【{lm}】。この技を、記事の編集者は想定していなかったはずです']
       :['最後は普通に殴って決着。技を出し尽くしたあとは、記事の長さではなく気持ちです','技が尽きてからが本当の勝負でした。地味でしたが'];
     o.t=r.tick;
@@ -1028,23 +1028,23 @@ function startBattle(pair){
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
   <div class="scoreboard" id="sb">
-    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span><span class="hpn" id="hpnA">${r.max[0]} / ${r.max[0]}</span>`}</div>
+    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
     <div class="tick" id="tk">0</div>
-    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span><span class="hpn" id="hpnB">${r.max[1]} / ${r.max[1]}</span>`}</div>
+    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
   </div>
   <div class="plan"><div><b>${esc(F[ai][0])}</b>の技：${pickMoves(ai,bi).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div><div><b>${esc(F[bi][0])}</b>の技：${pickMoves(bi,ai).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div></div>
   <div class="logbar"><h3>実況</h3><div style="display:flex;gap:6px"><button type="button" class="btn small" id="skip">最後まで表示</button></div></div>
   <ol class="log" id="log">${r.log.map(l=>{
     if(l.side<0) return `<li class="${l.kai?'kai':'sys'} hide"><span class="t"></span><div class="bub">${mark(l.s)}</div></li>`;
     const tgt=l.side===0?F[bi][0]:F[ai][0]; const rem=l.side===0?l.hp[1]:l.hp[0];
-    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)} 残り${rem}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
+    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
   <div id="res"></div>`;
   ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
     if(an.type==='kurabe'){ const w=[0,0]; for(let k=0;k<=idx;k++){ const x=r.log[k]; if(x&&x.side>=0&&!x.kai) w[x.side]++; }
       ['A','B'].forEach((s,j)=>{ const ps=$('#pip'+s).children; for(let k=0;k<ps.length;k++) ps[k].classList.toggle('on',k<w[j]); $('#hpn'+s).textContent=w[j]+'本'; }); $('#tk').textContent=l.t; return; }
-    $('#hpA').style.width=(l.hp[0]/r.max[0]*100)+'%'; $('#hpB').style.width=(l.hp[1]/r.max[1]*100)+'%'; $('#hpnA').textContent=l.hp[0]+' / '+r.max[0]; $('#hpnB').textContent=l.hp[1]+' / '+r.max[1]; $('#tk').textContent=l.t; };
+    $('#hpA').style.width=(l.hp[0]/r.max[0]*100)+'%'; $('#hpB').style.width=(l.hp[1]/r.max[1]*100)+'%'; $('#tk').textContent=l.t; };
   const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));
@@ -1105,7 +1105,7 @@ function showResult(){
   if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; if(M.replay) title='【記録】'+title; }
   const how=r.how||(r.kind==='KO'?`${r.tick}カウントでKO勝ち`:r.kind==='判定'?'判定勝ち':'相打ち');
   let share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
-    `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'能力値では負けていた番狂わせ。':''}`;
+    `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'下馬評を覆す番狂わせ。':''}`;
   if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?`第${M.no+1}代王者に。`:x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`:''); }
   const TDY=current.today&&TD&&current.today.day===TD.day;
   if(TDY){ const me=tdLoad()[TD.day]||{}; const wi=w===null?null:(w===TD.a?0:1); const hit=(me.p===0||me.p===1)&&me.p===wi; const st=tdStreak({...tdLoad(),[TD.day]:{...me,done:1,hit}});
