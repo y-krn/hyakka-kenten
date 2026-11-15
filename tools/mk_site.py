@@ -1876,7 +1876,7 @@ repall("const b=await bucket(fnv(t)%NB); const rec=b[t]; if(!rec) return -1; ret
 repall(".facts{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 12px}", """:root{--ib-bg:#f8f9fa;--ib-hd:#eaecf0;--ib-bd:#a2a9b1;--ib-ink:#202122;--ib-mut:#54595d;--ib-ln:#3366cc}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}}
 :root[data-theme="dark"]{--ib-bg:#1f2229;--ib-hd:#2c303a;--ib-bd:#54595d;--ib-ink:#eaecf0;--ib-mut:#a2a9b1;--ib-ln:#88a3e8}
-.sechead h2{font-family:var(--f-cite);font-weight:900;font-size:22px;letter-spacing:.03em}
+.sechead h2{font-family:var(--f-cite);font-weight:900;font-size:24px;letter-spacing:.03em}
 .facts{border:1px solid var(--ib-bd);border-radius:2px;padding:0;background:var(--ib-bg);color:var(--ib-ink);overflow:hidden}""")
 repall(".facts .fh{font-weight:700;font-size:14px}", ".facts .fh{font-family:var(--f-cite);font-weight:900;font-size:16px;text-align:center;padding:8px 10px 6px}")
 repall(".facts ul{margin:6px 0 0;padding-left:1.2em;font-size:14px;line-height:1.7;overflow-wrap:anywhere}", ".facts ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.6;overflow-wrap:anywhere}\n.facts li{display:grid;grid-template-columns:minmax(4.5em,30%) 1fr;gap:8px;padding:5px 10px;border-top:1px solid var(--ib-hd)}\n.facts li .ik{font-weight:700}\n.facts li .ik:only-child{grid-column:1/-1}")
