@@ -335,8 +335,11 @@ const CL={};
 const realN=i=>POOL[i].filter(m=>m[7]!=='meta'&&m[7]!=='wp'&&!GENN.has(m[1])&&!['NAME','SENIORITY'].includes(m[0])).length;
 const PHYS=['h','e','m','a','p','l','d','s'], PCNT=['P800','P166','P1343','P40','P106','P398','P190'], METAD=['_sl','_pv','_ch'];
 const RLAB={h:'高さ',e:'標高',m:'重さ',a:'面積',p:'人口',l:'長さ',d:'深さ',s:'速さ',P800:'代表作の数',P166:'受賞の数',P1343:'載っている事典の数',P40:'子どもの数',P106:'肩書きの数',P398:'従える天体の数',P190:'姉妹都市の数',_sl:'言語版の数',_pv:'1年間の閲覧数',_ch:'記事の文字数',yr:'古さ（生まれた・できた年）'};
-function rounds(i,j){ const out=[]; const add=k=>{ if(k==='h'&&!((QT[i]||{}).h>0&&(QT[j]||{}).h>0)) return; const a=dimv(i,k), b=dimv(j,k); if(a!==null&&b!==null&&a!==b) out.push({k,a,b}); };
-  PHYS.forEach(add); PCNT.forEach(add); if(F[i][8]!==null&&F[j][8]!==null&&F[i][8]!==F[j][8]) out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); METAD.forEach(add); return out; }
+const EXL={P166:'受賞',P800:'主要作品',P40:'子',P106:'職業'};
+const exN=(i,k)=>{ const L=EXL[k]; if(!L) return ''; const m=(POOL[i]||F[i][7]||[]).find(m=>m&&m[3]&&String(m[3]).startsWith(L+'：')); if(!m) return ''; const n=String(m[3]).slice(L.length+1).split(/、| など/)[0].trim(); return n?'（'+n+'など）':''; };   // 数に添える代表例
+const isH=(i,j)=>!!(CL[i]&&CL[j]&&CL[i][1]==='ヒト'&&CL[j][1]==='ヒト');
+function rounds(i,j){ const out=[]; const hh=isH(i,j); const add=k=>{ if(hh&&k==='P1343') return; if(k==='h'&&!((QT[i]||{}).h>0&&(QT[j]||{}).h>0)) return; const a=dimv(i,k), b=dimv(j,k); if(a!==null&&b!==null&&a!==b) out.push({k,a,b}); };
+  PHYS.forEach(add); PCNT.forEach(add); if(F[i][8]!==null&&F[j][8]!==null&&F[i][8]!==F[j][8]) out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); if(!hh) METAD.forEach(add); return out; }
 function matchType(ai,bi,an){ const r=an.r;
   if(r.riv) return 'innen';
   const cs=CL[ai], cb=CL[bi], R=rounds(ai,bi), nPhys=R.filter(x=>PHYS.includes(x.k)).length, nReal=R.filter(x=>!METAD.includes(x.k)).length;
@@ -458,10 +461,11 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     const log=[sys(P(['【比べ合い】本日、殴り合いは行わない。両者の数字を、厳正に比べる。','【比べ合い】両者、拳を収める。ここからは数字の格闘技だ。','【比べ合い】ジャッジ陣が入場する。手にしているのは物差しと電卓である。'])),
       sys(P(['{n}本勝負。数字の大きいほうが1本を取る。それ以上でも以下でもない。','{n}本勝負。勝敗は、すでにWikipediaに書いてある。'],{n}))];
     const KANJI=['一','二','三','四','五'];
-    Q.forEach((x,k)=>{ const aw=x.a>x.b; const W=aw?A:B, L=aw?B:A; const va=fmtR(x.k,x.a), vb=fmtR(x.k,x.b); const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);
+    Q.forEach((x,k)=>{ const aw=x.a>x.b; const W=aw?A:B, L=aw?B:A; const va=fmtR(x.k,x.a)+exN(ai,x.k), vb=fmtR(x.k,x.b)+exN(bi,x.k); const ratio=Math.max(x.a,x.b)/Math.min(x.a,x.b);
       const o={A,B,W,L,va,vb,lab:RLAB[x.k],k:k+1};
       let intro;
-      if(x.k==='yr') intro=P(['{k}本目、古さ。{A}は{va}から、{B}は{vb}から存在していると申告する。','{k}本目、古さ。両者、戸籍に相当する資料を提出する。{A}、{va}。{B}、{vb}。'],o);
+      if(x.k==='yr'&&isH(ai,bi)) intro=P(['{k}本目、年功序列。{A}は{va}生まれ、{B}は{vb}生まれ。先に生まれたほうが1本。','{k}本目、生まれた年。{A}、{va}。{B}、{vb}。先輩が1本を取る決まりだ。'],o);
+      else if(x.k==='yr') intro=P(['{k}本目、古さ。{A}は{va}から、{B}は{vb}から存在していると申告する。','{k}本目、古さ。両者、戸籍に相当する資料を提出する。{A}、{va}。{B}、{vb}。'],o);
       else if(x.k==='_sl') intro=P(['{k}本目、言語版の数。{A}、{va}分の翻訳者を引き連れて入場。{B}は{vb}。','{k}本目、言語版の数。両陣営、各国語版の名刺を並べる。{A}、{va}。{B}、{vb}。'],o);
       else if(x.k==='_pv') intro=P(['{k}本目、1年間の閲覧数。両陣営、アクセス解析の結果を厳粛に提出する。{A}、{va}。{B}、{vb}。','{k}本目、閲覧数。どれだけ読まれたかで殴る、最も現代的な1本。{A}、{va}。{B}、{vb}。'],o);
       else if(x.k==='_ch') intro=P(['{k}本目、記事の文字数。両者、記事を印刷して持ち込む。{A}は{va}、{B}は{vb}。','{k}本目、文字数。{A}の記事は{va}、{B}は{vb}。ジャッジ陣は全文を読まずに数えた。'],o);

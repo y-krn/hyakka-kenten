@@ -1853,6 +1853,18 @@ repall("'ジャッジ陣、残りHPの差で'", "'ジャッジ陣、残りの体
 repall("<span>勝ち抜き最高 <b>${rec.best}</b>連勝</span>", "<span>最長 <b>${rec.best}</b>連勝を目撃</span>")
 repall("仲間図鑑", "仲間さがし")
 
+# ---- 85. 試作：人物どうしの比べ合いを、記事の数字ではなくその人の事実で行う ----
+#   ・人物どうしでは、記事の文字数・閲覧数・言語版の数・載っている事典の数を比べない（その人の事実ではないため）。比べる事実が足りなければ、比べ合いにせず殴り合いにする
+#   ・受賞・代表作・子ども・職業の数には、代表的なもの1つの名前を添える（数だけでは何も分からないため）
+#   ・生まれた年は「先輩が1本」として見せる
+repall("function rounds(i,j){ const out=[]; const add=k=>{ if(k==='h'&&",
+       "const EXL={P166:'受賞',P800:'主要作品',P40:'子',P106:'職業'};\nconst exN=(i,k)=>{ const L=EXL[k]; if(!L) return ''; const m=(POOL[i]||F[i][7]||[]).find(m=>m&&m[3]&&String(m[3]).startsWith(L+'：')); if(!m) return ''; const n=String(m[3]).slice(L.length+1).split(/、| など/)[0].trim(); return n?'（'+n+'など）':''; };   // 数に添える代表例\nconst isH=(i,j)=>!!(CL[i]&&CL[j]&&CL[i][1]==='ヒト'&&CL[j][1]==='ヒト');\nfunction rounds(i,j){ const out=[]; const hh=isH(i,j); const add=k=>{ if(hh&&k==='P1343') return; if(k==='h'&&")
+repall("out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); METAD.forEach(add); return out; }",
+       "out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); if(!hh) METAD.forEach(add); return out; }")
+repall("const va=fmtR(x.k,x.a), vb=fmtR(x.k,x.b);", "const va=fmtR(x.k,x.a)+exN(ai,x.k), vb=fmtR(x.k,x.b)+exN(bi,x.k);")
+repall("if(x.k==='yr') intro=P([",
+       "if(x.k==='yr'&&isH(ai,bi)) intro=P(['{k}本目、年功序列。{A}は{va}生まれ、{B}は{vb}生まれ。先に生まれたほうが1本。','{k}本目、生まれた年。{A}、{va}。{B}、{vb}。先輩が1本を取る決まりだ。'],o);\n      else if(x.k==='yr') intro=P([")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
