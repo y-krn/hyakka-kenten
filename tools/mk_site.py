@@ -1943,7 +1943,7 @@ repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {
       const sh=document.createElement('div'); sh.className='fnsh'; sh.setAttribute('role','dialog'); sh.setAttribute('aria-label','引用');
       sh.innerHTML='<div class="fnshh"><span>引用</span><button type="button" class="btn small" aria-label="閉じる">×</button></div><div class="fnshb"><span class="fnshn">['+n+']</span> '+li.querySelector('.fnc').innerHTML+'</div>';
       sh.querySelector('button').onclick=close; document.body.append(ov,sh); sh.querySelector('button').focus(); }); }
-  const fnAsof=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);   // データの時点（フッターの記載から）
+  const fnAsof=((document.querySelector('footer')||{}).textContent||'').match(/(\\d{4}年\\d+月\\d+日)時点/);   // データの時点（フッターの記載から）
   const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';""")
 repall("<div class=\"bub\"><div>${mark(l.s)}</div>${l.d>0?", "<div class=\"bub\"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?")
 repall("  <div id=\"res\"></div>`;\n  ring.scrollIntoView(", """  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a class="fnb" href="#fnr${n+1}" aria-label="本文に戻る">^</a> <span class="fnc">“<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a>”. ${esc(x.t)}. ${fnSrc(x.t)}${fnAsof?' ('+fnAsof[1]+'時点)':''}.</span></li>`).join('')}</ol></div>`:''}`;
