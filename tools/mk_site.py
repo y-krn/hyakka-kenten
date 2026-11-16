@@ -1978,6 +1978,11 @@ repall(".log li{display:grid;", """#ring[hidden]+.toc,#ring:not(:has(.result))+.
 .toc a{color:var(--a)}.toc small{color:var(--muted);margin-left:8px;font-size:12px}
 .log li{display:grid;""")
 
+# ---- 98. 実況の「最後まで表示」を「結果に移動」に（Wikipediaの「ナビゲーションに移動」に倣う）。押したら結果の札へ移り、決着したらボタンを隠す
+repall('id="skip">最後まで表示</button>', 'id="skip">結果に移動</button>')
+repall("setHP(items.length-1); showResult(); };", "setHP(items.length-1); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };")
+repall(".log li{display:grid;", "#ring:has(.result) #skip{display:none}\n.log li{display:grid;")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
