@@ -1929,6 +1929,55 @@ repall("function clientId(){ try{ let c=localStorage.getItem('hk-cid');", """fun
 setTimeout(sendVisit,1500);
 function clientId(){ try{ let c=localStorage.getItem('hk-cid');""")
 
+# ---- 96. 試作：最初の1戦のあと、次の遊びへつなぐ（自由対戦の結果の札だけ）
+#   ・「次の相手」：試合の中に出てきた記事（召喚された仲間など）を並べ、押すと「勝った記事 対 その記事」がすぐ始まる。記事名はボタンにせず、下線付きの文字にする
+repall("""    <div class="share"><output id="share">${esc(share)}</output></div>""", """    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
+    <div class="share"><output id="share">${esc(share)}</output></div>""")
+repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
+  { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
+      const rel=(i,p)=>{ const L=(MAP[p]||[])[2]; if(!L) return ''; return L.includes('{A}')?L.replace('{A}',F[i][0]):F[i][0]+'の'+L; };   // 「富士山を描いた作品」「富士山の材料」
+      const put=(t,r)=>{ t=String(Array.isArray(t)?t[0]:t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push({t,r}); } };
+      /* 候補の元：各記事の技（POOL）に出てくる記事と、EXT の事実。勝った側を先に */
+      const src=[]; for(const i of [me,me===ai?bi:ai]){
+        for(const m of ((typeof POOL!=='undefined'&&POOL[i])||[])){ if(m.includes('meta')) continue; const d=String(m[3]||''); const k=d.indexOf('：'); if(k<1) continue; const lab=F[i][0]+'の'+d.slice(0,k);
+          const ts=Array.isArray(m[7])&&Array.isArray(m[7][0])?m[7].map(x=>x[0]):d.slice(k+1).replace(/など(全)?[0-9,]+件$/,'').split('・');
+          for(const t of ts) src.push([t,lab]); }
+        for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) src.push([t,rel(i,e[0])]);
+      }
+      const used=new Set(); for(const l of r.log) for(const t of tgtNames(l.mv)) used.add(t);   // 試合で召喚された記事を先に
+      for(const [t,r2] of src) if(used.has(String(Array.isArray(t)?t[0]:t).trim())) put(t,r2);
+      for(const [t,r2] of src) put(t,r2);   // 2つの記事の事実に出てくる記事（関係を添える）
+      (async()=>{ const ok=[]; for(const c of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(c.t)) ok.push(c); }catch(_){} }
+        if(!ok.length||!document.body.contains(box)) return;
+        { const h=box.querySelector('span'); if(h) h.textContent=F[me][0]+'の次の相手'; }   // 誰の相手かを見出しに出す
+        box.insertAdjacentHTML('beforeend',ok.map(c=>`<div><a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(c.t)}" data-t="${esc(c.t)}">${esc(c.t)}</a>${c.r?`<small>（${esc(c.r)}）</small>`:''}</div>`).join('')); box.hidden=false;
+        box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
+  if($('#cont')) $('#cont').onclick=async()=>{""")
+
+
+repall(".result .tdnote{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdnote{")   # 次の相手は1行に1件（関係を添えるので）
+
+# ---- 97. 試作：遊びの目次（Wikipediaの「目次」風）。試合の結果が出てから（#ring に .result ができてから）、その下に出す
+#   外部リンクで試合から入った人にも、ほかの遊びがあると分かるように。押すとその遊びの場所へ移動する
+repall("""  <section id="ring" class="ring" hidden></section>
+""", """  <section id="ring" class="ring" hidden></section>
+  <nav class="toc" aria-label="遊びの目次"><div class="toch">目次</div><ol>
+    <li><a href="#today" onclick="event.preventDefault();document.getElementById('today').scrollIntoView()">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
+    <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView()">王座戦</a><small>王者に挑んで王座を奪う</small></li>
+    <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#setup" onclick="event.preventDefault();document.getElementById('setup').scrollIntoView()">自由対戦</a><small>好きな2記事を戦わせる</small></li>
+    <li><a href="#find" onclick="event.preventDefault();document.getElementById('find').scrollIntoView()">見つける</a><small>意外な仲間や一門を探す</small></li>
+  </ol></nav>
+""")
+repall(".log li{display:grid;", """#ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
+.toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
+.toc .toch{font-weight:700;text-align:center;margin-bottom:4px}
+.toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}
+.toc li{counter-increment:toc;line-height:1.9}
+.toc li::before{content:counter(toc);color:var(--muted);display:inline-block;min-width:1.4em}
+.toc a{color:var(--a)}.toc small{color:var(--muted);margin-left:8px;font-size:12px}
+.log li{display:grid;""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
