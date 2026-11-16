@@ -2005,6 +2005,12 @@ repall('id="skip">最後まで表示</button>', 'id="skip">結果に移動</butt
 repall("setHP(items.length-1); showResult(); };", "setHP(items.length-1); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };")
 repall(".log li{display:grid;", "#ring:has(.result) #skip{display:none}\n.log li{display:grid;")
 
+# ---- 99. 自由対戦の記事名の入力欄：押したら中身を消して、すぐ別の記事名を入れられるようにする。何も入れずに離れたら元の記事名に戻す
+repall("famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));",
+"""famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));
+  { let keep=''; inp.addEventListener('focus',()=>{ if(sel[side]!==null&&inp.value.trim()===F[sel[side]][0]){ keep=inp.value; inp.value=''; updateFight(); } });
+    inp.addEventListener('blur',()=>{ if(keep&&!inp.value.trim()&&sel[side]!==null){ inp.value=keep; updateFight(); } keep=''; }); }""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
