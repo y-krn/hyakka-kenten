@@ -1196,10 +1196,17 @@ function showResult(){
   // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
       const rel=(i,p)=>{ const L=(MAP[p]||[])[2]; if(!L) return ''; return L.includes('{A}')?L.replace('{A}',F[i][0]):F[i][0]+'の'+L; };   // 「富士山を描いた作品」「富士山の材料」
-      const put=(t,i,p)=>{ t=String(Array.isArray(t)?t[0]:t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push({t,r:rel(i,p)}); } };
+      const put=(t,r)=>{ t=String(Array.isArray(t)?t[0]:t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push({t,r}); } };
+      /* 候補の元：各記事の技（POOL）に出てくる記事と、EXT の事実。勝った側を先に */
+      const src=[]; for(const i of [me,me===ai?bi:ai]){
+        for(const m of ((typeof POOL!=='undefined'&&POOL[i])||[])){ if(m.includes('meta')) continue; const d=String(m[3]||''); const k=d.indexOf('：'); if(k<1) continue; const lab=F[i][0]+'の'+d.slice(0,k);
+          const ts=Array.isArray(m[7])&&Array.isArray(m[7][0])?m[7].map(x=>x[0]):d.slice(k+1).replace(/など(全)?[0-9,]+件$/,'').split('・');
+          for(const t of ts) src.push([t,lab]); }
+        for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) src.push([t,rel(i,e[0])]);
+      }
       const used=new Set(); for(const l of r.log) for(const t of tgtNames(l.mv)) used.add(t);   // 試合で召喚された記事を先に
-      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) if(used.has(String(Array.isArray(t)?t[0]:t))) put(t,i,e[0]);
-      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) put(t,i,e[0]);   // 2つの記事の事実に出てくる記事（関係を添える）
+      for(const [t,r2] of src) if(used.has(String(Array.isArray(t)?t[0]:t).trim())) put(t,r2);
+      for(const [t,r2] of src) put(t,r2);   // 2つの記事の事実に出てくる記事（関係を添える）
       (async()=>{ const ok=[]; for(const c of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(c.t)) ok.push(c); }catch(_){} }
         if(!ok.length||!document.body.contains(box)) return;
         { const h=box.querySelector('span'); if(h) h.textContent=F[me][0]+'の次の相手'; }   // 誰の相手かを見出しに出す
