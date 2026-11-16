@@ -1973,11 +1973,11 @@ repall(".result .tdnote{", ".result .nextops{flex-direction:column;align-items:f
 repall("""  <section id="ring" class="ring" hidden></section>
 """, """  <section id="ring" class="ring" hidden></section>
   <nav class="toc" aria-label="遊びの目次"><div class="toch">目次</div><ol>
-    <li><a href="#today" onclick="event.preventDefault();document.getElementById('today').scrollIntoView({behavior:'smooth',block:'start'})">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
-    <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView({behavior:'smooth',block:'start'})">王座戦</a><small>王者に挑んで王座を奪う</small></li>
-    <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView({behavior:'smooth',block:'start'})">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
-    <li><a href="#setup" onclick="event.preventDefault();document.getElementById('setup').scrollIntoView({behavior:'smooth',block:'start'})">自由対戦</a><small>好きな2記事を戦わせる</small></li>
-    <li><a href="#find" onclick="event.preventDefault();document.getElementById('find').scrollIntoView({behavior:'smooth',block:'start'})">見つける</a><small>意外な仲間や一門を探す</small></li>
+    <li><a href="#today" onclick="event.preventDefault();document.getElementById('today').scrollIntoView()">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
+    <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView()">王座戦</a><small>王者に挑んで王座を奪う</small></li>
+    <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#setup" onclick="event.preventDefault();document.getElementById('setup').scrollIntoView()">自由対戦</a><small>好きな2記事を戦わせる</small></li>
+    <li><a href="#find" onclick="event.preventDefault();document.getElementById('find').scrollIntoView()">見つける</a><small>意外な仲間や一門を探す</small></li>
   </ol></nav>
 """)
 repall(".log li{display:grid;", """#ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
