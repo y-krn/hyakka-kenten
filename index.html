@@ -1030,7 +1030,9 @@ function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=se
   el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
   <div class="pmsg" aria-live="polite"></div>
   ${i===null?'<div class="empty">'+N.toLocaleString('ja-JP')+'記事から選べます。日本語版Wikipediaの記事名を入れてください。</div>':fighterCard(i)}`;
-  famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, seq=0, OPT=new Set();
+  famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));
+  { let keep=''; inp.addEventListener('focus',()=>{ if(sel[side]!==null&&inp.value.trim()===F[sel[side]][0]){ keep=inp.value; inp.value=''; updateFight(); } });
+    inp.addEventListener('blur',()=>{ if(keep&&!inp.value.trim()&&sel[side]!==null){ inp.value=keep; updateFight(); } keep=''; }); } let tm=null, seq=0, OPT=new Set();
   inp.addEventListener('input',()=>{ updateFight(); clearTimeout(tm); const v=inp.value.trim(); if(!v) return; tm=setTimeout(async()=>{ const my=++seq;
     try{ const list=await suggest(v,t=>t===champTitle()); if(my!==seq) return; OPT=new Set(list);
       showSugg(inp,dl,list);
