@@ -62,6 +62,8 @@ curl -X POST https://<APIのURL>/api/admin/hide -H "Authorization: Bearer <ADMIN
 
 訪問数などを知るために、Cloudflare Web Analytics を使っています。Cookieは使わず、個人を特定する情報も集めません。
 
+ゲームの側でも、ページを開いたブラウザの数を1日1回だけ数えています。送るのは、ブラウザごとの乱数の番号（サーバーで別の値に変換して保存）、来た元のサイトの名前（URLの残りは送りません）、スマホかどうか、初めて開いたかどうかだけです。
+
 ## お断り
 
 百科拳典は個人が作った非公式のゲームです。Wikipedia・WikidataおよびWikimedia Foundationとは関係がなく、提携や承認も受けていません。WikipediaはWikimedia Foundationの登録商標です。

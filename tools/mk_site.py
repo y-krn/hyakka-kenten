@@ -1921,6 +1921,14 @@ repall("return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }", "return al
 #   例：{"長濱ねる": {"所属グループ": ["欅坂46（現・櫻坂46）", "けやき坂46（現・日向坂46）"]}}。改名したグループが今の名前で出てしまうときに使う
 repall("    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){", "    for(const [p,d] of Object.entries(MAP)) if(Array.isArray(fx[d[2]])&&fx[d[2]].length) rec.ext=(rec.ext||[]).map(e=>e[0]===p?[e[0],e[1],fx[d[2]]]:e);\n    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){")
 
+# ---- 95. ページを開いたブラウザを、1日1回だけ数える（/api/visit）。来た元のサイト名・スマホか・初めてかも添える。確認用（nostat）のブラウザは数えない ----
+repall("function clientId(){ try{ let c=localStorage.getItem('hk-cid');", """function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-vday')===day) return;
+    const fresh=!localStorage.getItem('hk-cid'); let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
+    const mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({client:clientId(),ref,mob,fresh}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-vday',day); }).catch(()=>{}); }catch(_){} }
+setTimeout(sendVisit,1500);
+function clientId(){ try{ let c=localStorage.getItem('hk-cid');""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

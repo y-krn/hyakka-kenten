@@ -87,6 +87,18 @@ try {
   if (start < new Date('2026-11-12T15:00:00Z')) L.push('  - ※内訳は11月5日夜から数え始めたので、この週と前の週の比べは参考になりません');
   globalThis.KW = kw;
 } catch (_) {}
+// ---------- 開いた人から遊んだ人まで（11月16日から数えている。表がまだなければ出さない） ----------
+try {
+  const VQ = "SELECT COUNT(DISTINCT client) AS v, COUNT(DISTINCT CASE WHEN fresh = 1 THEN client END) AS nw, COUNT(DISTINCT CASE WHEN mob = 1 THEN client END) AS mb FROM visits WHERE at >= ? AND at < ?";
+  const PL = "SELECT COUNT(*) AS p1, COALESCE(SUM(s >= 2), 0) AS p2, COALESCE(SUM(s >= 5), 0) AS p5 FROM (SELECT v.client, COALESCE((SELECT SUM(n) FROM plays p WHERE p.client = v.client AND p.at >= ? AND p.at < ?), 0) AS s FROM (SELECT DISTINCT client FROM visits WHERE at >= ? AND at < ?) v) WHERE s >= 1";
+  const [vw, vp, fw, refs] = await Promise.all([one(VQ, W), one(VQ, P), one(PL, [...W, ...W]),
+    q("SELECT ref, COUNT(DISTINCT client) AS u FROM visits WHERE at >= ? AND at < ? AND ref IS NOT NULL GROUP BY ref ORDER BY u DESC LIMIT 6", W)]);
+  if (vw.v) {
+    L.push(`- 開いたブラウザ ${n(vw.v)} ${diff(vw.v, vp.v)}（初めて ${n(vw.nw)}・スマホ ${n(vw.mb)}）`);
+    L.push(`  - そのうち1戦以上 ${n(fw.p1)}（${Math.round(fw.p1 / vw.v * 100)}%）、2戦以上 ${n(fw.p2)}（${Math.round(fw.p2 / vw.v * 100)}%）、5戦以上 ${n(fw.p5)}（${Math.round(fw.p5 / vw.v * 100)}%）`);
+    L.push('  - 来た元：' + (refs.length ? refs.map(r => `${r.ref} ${n(r.u)}`).join('、') + '、ほかは直接・不明' : '直接・不明のみ'));
+  }
+} catch (_) {}
 L.push(`- 王座戦の挑戦 ${n(cw.n)}回 ${diff(cw.n, cp.n)}、挑んだブラウザ ${n(cw.u)}、王座奪取 ${n(cw.w)}回`);
 if (daily.length) L.push('- 日別の対戦（王座戦以外）：' + daily.map(r => `${+r.d.slice(5, 7)}/${+r.d.slice(8)} ${n(r.n)}`).join('、'));
 if (topCh.length) L.push('- よく挑まれた記事：' + topCh.map(r => `${r.display} ${r.n}回`).join('、'));

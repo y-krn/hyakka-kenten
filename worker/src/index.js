@@ -4,6 +4,7 @@
 //   POST /api/challenge         … {title, name} で王者に挑む。勝敗はサーバーで計算し直して決める
 //   POST /api/report            … {reason, a, b, target, fact?, fix?, text?, url?} 利用者からの報告（数字や事実の誤り・内容が不適切）
 //   GET  /api/holds             … 報告を受けて、確かめるまで今日の一戦とランダムに出さない記事
+//   POST /api/visit             … {client, ref, mob, fresh} ページを開いたブラウザを1日1回数える（どこから来たか・スマホか・初めてか）
 //   POST /api/plays             … {n, k:{t,m,f,d}, client} 自由対戦などの対戦数（ブラウザでまとめて数えたもの）を足す。k は遊び方ごとの内訳
 //   GET  /og/c/番号.jpg          … 王座戦の試合ごとの共有画像
 //   GET  /api/og/pending        … 画像がまだない挑戦の一覧（管理用。GitHub Actions が使う）
@@ -206,6 +207,18 @@ async function plays(env, req) {
   catch (_) { try { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client, kt, km, kf) VALUES (?,?,?,?,?,?,?)').bind(add, now(), ih, cl, K.t, K.m, K.f), st]); }   // ダンジョンの列がまだないとき
   catch (_) { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl), st]); } }   // 内訳の列がまだないとき
   return json(env, req, { ok: true, added: add });
+}
+
+// ページを開いたブラウザを数える。ブラウザごとの乱数番号を変換したもの（plays の client と同じ）で、同じ日の2回目からは数えない
+//   Cloudflare Web Analytics は iPhone の Safari などで数え漏れるので、ゲームの側でも数える。Cookie・個人を表す情報は使わない
+async function visit(env, req) {
+  let body; try { body = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
+  if (!/^[a-z0-9]{16,40}$/.test(String(body.client || ''))) return json(env, req, { error: 'bad' }, 400);
+  const cl = await ipHash(env, { headers: { get: () => 'client:' + body.client } });
+  const ref = /^[a-z0-9.-]{1,80}$/.test(String(body.ref || '')) ? String(body.ref) : null;   // 来た元のサイトの名前だけ（URLの残りは受け取らない）
+  const day = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);   // 日本時間の日付
+  await env.DB.prepare('INSERT OR IGNORE INTO visits (day, client, at, ref, mob, fresh) VALUES (?,?,?,?,?,?)').bind(day, cl, now(), ref, body.mob ? 1 : 0, body.fresh ? 1 : 0).run();
+  return json(env, req, { ok: true });
 }
 
 // ---------- 王座戦の共有画像 ----------
@@ -416,6 +429,7 @@ export default {
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
+      if (u.pathname === '/api/visit' && req.method === 'POST') return await visit(env, req);
       if (u.pathname === '/api/report' && req.method === 'POST') return await report(env, req, ctx);
       if (u.pathname === '/api/holds' && req.method === 'GET') return await holds(env, req, ctx);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);

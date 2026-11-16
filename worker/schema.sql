@@ -45,3 +45,6 @@ CREATE TABLE IF NOT EXISTS ogimg (id INTEGER PRIMARY KEY, img BLOB NOT NULL, at 
 -- 利用者からの報告（数字が違う・内容が不適切）。名前やメールアドレスは持たない
 CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, iphash TEXT NOT NULL, client TEXT, kind TEXT NOT NULL, a TEXT, b TEXT, target TEXT, text TEXT, url TEXT, status TEXT NOT NULL DEFAULT 'new', reason TEXT, title TEXT, fk TEXT, fv TEXT, fix TEXT, rkey TEXT);
 CREATE INDEX IF NOT EXISTS rep_ip ON reports(iphash, at);
+-- ページを開いたブラウザ（1日1回。client は plays と同じ変換をした番号。ref は来た元のサイト名だけ）
+CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, client TEXT NOT NULL, at TEXT NOT NULL, ref TEXT, mob INTEGER NOT NULL DEFAULT 0, fresh INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, client));
+CREATE INDEX IF NOT EXISTS visits_at ON visits(at);

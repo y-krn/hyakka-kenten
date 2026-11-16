@@ -1,0 +1,3 @@
+-- ページを開いたブラウザを数える表を作る
+CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, client TEXT NOT NULL, at TEXT NOT NULL, ref TEXT, mob INTEGER NOT NULL DEFAULT 0, fresh INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, client));
+CREATE INDEX IF NOT EXISTS visits_at ON visits(at);
