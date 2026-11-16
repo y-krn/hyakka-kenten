@@ -1942,15 +1942,8 @@ repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:
 
 # ---- 96. 試作：最初の1戦のあと、次の遊びへつなぐ（自由対戦の結果の札だけ）
 #   ・「次の相手」：試合の中に出てきた記事（召喚された仲間など）を並べ、押すと「勝った記事 対 その記事」がすぐ始まる。記事名はボタンにせず、下線付きの文字にする
-#   ・「今日の一戦」：その日まだ観戦していなければ、結果の札の下で予想を受け付け、そのまま観戦できるようにする
 repall("""    <div class="share"><output id="share">${esc(share)}</output></div>""", """    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>""")
-repall("""      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
-    </div>""", """      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
-    </div>
-    ${(()=>{ if(TDY||M||!TD) return ''; const me=tdLoad()[TD.day]||{}; if(me.done) return '';   // 今日の一戦をまだ観戦していない人にだけ
-      const nm=i=>esc(F[i][0]); return me.p===0||me.p===1||me.p===null?`<div class="tdinv"><div class="sub">今日の一戦：${nm(TD.a)} 対 ${nm(TD.b)}</div><div class="tdrow"><button type="button" class="btn" id="tdinvgo">観戦する</button></div></div>`
-        :`<div class="tdinv"><div class="sub">今日の一戦：どっちが勝つ？</div><div class="tdbtn"><button type="button" class="btn pa" data-tdp="0">${nm(TD.a)}</button><button type="button" class="btn pb" data-tdp="1">${nm(TD.b)}</button></div></div>`; })()}""")
 repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
       const rel=(i,p)=>{ const L=(MAP[p]||[])[2]; if(!L) return ''; return L.includes('{A}')?L.replace('{A}',F[i][0]):F[i][0]+'の'+L; };   // 「富士山を描いた作品」「富士山の材料」
@@ -1970,14 +1963,10 @@ repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：
         { const h=box.querySelector('span'); if(h) h.textContent=F[me][0]+'の次の相手'; }   // 誰の相手かを見出しに出す
         box.insertAdjacentHTML('beforeend',ok.map(c=>`<div><a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(c.t)}" data-t="${esc(c.t)}">${esc(c.t)}</a>${c.r?`<small>（${esc(c.r)}）</small>`:''}</div>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
-  { const tgo=()=>{ if(!TD) return; if(isChamp(TD.a)||isChamp(TD.b)){ todayDraw(); $('#today').scrollIntoView({behavior:'smooth',block:'start'}); return; } TODAYF={day:TD.day}; startBattle([TD.a,TD.b]); };
-    document.querySelectorAll('#res [data-tdp]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[TD.day]={p:+x.dataset.tdp}; tdSave(o); todayDraw(); tgo(); });
-    if($('#tdinvgo')) $('#tdinvgo').onclick=tgo; }
   if($('#cont')) $('#cont').onclick=async()=>{""")
 
-repall(".result .tdnote{", ".result .tdinv{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:8px}\n.result .tdinv .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n.result .tdnote{")   # 結果の札の中の、今日の一戦への誘い
 
-repall(".result .tdinv{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdinv{")   # 次の相手は1行に1件（関係を添えるので）
+repall(".result .tdnote{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdnote{")   # 次の相手は1行に1件（関係を添えるので）
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')

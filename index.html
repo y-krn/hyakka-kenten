@@ -182,8 +182,6 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 /* 結果 */
 .result{padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--ink);color:var(--bg);border-radius:6px}
 .result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}
-.result .tdinv{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:8px}
-.result .tdinv .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .result .tdnote{margin:0;background:var(--hl);color:var(--ink);font-weight:700}
 #res .result{scroll-margin-top:120px}
 #today .mlink,#today .tdcal>summary,.flink{padding:10px 0;margin:-4px 0}
@@ -1168,9 +1166,6 @@ function showResult(){
       <button type="button" class="btn" id="back">選び直す</button>
       ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
     </div>
-    ${(()=>{ if(TDY||M||!TD) return ''; const me=tdLoad()[TD.day]||{}; if(me.done) return '';   // 今日の一戦をまだ観戦していない人にだけ
-      const nm=i=>esc(F[i][0]); return me.p===0||me.p===1||me.p===null?`<div class="tdinv"><div class="sub">今日の一戦：${nm(TD.a)} 対 ${nm(TD.b)}</div><div class="tdrow"><button type="button" class="btn" id="tdinvgo">観戦する</button></div></div>`
-        :`<div class="tdinv"><div class="sub">今日の一戦：どっちが勝つ？</div><div class="tdbtn"><button type="button" class="btn pa" data-tdp="0">${nm(TD.a)}</button><button type="button" class="btn pb" data-tdp="1">${nm(TD.b)}</button></div></div>`; })()}
   </div>
   ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
     <form class="repf" id="repf" hidden novalidate>
@@ -1212,9 +1207,6 @@ function showResult(){
         { const h=box.querySelector('span'); if(h) h.textContent=F[me][0]+'の次の相手'; }   // 誰の相手かを見出しに出す
         box.insertAdjacentHTML('beforeend',ok.map(c=>`<div><a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(c.t)}" data-t="${esc(c.t)}">${esc(c.t)}</a>${c.r?`<small>（${esc(c.r)}）</small>`:''}</div>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
-  { const tgo=()=>{ if(!TD) return; if(isChamp(TD.a)||isChamp(TD.b)){ todayDraw(); $('#today').scrollIntoView({behavior:'smooth',block:'start'}); return; } TODAYF={day:TD.day}; startBattle([TD.a,TD.b]); };
-    document.querySelectorAll('#res [data-tdp]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[TD.day]={p:+x.dataset.tdp}; tdSave(o); todayDraw(); tgo(); });
-    if($('#tdinvgo')) $('#tdinvgo').onclick=tgo; }
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
