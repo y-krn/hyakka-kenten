@@ -1953,12 +1953,14 @@ repall("""      ${current.orig&&current.orig.k==='fam'?'<button type="button" cl
         :`<div class="tdinv"><div class="sub">今日の一戦：どっちが勝つ？</div><div class="tdbtn"><button type="button" class="btn pa" data-tdp="0">${nm(TD.a)}</button><button type="button" class="btn pb" data-tdp="1">${nm(TD.b)}</button></div></div>`; })()}""")
 repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
-      const put=t=>{ t=String(t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } };
-      for(const l of r.log) for(const t of tgtNames(l.mv)) put(t);   // 試合で召喚された記事
-      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343') for(const t of (Array.isArray(e[2])?e[2]:[])) put(t);   // 2つの記事の事実に出てくる記事（所在地・所属先など）
-      (async()=>{ const ok=[]; for(const t of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(t)) ok.push(t); }catch(_){} }
+      const rel=(i,p)=>{ const L=(MAP[p]||[])[2]; if(!L) return ''; return L.includes('{A}')?L.replace('{A}',F[i][0]):F[i][0]+'の'+L; };   // 「富士山を描いた作品」「富士山の材料」
+      const put=(t,i,p)=>{ t=String(Array.isArray(t)?t[0]:t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push({t,r:rel(i,p)}); } };
+      const used=new Set(); for(const l of r.log) for(const t of tgtNames(l.mv)) used.add(t);   // 試合で召喚された記事を先に
+      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) if(used.has(String(Array.isArray(t)?t[0]:t))) put(t,i,e[0]);
+      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) put(t,i,e[0]);   // 2つの記事の事実に出てくる記事（関係を添える）
+      (async()=>{ const ok=[]; for(const c of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(c.t)) ok.push(c); }catch(_){} }
         if(!ok.length||!document.body.contains(box)) return;
-        box.insertAdjacentHTML('beforeend',ok.map(t=>`<a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(t)}</a>`).join('')); box.hidden=false;
+        box.insertAdjacentHTML('beforeend',ok.map(c=>`<div><a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(c.t)}" data-t="${esc(c.t)}">${esc(c.t)}</a>${c.r?`<small>（${esc(c.r)}）</small>`:''}</div>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
   { const tgo=()=>{ if(!TD) return; if(isChamp(TD.a)||isChamp(TD.b)){ todayDraw(); $('#today').scrollIntoView({behavior:'smooth',block:'start'}); return; } TODAYF={day:TD.day}; startBattle([TD.a,TD.b]); };
     document.querySelectorAll('#res [data-tdp]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[TD.day]={p:+x.dataset.tdp}; tdSave(o); todayDraw(); tgo(); });
@@ -1966,6 +1968,8 @@ repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：
   if($('#cont')) $('#cont').onclick=async()=>{""")
 
 repall(".result .tdnote{", ".result .tdinv{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:8px}\n.result .tdinv .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n.result .tdnote{")   # 結果の札の中の、今日の一戦への誘い
+
+repall(".result .tdinv{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdinv{")   # 次の相手は1行に1件（関係を添えるので）
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
