@@ -1945,14 +1945,13 @@ repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:
 #   ・「王座に挑む」：勝った記事を王座戦の入力欄に入れて、王座戦の欄へ移る（挑戦そのものは本人が押す）
 repall("""    <div class="share"><output id="share">${esc(share)}</output></div>""", """    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>""")
-repall("""      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}""", """      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?`<div class="sub" style="flex-basis:100%">いまの王者は${esc(THRONE.champ.display)}。${esc(F[w][0])}で挑める</div>`:''}
-      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
-      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?'<button type="button" class="btn" id="tothr">王座に挑む</button>':''}""")
+repall("""      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}""", """      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}
+      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?`<div class="sub" style="flex-basis:100%;margin-top:8px">いまの王者は${esc(THRONE.champ.display)}。${esc(F[w][0])}で挑める</div><button type="button" class="btn" id="tothr">王座に挑む</button>`:''}`}""")   # 王座への入口は、ほかのボタンと別の行に置く
 repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
       const put=t=>{ t=String(t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } };
       for(const l of r.log) for(const t of tgtNames(l.mv)) put(t);   // 試合で召喚された記事
-      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) for(const t of (Array.isArray(e[2])?e[2]:[])) put(t);   // 2つの記事の事実に出てくる記事（所在地・所属先など）
+      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343') for(const t of (Array.isArray(e[2])?e[2]:[])) put(t);   // 2つの記事の事実に出てくる記事（所在地・所属先など）
       (async()=>{ const ok=[]; for(const t of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(t)) ok.push(t); }catch(_){} }
         if(!ok.length||!document.body.contains(box)) return;
         box.insertAdjacentHTML('beforeend',ok.map(t=>`<a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(t)}</a>`).join('')); box.hidden=false;
