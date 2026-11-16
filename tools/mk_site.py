@@ -1921,6 +1921,44 @@ repall("return all.filter(t=>!(exclude&&exclude(t))).slice(0,12); }", "return al
 #   例：{"長濱ねる": {"所属グループ": ["欅坂46（現・櫻坂46）", "けやき坂46（現・日向坂46）"]}}。改名したグループが今の名前で出てしまうときに使う
 repall("    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){", "    for(const [p,d] of Object.entries(MAP)) if(Array.isArray(fx[d[2]])&&fx[d[2]].length) rec.ext=(rec.ext||[]).map(e=>e[0]===p?[e[0],e[1],fx[d[2]]]:e);\n    if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){")
 
+# ---- 95. ページを開いたブラウザを、1日1回だけ数える（/api/visit）。来た元のサイト名・スマホか・初めてかも添える。確認用（nostat）のブラウザは数えない ----
+repall("function clientId(){ try{ let c=localStorage.getItem('hk-cid');", """function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-vday')===day) return;
+    const fresh=!localStorage.getItem('hk-cid'); let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
+    const mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({client:clientId(),ref,mob,fresh}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-vday',day); }).catch(()=>{}); }catch(_){} }
+setTimeout(sendVisit,1500);
+function clientId(){ try{ let c=localStorage.getItem('hk-cid');""")
+
+# ---- 90. 試作：実況の事実に脚注番号を付け、試合の最後に「脚注」として出どころを並べる（Wikipediaの脚注にならう） ----
+repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
+  const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t}); n=FN.length-1; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
+  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';""")
+repall("<div class=\"bub\"><div>${mark(l.s)}</div>${l.d>0?", "<div class=\"bub\"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?")
+repall("  <div id=\"res\"></div>`;\n  ring.scrollIntoView(", """  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a> — ${esc(x.t)}（${fnSrc(x.t)}）</li>`).join('')}</ol></div>`:''}`;
+  ring.scrollIntoView(""")
+repall("function showResult(){\n  if(!current||current.shown) return; current.shown=true;", "function showResult(){\n  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す")
+repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}", ".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}\n.log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}\n.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}")
+
+# ---- 96. 試作：最初の1戦のあと、次の遊びへつなぐ（自由対戦の結果の札だけ）
+#   ・「次の相手」：試合の中に出てきた記事（召喚された仲間など）を並べ、押すと「勝った記事 対 その記事」がすぐ始まる。記事名はボタンにせず、下線付きの文字にする
+#   ・「王座に挑む」：勝った記事を王座戦の入力欄に入れて、王座戦の欄へ移る（挑戦そのものは本人が押す）
+repall("""    <div class="share"><output id="share">${esc(share)}</output></div>""", """    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
+    <div class="share"><output id="share">${esc(share)}</output></div>""")
+repall("""      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}""", """      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?`<div class="sub" style="flex-basis:100%">いまの王者は${esc(THRONE.champ.display)}。${esc(F[w][0])}で挑める</div>`:''}
+      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
+      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?'<button type="button" class="btn" id="tothr">王座に挑む</button>':''}""")
+repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
+  { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
+      for(const l of r.log){ for(const t of tgtNames(l.mv)){ if(!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } } }
+      (async()=>{ const ok=[]; for(const t of cand.slice(0,12)){ if(ok.length>=4) break; try{ if(await inData(t)) ok.push(t); }catch(_){} }
+        if(!ok.length||!document.body.contains(box)) return;
+        box.insertAdjacentHTML('beforeend',ok.map(t=>`<a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(t)}</a>`).join('')); box.hidden=false;
+        box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
+  if($('#tothr')) $('#tothr').onclick=()=>{ THOPEN=true; const d=$('#thx'); if(d) d.open=true; const t=$('#chT'); if(t){ t.value=F[w][1]; t.dispatchEvent(new Event('input',{bubbles:true})); }
+    $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const sg=$('#sgT'); if(sg) sg.hidden=true; },300); };
+  if($('#cont')) $('#cont').onclick=async()=>{""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

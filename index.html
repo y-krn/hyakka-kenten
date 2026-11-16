@@ -164,6 +164,8 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .logbar h3{margin:0;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:500}
 ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}
+.log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}
+.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}
 .log .t{font-family:var(--f-display);font-size:12px;color:var(--muted);text-align:right;padding-top:9px;font-variant-numeric:tabular-nums}
 .log .bub{padding:8px 12px;border-radius:6px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--side);min-width:0}
 .log li.A{--side:var(--a)} .log li.B{--side:var(--b)}
@@ -1045,6 +1047,9 @@ function startBattle(pair){
   const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;
   if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; } const an=analyze(ai,bi); current={ai,bi,an,mode:MODE,today:TODAYF,orig:ORIG}; MODE=null; TODAYF=null; ORIG=null; try{ history.replaceState(null,'',battleURL()); }catch(_){}
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
+  const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t}); n=FN.length-1; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
+  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';
   (current.mode?$('#throne'):current.today?$('#today'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
@@ -1058,8 +1063,8 @@ function startBattle(pair){
   <ol class="log" id="log">${r.log.map(l=>{
     if(l.side<0) return `<li class="${l.kai?'kai':'sys'} hide"><span class="t"></span><div class="bub">${mark(l.s)}</div></li>`;
     const tgt=l.side===0?F[bi][0]:F[ai][0]; const rem=l.side===0?l.hp[1]:l.hp[0];
-    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
-  <div id="res"></div>`;
+    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
+  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a> — ${esc(x.t)}（${fnSrc(x.t)}）</li>`).join('')}</ol></div>`:''}`;
   ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
@@ -1073,7 +1078,7 @@ function startBattle(pair){
   $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); };
 }
 function showResult(){
-  if(!current||current.shown) return; current.shown=true; if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
+  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
@@ -1146,6 +1151,7 @@ function showResult(){
     ${facts.length||API?`<div class="facts">${facts.length?'<div class="fh">2つの記事から分かること</div>':''}${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
       return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${ibx(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${ibx(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}${API?'<button type="button" class="fxbad">不適切な内容を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div><div class="fxmsg" aria-live="polite"></div></div>`:''}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
+    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${TDY?`
@@ -1154,7 +1160,9 @@ function showResult(){
       ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
       <button type="button" class="btn" id="tofree">自由対戦へ</button>`:`
+      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?`<div class="sub" style="flex-basis:100%">いまの王者は${esc(THRONE.champ.display)}。${esc(F[w][0])}で挑める</div>`:''}
       ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
+      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?'<button type="button" class="btn" id="tothr">王座に挑む</button>':''}
       <button type="button" class="btn" id="again">別の組み合わせ</button>
       <button type="button" class="btn" id="back">選び直す</button>
       ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
@@ -1181,6 +1189,15 @@ function showResult(){
   </form>`;
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
+  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
+  { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
+      for(const l of r.log){ for(const t of tgtNames(l.mv)){ if(!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } } }
+      (async()=>{ const ok=[]; for(const t of cand.slice(0,12)){ if(ok.length>=4) break; try{ if(await inData(t)) ok.push(t); }catch(_){} }
+        if(!ok.length||!document.body.contains(box)) return;
+        box.insertAdjacentHTML('beforeend',ok.map(t=>`<a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(t)}</a>`).join('')); box.hidden=false;
+        box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
+  if($('#tothr')) $('#tothr').onclick=()=>{ THOPEN=true; const d=$('#thx'); if(d) d.open=true; const t=$('#chT'); if(t){ t.value=F[w][1]; t.dispatchEvent(new Event('input',{bubbles:true})); }
+    $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const sg=$('#sgT'); if(sg) sg.hidden=true; },300); };
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
@@ -1510,6 +1527,11 @@ setInterval(()=>flushPlays(false),120000);
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPlays(true); });
 addEventListener('pagehide',()=>flushPlays(true));
 // ブラウザごとの番号（個人を表すものではない乱数。挑戦回数の上限を、同じ回線の他人と分けて数えるためだけに使う）
+function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-vday')===day) return;
+    const fresh=!localStorage.getItem('hk-cid'); let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
+    const mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({client:clientId(),ref,mob,fresh}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-vday',day); }).catch(()=>{}); }catch(_){} }
+setTimeout(sendVisit,1500);
 function clientId(){ try{ let c=localStorage.getItem('hk-cid'); if(!/^[a-z0-9]{16,40}$/.test(c||'')){ const a=new Uint8Array(12); crypto.getRandomValues(a); c=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); localStorage.setItem('hk-cid',c); } return c; }catch(_){ return ''; } }
 function battleURL(){ const base=location.origin+location.pathname; if(!current) return base;
   if(current.mode&&current.mode.res&&current.mode.res.id) return base+'?c='+current.mode.res.id;
