@@ -172,6 +172,13 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .toc a{color:var(--a)}.toc small{color:var(--muted);margin-left:8px;font-size:12px}
 #ring:has(.result) #skip{display:none}
 .log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}
+.log sup.fn{font-size:.72em;line-height:0;margin-left:1px}.log sup.fn a{color:var(--a);text-decoration:none;display:inline-block;padding:10px 6px;margin:-10px -6px}
+.fnov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60}
+.fnsh{position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:720px;margin:0 auto;background:var(--paper);color:var(--ink);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.18);padding:12px 16px calc(20px + env(safe-area-inset-bottom));font-size:15px;line-height:1.7}
+.fnshh{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px;margin-bottom:10px}
+.fnshb a{color:var(--a)}.fnshn{color:var(--muted);font-size:.8em;vertical-align:super}
+.fnl .fnb{color:var(--a);text-decoration:none;font-weight:700}
+.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl .fnc a{color:var(--a)}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}
 .log .t{font-family:var(--f-display);font-size:12px;color:var(--muted);text-align:right;padding-top:9px;font-variant-numeric:tabular-nums}
 .log .bub{padding:8px 12px;border-radius:6px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--side);min-width:0}
 .log li.A{--side:var(--a)} .log li.B{--side:var(--b)}
@@ -1063,6 +1070,21 @@ function startBattle(pair){
   const [ai,bi]=pair||sel; if(ai===null||bi===null||BLOCK.has(ai)||BLOCK.has(bi)) return;
   if(!pair&&(isChamp(ai)||isChamp(bi))){ fixChamp(); return; } const an=analyze(ai,bi); current={ai,bi,an,mode:MODE,today:TODAYF,orig:ORIG}; MODE=null; TODAYF=null; ORIG=null; try{ history.replaceState(null,'',battleURL()); }catch(_){}
   const {r}=an; const ring=$('#ring'); ring.hidden=false;
+  // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
+  const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t}); n=FN.length-1; return '<sup class="fn" id="fnr'+(n+1)+'"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
+  // 脚注番号を押したら、本物のWikipedia（スマホ版）と同じく、下から「引用」の札を出す
+  if(!window.__fnh){ window.__fnh=1;
+    // 試合の途中で開いたら、実況を止めておき、閉じたら続きから流す
+    let paused=false; const close=()=>{ document.querySelectorAll('.fnov,.fnsh').forEach(e=>e.remove()); if(paused){ paused=false; if(current&&!current.shown&&window.__fnStep){ clearInterval(timer); timer=setInterval(window.__fnStep,window.__fnIv); } } };
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+    document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('sup.fn a'); if(!a) return; e.preventDefault(); close(); if(current&&!current.shown&&window.__fnStep){ clearInterval(timer); paused=true; }
+      const n=a.getAttribute('href').slice(3), li=document.getElementById('fn'+n); if(!li) return;
+      const ov=document.createElement('div'); ov.className='fnov'; ov.onclick=close;
+      const sh=document.createElement('div'); sh.className='fnsh'; sh.setAttribute('role','dialog'); sh.setAttribute('aria-label','引用');
+      sh.innerHTML='<div class="fnshh"><span>引用</span><button type="button" class="btn small" aria-label="閉じる">×</button></div><div class="fnshb"><span class="fnshn">['+n+']</span> '+li.querySelector('.fnc').innerHTML+'</div>';
+      sh.querySelector('button').onclick=close; document.body.append(ov,sh); sh.querySelector('button').focus(); }); }
+  const fnAsof=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);   // データの時点（フッターの記載から）
+  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';
   (current.mode?$('#throne'):current.today?$('#today'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
@@ -1076,8 +1098,8 @@ function startBattle(pair){
   <ol class="log" id="log">${r.log.map(l=>{
     if(l.side<0) return `<li class="${l.kai?'kai':'sys'} hide"><span class="t"></span><div class="bub">${mark(l.s)}</div></li>`;
     const tgt=l.side===0?F[bi][0]:F[ai][0]; const rem=l.side===0?l.hp[1]:l.hp[0];
-    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
-  <div id="res"></div>`;
+    return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
+  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a class="fnb" href="#fnr${n+1}" aria-label="本文に戻る">^</a> <span class="fnc">“<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a>”. ${esc(x.t)}. ${fnSrc(x.t)}${fnAsof?' ('+fnAsof[1]+'時点)':''}.</span></li>`).join('')}</ol></div>`:''}`;
   ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
@@ -1087,11 +1109,11 @@ function startBattle(pair){
   const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));
-  step(); timer=setInterval(step,reduce?350:1000);
+  step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv);
   $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
 }
 function showResult(){
-  if(!current||current.shown) return; current.shown=true; if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
+  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
