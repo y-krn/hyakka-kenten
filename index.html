@@ -1202,6 +1202,7 @@ function showResult(){
       for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) if(e[0]!=='P1343'&&MAP[e[0]]) for(const t of (Array.isArray(e[2])?e[2]:[])) put(t,i,e[0]);   // 2つの記事の事実に出てくる記事（関係を添える）
       (async()=>{ const ok=[]; for(const c of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(c.t)) ok.push(c); }catch(_){} }
         if(!ok.length||!document.body.contains(box)) return;
+        { const h=box.querySelector('span'); if(h) h.textContent=F[me][0]+'の次の相手'; }   // 誰の相手かを見出しに出す
         box.insertAdjacentHTML('beforeend',ok.map(c=>`<div><a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(c.t)}" data-t="${esc(c.t)}">${esc(c.t)}</a>${c.r?`<small>（${esc(c.r)}）</small>`:''}</div>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
   { const tgo=()=>{ if(!TD) return; if(isChamp(TD.a)||isChamp(TD.b)){ todayDraw(); $('#today').scrollIntoView({behavior:'smooth',block:'start'}); return; } TODAYF={day:TD.day}; startBattle([TD.a,TD.b]); };
