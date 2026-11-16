@@ -1191,8 +1191,10 @@ function showResult(){
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
-      for(const l of r.log){ for(const t of tgtNames(l.mv)){ if(!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } } }
-      (async()=>{ const ok=[]; for(const t of cand.slice(0,12)){ if(ok.length>=4) break; try{ if(await inData(t)) ok.push(t); }catch(_){} }
+      const put=t=>{ t=String(t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } };
+      for(const l of r.log) for(const t of tgtNames(l.mv)) put(t);   // 試合で召喚された記事
+      for(const i of [me,me===ai?bi:ai]) for(const e of (EXT[i]||[])) for(const t of (Array.isArray(e[2])?e[2]:[])) put(t);   // 2つの記事の事実に出てくる記事（所在地・所属先など）
+      (async()=>{ const ok=[]; for(const t of cand.slice(0,16)){ if(ok.length>=4) break; try{ if(await inData(t)) ok.push(t); }catch(_){} }
         if(!ok.length||!document.body.contains(box)) return;
         box.insertAdjacentHTML('beforeend',ok.map(t=>`<a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(t)}</a>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
