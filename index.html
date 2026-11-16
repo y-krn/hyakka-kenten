@@ -163,6 +163,13 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .logbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .logbar h3{margin:0;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:500}
 ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+#ring[hidden]+.toc{display:none}
+.toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
+.toc .toch{font-weight:700;text-align:center;margin-bottom:4px}
+.toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}
+.toc li{counter-increment:toc;line-height:1.9}
+.toc li::before{content:counter(toc);color:var(--muted);display:inline-block;min-width:1.4em}
+.toc a{color:var(--a)}.toc small{color:var(--muted);margin-left:8px;font-size:12px}
 .log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}
 .log sup.fn{font-size:10px;line-height:0;margin-left:1px}.log sup.fn a{color:var(--muted);text-decoration:none}
 .fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl a{color:inherit}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}
@@ -429,6 +436,13 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
   </section>
 
   <section id="ring" class="ring" hidden></section>
+  <nav class="toc" aria-label="遊びの目次"><div class="toch">目次</div><ol>
+    <li><a href="#today">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
+    <li><a href="#throne">王座戦</a><small>王者に挑んで王座を奪う</small></li>
+    <li><a href="#dg">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#setup">自由対戦</a><small>好きな2記事を戦わせる</small></li>
+    <li><a href="#find">見つける</a><small>意外な仲間や一門を探す</small></li>
+  </ol></nav>
 
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>

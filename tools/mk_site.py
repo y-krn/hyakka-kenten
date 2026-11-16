@@ -1968,6 +1968,27 @@ repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：
 
 repall(".result .tdnote{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdnote{")   # 次の相手は1行に1件（関係を添えるので）
 
+# ---- 97. 試作：遊びの目次（Wikipediaの「目次」風）。試合を見ているとき（#ring が出ているとき）だけ、その下に出す
+#   外部リンクで試合から入った人にも、ほかの遊びがあると分かるように。押すとその遊びの場所へ移動する
+repall("""  <section id="ring" class="ring" hidden></section>
+""", """  <section id="ring" class="ring" hidden></section>
+  <nav class="toc" aria-label="遊びの目次"><div class="toch">目次</div><ol>
+    <li><a href="#today">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
+    <li><a href="#throne">王座戦</a><small>王者に挑んで王座を奪う</small></li>
+    <li><a href="#dg">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#setup">自由対戦</a><small>好きな2記事を戦わせる</small></li>
+    <li><a href="#find">見つける</a><small>意外な仲間や一門を探す</small></li>
+  </ol></nav>
+""")
+repall(".log li{display:grid;", """#ring[hidden]+.toc{display:none}
+.toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
+.toc .toch{font-weight:700;text-align:center;margin-bottom:4px}
+.toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}
+.toc li{counter-increment:toc;line-height:1.9}
+.toc li::before{content:counter(toc);color:var(--muted);display:inline-block;min-width:1.4em}
+.toc a{color:var(--a)}.toc small{color:var(--muted);margin-left:8px;font-size:12px}
+.log li{display:grid;""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
