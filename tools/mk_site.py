@@ -1968,19 +1968,19 @@ repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：
 
 repall(".result .tdnote{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdnote{")   # 次の相手は1行に1件（関係を添えるので）
 
-# ---- 97. 試作：遊びの目次（Wikipediaの「目次」風）。試合を見ているとき（#ring が出ているとき）だけ、その下に出す
+# ---- 97. 試作：遊びの目次（Wikipediaの「目次」風）。試合の結果が出てから（#ring に .result ができてから）、その下に出す
 #   外部リンクで試合から入った人にも、ほかの遊びがあると分かるように。押すとその遊びの場所へ移動する
 repall("""  <section id="ring" class="ring" hidden></section>
 """, """  <section id="ring" class="ring" hidden></section>
   <nav class="toc" aria-label="遊びの目次"><div class="toch">目次</div><ol>
-    <li><a href="#today">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
-    <li><a href="#throne">王座戦</a><small>王者に挑んで王座を奪う</small></li>
-    <li><a href="#dg">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
-    <li><a href="#setup">自由対戦</a><small>好きな2記事を戦わせる</small></li>
-    <li><a href="#find">見つける</a><small>意外な仲間や一門を探す</small></li>
+    <li><a href="#today" onclick="event.preventDefault();document.getElementById('today').scrollIntoView({behavior:'smooth',block:'start'})">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
+    <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView({behavior:'smooth',block:'start'})">王座戦</a><small>王者に挑んで王座を奪う</small></li>
+    <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView({behavior:'smooth',block:'start'})">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#setup" onclick="event.preventDefault();document.getElementById('setup').scrollIntoView({behavior:'smooth',block:'start'})">自由対戦</a><small>好きな2記事を戦わせる</small></li>
+    <li><a href="#find" onclick="event.preventDefault();document.getElementById('find').scrollIntoView({behavior:'smooth',block:'start'})">見つける</a><small>意外な仲間や一門を探す</small></li>
   </ol></nav>
 """)
-repall(".log li{display:grid;", """#ring[hidden]+.toc{display:none}
+repall(".log li{display:grid;", """#ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
 .toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
 .toc .toch{font-weight:700;text-align:center;margin-bottom:4px}
 .toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}
