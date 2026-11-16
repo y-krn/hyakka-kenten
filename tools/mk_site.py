@@ -1942,11 +1942,15 @@ repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:
 
 # ---- 96. 試作：最初の1戦のあと、次の遊びへつなぐ（自由対戦の結果の札だけ）
 #   ・「次の相手」：試合の中に出てきた記事（召喚された仲間など）を並べ、押すと「勝った記事 対 その記事」がすぐ始まる。記事名はボタンにせず、下線付きの文字にする
-#   ・「王座に挑む」：勝った記事を王座戦の入力欄に入れて、王座戦の欄へ移る（挑戦そのものは本人が押す）
+#   ・「今日の一戦」：その日まだ観戦していなければ、結果の札の下で予想を受け付け、そのまま観戦できるようにする
 repall("""    <div class="share"><output id="share">${esc(share)}</output></div>""", """    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>""")
-repall("""      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}""", """      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}
-      ${w!==null&&THRONE&&THRONE.champ&&THRONE.champ.title!==F[w][1]?`<div class="sub" style="flex-basis:100%;margin-top:8px">いまの王者は${esc(THRONE.champ.display)}。${esc(F[w][0])}で挑める</div><button type="button" class="btn" id="tothr">王座に挑む</button>`:''}`}""")   # 王座への入口は、ほかのボタンと別の行に置く
+repall("""      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
+    </div>""", """      ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
+    </div>
+    ${(()=>{ if(TDY||M||!TD) return ''; const me=tdLoad()[TD.day]||{}; if(me.done) return '';   // 今日の一戦をまだ観戦していない人にだけ
+      const nm=i=>esc(F[i][0]); return me.p===0||me.p===1||me.p===null?`<div class="tdinv"><div class="sub">今日の一戦：${nm(TD.a)} 対 ${nm(TD.b)}</div><div class="tdrow"><button type="button" class="btn" id="tdinvgo">観戦する</button></div></div>`
+        :`<div class="tdinv"><div class="sub">今日の一戦：どっちが勝つ？</div><div class="tdbtn"><button type="button" class="btn pa" data-tdp="0">${nm(TD.a)}</button><button type="button" class="btn pb" data-tdp="1">${nm(TD.b)}</button></div></div>`; })()}""")
 repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
       const put=t=>{ t=String(t||'').trim(); if(t&&!seen.has(t)&&!EXCL.has(t)&&!(typeof NORAND!=='undefined'&&NORAND.has(t))){ seen.add(t); cand.push(t); } };
@@ -1956,9 +1960,12 @@ repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：
         if(!ok.length||!document.body.contains(box)) return;
         box.insertAdjacentHTML('beforeend',ok.map(t=>`<a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(t)}" data-t="${esc(t)}">${esc(t)}</a>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
-  if($('#tothr')) $('#tothr').onclick=()=>{ THOPEN=true; const d=$('#thx'); if(d) d.open=true; const t=$('#chT'); if(t){ t.value=F[w][1]; t.dispatchEvent(new Event('input',{bubbles:true})); }
-    $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const sg=$('#sgT'); if(sg) sg.hidden=true; },300); };
+  { const tgo=()=>{ if(!TD) return; if(isChamp(TD.a)||isChamp(TD.b)){ todayDraw(); $('#today').scrollIntoView({behavior:'smooth',block:'start'}); return; } TODAYF={day:TD.day}; startBattle([TD.a,TD.b]); };
+    document.querySelectorAll('#res [data-tdp]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[TD.day]={p:+x.dataset.tdp}; tdSave(o); todayDraw(); tgo(); });
+    if($('#tdinvgo')) $('#tdinvgo').onclick=tgo; }
   if($('#cont')) $('#cont').onclick=async()=>{""")
+
+repall(".result .tdnote{", ".result .tdinv{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:8px}\n.result .tdinv .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n.result .tdnote{")   # 結果の札の中の、今日の一戦への誘い
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
