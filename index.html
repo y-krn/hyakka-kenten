@@ -1081,9 +1081,10 @@ function startBattle(pair){
     if(tg){ const ds=tg.filter(x=>x[1]&&!/英語の説明のみ/.test(x[1])).slice(0,3).map(x=>x[0]+'は「'+x[1]+'」'); if(ds.length) out.push(ds.join('、')+'。'); }
     else { const k=d.indexOf('：'); if(k>0){ const names=d.slice(k+1).replace(/\s*など.*$/,'').split(/[、・]/).map(x=>x.trim());   // 一覧の技：同じ事実の記録に説明があれば使う
         for(const e of (EXT[who]||[])) if(Array.isArray(e[2])) for(const x of e[2]) if(Array.isArray(x)&&x[1]&&names.includes(x[0])&&out.length<2) out.push(x[0]+'は「'+x[1]+'」。'); } }
-    if(!out.length&&isFinite(v)){
-      if(/^標高|^高さ/.test(d)&&/m$/.test(mv[2])) out.push(fnTimes(v,333,'東京タワー（333m）')+'。');
-      else if(/^面積/.test(d)&&/km²/.test(mv[2])) out.push('東京ドーム（約0.047km²）'+fnFmt(v/0.0467)+'個ぶん。');
+    if(!out.length&&/ 対 /.test(d)){ const [p,q]=d.slice(d.indexOf('：')+1).split(' 対 ').map(fnNum); if(p>0&&q>0){ const r=Math.max(p,q)/Math.min(p,q); if(r>=1.05) out.push('差は約'+fnFmt(r)+'倍。'); } }   // 比べ技：差を倍率で
+    if(!out.length&&isFinite(v)){ const me=F[who][0];
+      if(/^標高|^高さ/.test(d)&&/m$/.test(mv[2])){ const ref=v>=1000||(v>=100&&me==='東京タワー')?(me==='東京スカイツリー'?['東京タワー（333m）',333]:['東京スカイツリー（634m）',634]):v>=100?['東京タワー（333m）',333]:['大人の身長（約1.7m）',1.7]; out.push(fnTimes(v,ref[1],ref[0])+'。'); }
+      else if(/^面積/.test(d)&&/km²/.test(mv[2])) out.push(v>=10000?fnTimes(v,2194,'東京都（約2,194km²）')+'。':'東京ドーム（約0.047km²）'+fnFmt(v/0.0467)+'個ぶん。');
       else if(/^人口/.test(d)) out.push(v>=55000?'満員の東京ドーム（約5万5千人）'+fnFmt(v/55000)+'杯ぶん。':'満員の東京ドーム（約5万5千人）の約'+fnFmt(v/55000*100)+'%。');
       else if(/^体重/.test(d)){ const kg=/t/.test(mv[2])?v*1000:/kg/.test(mv[2])?v:v/1000; out.push('2Lのペットボトル約'+fnFmt(kg/2)+'本ぶん。'); }
       else if(nm==='長文で殴る') out.push('文庫本にすると約'+fnFmt(v/600)+'ページ（1ページ約600字）。');
@@ -1091,7 +1092,7 @@ function startBattle(pair){
       else if(nm==='年功序列'&&/年/.test(mv[2])){ const y=new Date().getFullYear()-v; if(y>0) out.push('いまから約'+fnFmt(y)+'年前。'); }
       else if(nm==='作品ラッシュ') out.push('1日1作ずつ追っても約'+(v>=60?fnFmt(v/30)+'か月':fnFmt(v)+'日')+'かかる。');
     }
-    if(!out.length&&mv.some(x=>x==='meta'||x==='wp')){ const ct=GEN[who]&&GEN[who].ct; const m=ct&&String(ct).match(/^(\d{4})-(\d{2})/); if(m) out.push('この記事が日本語版Wikipediaに作られたのは'+m[1]+'年'+(+m[2])+'月。'); }
+    if(!out.length&&(mv.some(x=>x==='meta'||x==='wp')||fnSrc(d.replace(/^Wikidataでの/,''))!=='Wikidata')){ const ct=GEN[who]&&GEN[who].ct; const m=ct&&String(ct).match(/^(\d{4})-(\d{2})/); if(m) out.push('この記事が日本語版Wikipediaに作られたのは'+m[1]+'年'+(+m[2])+'月。'); }
     return out.join(''); };
   const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t,nt:fnNote(l.mv,who)}); n=FN.length-1; return '<sup class="fn" id="fnr'+(n+1)+'"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
   // 脚注番号を押したら、本物のWikipedia（スマホ版）と同じく、下から「引用」の札を出す
@@ -1106,7 +1107,7 @@ function startBattle(pair){
       sh.innerHTML='<div class="fnshh"><span>引用</span><button type="button" class="btn small" aria-label="閉じる">×</button></div><div class="fnshb"><span class="fnshn">['+n+']</span> '+li.querySelector('.fnc').innerHTML+'</div>';
       sh.querySelector('button').onclick=close; document.body.append(ov,sh); sh.querySelector('button').focus(); }); }
   const fnAsof=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);   // データの時点（フッターの記載から）
-  const fnSrc=t=>/^(記事の|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|リンク|被リンク|外部リンク)/.test(t)?'日本語版Wikipedia':'Wikidata';
+  const fnSrc=t=>/^(記事の|記事から|画像の数|見出し|閲覧|1年間の閲覧|言語版|カテゴリ|属するカテゴリ|リンク|被リンク|この記事へのリンク|外部リンク|相手の記事)/.test(t)?'日本語版Wikipedia':'Wikidata';
   (current.mode?$('#throne'):current.today?$('#today'):$('#setup')).after(ring); ring.classList.toggle('thmode',!!current.mode);
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
