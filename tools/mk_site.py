@@ -2013,6 +2013,9 @@ repall("famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.
   { let keep=''; inp.addEventListener('focus',()=>{ if(sel[side]!==null&&inp.value.trim()===F[sel[side]][0]){ keep=inp.value; inp.value=''; updateFight(); } });
     inp.addEventListener('blur',()=>{ if(keep&&!inp.value.trim()&&sel[side]!==null){ inp.value=keep; updateFight(); } keep=''; }); }""")
 
+# ---- 100. 訂正表（data/fix.json）で「記事の作成」（"YYYY-MM"）も直せるようにする。履歴保存で記事を移動した記事は、作成日が移動の日になってしまうため
+repall("function register(rec){ const t=rec.f[1];", "function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事の作成']; if(typeof fc==='string'&&/^\\d{4}-\\d{2}$/.test(fc)&&rec.gen) rec={...rec,gen:{...rec.gen,ct:fc}}; }")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

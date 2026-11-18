@@ -533,7 +533,7 @@ function fixLoad(){ if(FIX) return Promise.resolve(); return FIXP||(FIXP=Promise
 const unheld=(t,why)=>!!UNH&&(!!(UNH['記事']||{})[t]||!!(UNH['理由']||{})[String(why).replace(/（[^（）]*年[^（）]*）$/,'')]);   // 確かめて対戦に戻した記事
 const FXNB=256, FXA={}, FXAP={};
 function fixAuto(t){ const k=fnv(t)%FXNB; return FXAP[k]||(FXAP[k]=FETCH(DATA_BASE+'fixa/'+k+'.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(o=>{ Object.assign(FXA,o); })); }
-function register(rec){ const t=rec.f[1]; if(rec.hold&&unheld(t,rec.hold)){ rec={...rec}; delete rec.hold; }
+function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事の作成']; if(typeof fc==='string'&&/^\d{4}-\d{2}$/.test(fc)&&rec.gen) rec={...rec,gen:{...rec.gen,ct:fc}}; } if(rec.hold&&unheld(t,rec.hold)){ rec={...rec}; delete rec.hold; }
   { const fx=(FIX&&FIX[t])||FXA[t]?{...(FXA[t]||{}),...((FIX&&FIX[t])||{})}:null; if(fx){ rec.qt={...(rec.qt||{})}; const PN={e:'標高落とし',h:'急降下',m:'のしかかり',a:'領土拡大',p:'人海戦術',l:'全長包囲',d:'深淵送り'};
     for(const [p,d] of Object.entries(MAP)) if(Array.isArray(fx[d[2]])&&fx[d[2]].length) rec.ext=(rec.ext||[]).map(e=>e[0]===p?[e[0],e[1],fx[d[2]]]:e);
     if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }
