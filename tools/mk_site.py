@@ -2050,6 +2050,9 @@ repall("試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span>
 # 試合結果の「今日の登場人物・用語」の欄は、呼ばれた記事の説明が脚注に入ったので出さない
 repall('${gloss.length?`<section class="card gloss"', '${false&&gloss.length?`<section class="card gloss"')
 
+# ---- 102. 今日の一戦の予想ボタン：記事名が長くても2つを同じ幅にし、カードからはみ出さないようにする（1fr は中身の最小幅より縮まないため）
+repall("#today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}", "#today .tdbtn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}\n#today .tdbtn .btn{min-width:0;overflow-wrap:anywhere}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
