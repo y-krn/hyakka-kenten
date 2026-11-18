@@ -1941,6 +1941,8 @@ repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {
     if(tg){ const ds=tg.filter(x=>x[1]&&!/英語の説明のみ/.test(x[1])).slice(0,3).map(x=>x[0]+'は「'+x[1]+'」'); if(ds.length) out.push(ds.join('、')+'。'); }
     else { const k=d.indexOf('：'); if(k>0){ const names=d.slice(k+1).replace(/\\s*など.*$/,'').split(/[、・]/).map(x=>x.trim());   // 一覧の技：同じ事実の記録に説明があれば使う
         for(const e of (EXT[who]||[])) if(Array.isArray(e[2])) for(const x of e[2]) if(Array.isArray(x)&&x[1]&&names.includes(x[0])&&out.length<2) out.push(x[0]+'は「'+x[1]+'」。'); } }
+    if(!out.length&&nm==='同族召喚'&&isFinite(v)) out.push('Wikidataには、「'+F[who][0]+'」の一つとして登録された項目が'+fnFmt(v)+'件ある。');   // P31＝この記事 の項目数
+    if(!out.length){ const k=d.indexOf('：'), mm=d.match(/など(?:記録上|全)?([0-9,]+)(件|個)/); if(k>0&&mm){ const shown=d.slice(k+1).replace(/\\s*など.*$/,'').split(/[、・]/).filter(Boolean).length, rest=fnNum(mm[1])-shown; if(rest>0) out.push('本文に出ていないものが、ほかに'+fnFmt(rest)+mm[2]+'ある。'); } }
     if(!out.length&&/ 対 /.test(d)){ const pq=d.slice(d.indexOf('：')+1).split(' 対 ').map(x=>x.trim()), [p,q]=pq.map(fnNum); if(p>0&&q>0){ const r=Math.max(p,q)/Math.min(p,q); if(/倍/.test(body||'')){ v=p; us=pq[0]; } else if(r>=1.05) out.push((p>=q?pq[0]+'は'+pq[1]:pq[1]+'は'+pq[0])+'の約'+fnFmt(r)+'倍。'); } }   // 比べ技：差を倍率で
     if(!out.length&&isFinite(v)){ const me=F[who][0];
       if(/^標高|^高さ/.test(d)&&/m$/.test(us)){ const ref=v>=1000||(v>=100&&me==='東京タワー')?(me==='東京スカイツリー'?['東京タワー（333m）',333]:['東京スカイツリー（634m）',634]):v>=100?['東京タワー（333m）',333]:['大人の身長（約1.7m）',1.7]; out.push(fnTimes(v,ref[1],ref[0])+'。'); }
@@ -2034,6 +2036,9 @@ repall("famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.
 """famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.sg'); inp.addEventListener('focus',()=>liftInput(inp));
   { let keep=''; inp.addEventListener('focus',()=>{ if(sel[side]!==null&&inp.value.trim()===F[sel[side]][0]){ keep=inp.value; inp.value=''; updateFight(); } });
     inp.addEventListener('blur',()=>{ if(keep&&!inp.value.trim()&&sel[side]!==null){ inp.value=keep; updateFight(); } keep=''; }); }""")
+
+# ---- 100. 訂正表（data/fix.json）で「記事の作成」（"YYYY-MM"）も直せるようにする。履歴保存で記事を移動した記事は、作成日が移動の日になってしまうため
+repall("function register(rec){ const t=rec.f[1];", "function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事の作成']; if(typeof fc==='string'&&/^\\d{4}-\\d{2}$/.test(fc)&&rec.gen) rec={...rec,gen:{...rec.gen,ct:fc}}; }")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
