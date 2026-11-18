@@ -288,7 +288,8 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .tdbtn .btn{word-break:auto-phrase;text-wrap:balance}
 #today .tdvs .tA b{color:var(--a)}#today .tdvs .tB b{color:var(--b)}#today .tdvs .tvx{font-family:var(--f-display);font-size:18px;color:var(--muted)}
 #today .tdq{font-size:13px;color:var(--muted);text-align:center}
-#today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#today .tdbtn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#today .tdbtn .btn{min-width:0;overflow-wrap:anywhere}
 #today .tdbtn .pa{border-color:var(--a);color:var(--a)}#today .tdbtn .pb{border-color:var(--b);color:var(--b)}
 #today .tdrow{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:14px}
 #today .tdres{font-size:15px;text-align:center;line-height:1.6}#today .tdres b.hit{color:var(--a)}
