@@ -2040,6 +2040,16 @@ repall("famFill(el); const inp=el.querySelector('input'), dl=el.querySelector('.
 # ---- 100. 訂正表（data/fix.json）で「記事の作成」（"YYYY-MM"）も直せるようにする。履歴保存で記事を移動した記事は、作成日が移動の日になってしまうため
 repall("function register(rec){ const t=rec.f[1];", "function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事の作成']; if(typeof fc==='string'&&/^\\d{4}-\\d{2}$/.test(fc)&&rec.gen) rec={...rec,gen:{...rec.gen,ct:fc}}; }")
 
+# ---- 101. 遊ぶ人に要らない説明を消す（裏側の事情・豆知識・内訳）
+repall("の対戦。みんな同じ組み合わせで、毎日0時に入れ替わります</span>", "の対戦</span>")
+repall('<div class="tA"><small>人気の記事</small>', '<div class="tA">')
+repall('<div class="tB"><small>ランダムな記事</small>', '<div class="tB">')
+repall("<span>好きな2記事を選んで戦わせる。結果は記録に残りません</span>", "<span>好きな2記事を選んで戦わせる</span>")
+repall('<span class="fhint">記事カードの「仲間」からも開けます</span>', '')
+repall("試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span></div>", "試合</div>")
+# 試合結果の「今日の登場人物・用語」の欄は、呼ばれた記事の説明が脚注に入ったので出さない
+repall('${gloss.length?`<section class="card gloss"', '${false&&gloss.length?`<section class="card gloss"')
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
