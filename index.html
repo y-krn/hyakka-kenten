@@ -429,7 +429,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
   </section>
 
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
-    <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる。結果は記録に残りません</span></div>
+    <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる</span></div>
     <div class="setup">
       <div class="card pick A" id="pickA"></div>
       <div class="vsmark">VS</div>
@@ -992,7 +992,7 @@ const REC_KEY='wb-record-v1';
 let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
 const saveRec=()=>{ try{ localStorage.setItem(REC_KEY,JSON.stringify(rec)); }catch(_){} };
-function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合 <span>（うち王座戦 ${ALL.throne.toLocaleString()}）</span></div>`:'';
+function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合</div>`:'';
   $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span class="st"><b>${rec.battles}</b><small>観戦した試合</small></span><span class="st"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>`; }
 
 /* ---------- 保留・通報・確認（判定できない記事の扱い） ---------- */
@@ -1226,7 +1226,7 @@ function showResult(){
       ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
     </div>
   </div>
-  ${gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
+  ${false&&gloss.length?`<section class="card gloss" style="margin-top:12px"><h3>今日の登場人物・用語（Wikidataの説明文）</h3><dl>${gloss.map(([n,d,q])=>`<dt>${esc(n)}</dt><dd>${d?esc(d):'（説明文なし）'}<a href="https://www.wikidata.org/wiki/${q}" target="_blank" rel="noopener">${q} ↗</a></dd>`).join('')}</dl></section>`:''}
     <form class="repf" id="repf" hidden novalidate>
     <div class="rhd" id="rphd"></div>
     <div class="rchips" id="rpside" hidden></div>
@@ -1545,8 +1545,8 @@ function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,
       <div class="tdrow"><button type="button" class="btn small" id="tdre">もう一度見る</button><a class="btn small" id="tdsh" target="_blank" rel="noopener">Xで共有</a></div>`; }
   else if(me.p===0||me.p===1||me.p===null) act=`<div class="tdrow">あなたの予想：<b>${me.p===null?'なし':esc(me.p===0?nm(a):nm(b))}</b><button type="button" class="btn" id="tdgo">観戦する</button></div>`;
   else act=`<div class="tdq">どっちが勝つ？ 予想してから観戦しよう</div><div class="tdbtn"><button type="button" class="btn pa" data-p="0">${esc(nm(a))}</button><button type="button" class="btn pb" data-p="1">${esc(nm(b))}</button></div><div class="tdrow"><button type="button" class="mlink" id="tdno">予想せずに観戦する</button></div>`;
-  box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦。みんな同じ組み合わせで、毎日0時に入れ替わります</span></div>
-    <div class="tdvs"><div class="tA"><small>人気の記事</small><b>${esc(nm(a))}</b><small class="tdk" id="tdka">${esc(TDH[F[a][1]]||kind(a)||cats(a))}</small></div><span class="tvx">vs</span><div class="tB"><small>ランダムな記事</small><b>${esc(nm(b))}</b><small class="tdk" id="tdkb">${esc(TDH[F[b][1]]||kind(b)||cats(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
+  box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦</span></div>
+    <div class="tdvs"><div class="tA"><b>${esc(nm(a))}</b><small class="tdk" id="tdka">${esc(TDH[F[a][1]]||kind(a)||cats(a))}</small></div><span class="tvx">vs</span><div class="tB"><b>${esc(nm(b))}</b><small class="tdk" id="tdkb">${esc(TDH[F[b][1]]||kind(b)||cats(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
   tdHint(a,'#tdka'); tdHint(b,'#tdkb');
   if($('#tdtmr')) tdTomorrow().then(x=>{ const e=$('#tdtmr'); if(!e) return; e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は明日のお楽しみ`:''; if(!x) e.remove(); });
   box.hidden=false;
@@ -1569,7 +1569,7 @@ async function famToday(){ try{ const d=await fetch('data/fam/featured.json?v='+
   const z=$('#zukan'); if(z&&FEAT.length){ const day=Math.floor((Date.now()+9*3600e3)/86400e3); const pickF=n=>FEAT[(n%FEAT.length+FEAT.length)%FEAT.length];
     let k=hash('fam'+day), other=false; const draw=()=>{ const f=pickF(k); const g={k:f[0][0],q:f[0].slice(1),n:f[1],c:f[2]};
       z.querySelector('.today').innerHTML=`<button type="button" class="famcard" data-fam="${g.k}${esc(g.q)}"><small>${other?'こんな一門も':'今日の一門'}</small><b>${esc(FAMK[g.k](g.n))}</b><span>${g.c}記事 ›</span></button>`; z.querySelector('[data-fam]').onclick=()=>openFam(f[0]); };
-    z.innerHTML=`<h3>仲間さがし</h3><p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button><span class="fhint">記事カードの「仲間」からも開けます</span></div>`;
+    z.innerHTML=`<h3>仲間さがし</h3><p class="fsub">Wikipediaのつながりから、意外な仲間を探す</p><div class="today"></div><div class="frow"><button type="button" class="flink" id="famrnd">ほかの一門を見る</button></div>`;
     z.hidden=false; draw(); $('#famrnd').onclick=()=>{ k=Math.floor(Math.random()*1e9); other=true; draw(); }; }
   const dlg=$('#famdlg'); if(dlg) dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
   const q=new URLSearchParams(location.search).get('fam'); if(q&&/^[pcosw]Q\d+$/.test(q)) openFam(q); }
