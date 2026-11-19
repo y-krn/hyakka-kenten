@@ -48,6 +48,14 @@ const AUX=JSON.parse(fs.readFileSync(path.join(DIR,'aux.json'),'utf8'));
 const lab=q=>E[q]?((E[q].l&&(E[q].l.ja||E[q].l.en))||q):q;
 const labJ=q=>{const l=E[q]&&E[q].l&&E[q].l.ja; return l&&JP.test(l)&&!/一覧|ウィキメディア/.test(l)&&!/^\d+$/.test(l)?l:null;};
 const desJ=q=>{const d=E[q]&&E[q].d&&E[q].d.ja; return d&&!/ウィキメディア/.test(d)?d:'';};
+// 改名した所属先（グループ・学校・勤め先）は、所属していた当時の名前で出す（例：欅坂46（現・櫻坂46））
+//   人物の所属の終わり（P582）が分かり、所属先の正式名称（P1448）に、その時点を含む期間つきの日本語の名前があるときだけ
+const yQ=(s,k)=>{ const v=s&&s.qualifiers&&s.qualifiers[k]&&s.qualifiers[k][0]&&s.qualifiers[k][0].datavalue; return v&&v.value&&v.value.time?parseInt(v.value.time):null; };
+function labAt(c,p,t){ const cur=labJ(t); if(!cur||!['P463','P69','P108'].includes(p)) return cur;
+ const st=((c||{})[p]||[]).find(s=>{ const v=s.mainsnak&&s.mainsnak.datavalue; return v&&v.value&&v.value.id===t; }); const end=yQ(st,'P582'); if(end===null) return cur;
+ const hit=((E[t]&&E[t].c&&E[t].c.P1448)||[]).map(s=>({tx:s.mainsnak&&s.mainsnak.datavalue&&s.mainsnak.datavalue.value,a:yQ(s,'P580'),b:yQ(s,'P582')}))
+  .find(x=>x.tx&&x.tx.language==='ja'&&JP.test(x.tx.text||'')&&x.b!==null&&x.b>=end&&(x.a===null||x.a<=end));
+ return hit&&hit.tx.text!==cur?hit.tx.text+'（現・'+cur+'）':cur; }
 const desAny=q=>desJ(q)||(E[q]&&E[q].d&&E[q].d.en?E[q].d.en+'（英語の説明のみ）':'');
 
 /* ---------- 扱わない題材の判定（judge6 相当＋保留） ---------- */
@@ -58,7 +66,7 @@ const CONCEPT=/^(気象災害|火災|災害情報|災害救助|災害復興)$/; 
 const PER=/(自殺した|殺害された|暗殺された|処刑された|死刑囚|殺人犯|テロリスト|犯罪者|被害者|犠牲者|スプリーキラー|シリアルキラー|連続殺人犯|事件の当事者)/;
 const TITLE=/(事件|事故|災害|大震災|地震|豪雨|水害|空襲|(?:(?<=サイバー|バイオ|ネット)|(?<![ァ-ヶー]))テロ|虐殺|乱射|墜落|沈没)(\s*\(.+\))?$/;
 const EVW=/(事件|事故|(?:(?<=サイバー|バイオ|ネット)|(?<![ァ-ヶー]))テロ(?:リスト|リズム)?(?![ァ-ヶー])|虐殺|殺人|誘拐|大火|空襲|銃撃|乱射|暗殺|爆破|墜落|遭難|迫害|侵攻|ホロコースト|原爆|核実験|ミサイル発射|犠牲者|慰霊|大爆撃|難民)/;
-const CUT=1900, NOW=2026;
+const CUT=1900, NOW=+String(AUX.asof||'2026').slice(0,4)||2026;   // 「最近亡くなった」などは、データの時点の年から数える
 const yr1=(c,p)=>{const s=(c[p]||[]).find(s=>s.mainsnak.datavalue&&s.mainsnak.datavalue.value.time); return s?parseInt(s.mainsnak.datavalue.value.time):null;};
 function judge(a,e){ const title=a.t, cats=a.cats||[], c=e.c||{}, cls=(AUX.cls||{})[a.q]||[];
  const isH=ids(c,'P31').includes('Q5')||cats.includes('存命人物')||cats.some(x=>/^\d+年(生|没)$/.test(x));
@@ -68,9 +76,9 @@ function judge(a,e){ const title=a.t, cats=a.cats||[], c=e.c||{}, cls=(AUX.cls||
   const crim=conv||pc.some(x=>/犯罪者|殺人犯|死刑囚|テロリスト|キラー/.test(x));
   if(crim&&(living||d===null||d>=CUT)) return ['除外','犯罪の記録'];
   if((living||(d!==null&&d>=CUT))&&(mod.some(m=>['Q149086','Q10737','Q132821'].includes(m))||pc.length)) return ['除外','死因・事件の当事者'];
-  if(d!==null&&d>=2025) return ['除外','最近亡くなった人物（'+d+'年）'];
+  if(d!==null&&d>=NOW-1) return ['除外','最近亡くなった人物（'+d+'年）'];
   if(living) return ['配慮','存命人物'];
-  if(d!==null&&d>=2016) return ['配慮','2016年以降に亡くなった人物'];
+  if(d!==null&&d>=NOW-10) return ['配慮',(NOW-10)+'年以降に亡くなった人物'];
   const anc=cats.some(x=>/(時代|世紀|古代|中世|近世|朝の)/.test(x)); const by=b!==null?b:(()=>{const x=cats.find(x=>/^\d+年生$/.test(x)); return x?parseInt(x):null;})();
   if(pc.length&&d===null&&!anc) return ['保留','人物カテゴリ「'+pc[0]+'」'];
   if(d===null&&by===null&&!anc) return ['配慮','生没年不明の人物'];
@@ -119,7 +127,7 @@ function yearOf(c){ if(vals(c,'P225').length){ const p580=pref(c,'P580').map(s=>
   if(p580!==undefined) return {y:p580,txt:yS(p580)+'から存在'}; const ty=vals(c,'P225').map(s=>qy(s,'P574')).filter(x=>x!==null)[0]; if(ty!==undefined) return {y:ty,txt:ty+'年に学名がついた'}; }
  for(const p of START){ const y=pref(c,p).map(s=>yOf(s.mainsnak.datavalue&&s.mainsnak.datavalue.value.time)).filter(y=>y!==null); if(y.length){ const v=Math.min(...y); return {y:v,txt:yS(v)+(v<=-1e4?'に誕生':(PW[p]||'成立'))}; } }
  return null; }
-function baseMoves(k){ const q=k.a.q, c=k.e.c, isP=ids(c,'P31').includes('Q5'), living=/存命|2016|不明/.test(k.judge[1]), M=[];
+function baseMoves(k){ const q=k.a.q, c=k.e.c, isP=ids(c,'P31').includes('Q5'), living=/存命|年以降に亡くなった|不明/.test(k.judge[1]), M=[];
  const add=(kind,name,fact,t,extra={})=>M.push([kind,name,fact,extra.card||fact,+(t||0).toFixed(2),extra.once?1:0,extra.tpl||0,...(extra.targets?[extra.targets]:[])]);
  const cuts=p=>K.direct[p].cuts;
  if(!isP){ const Q={}; for(const p of Object.keys(CONV)){ const x=qty(c,p); if(x!==null) Q[p]=x; }
@@ -158,11 +166,11 @@ const MAPKEYS={}; for(const m of PAGE.matchAll(/^ (P\d+):\['([A-Z])'/gm)) MAPKEY
 const LIVING_SKIP=['P22','P25','P40','P3373','P19','P69','P108','P1066','P802','P26','P451','P2048','P2067'];
 
 const recs=[];
-for(const k of keep){ const q=k.a.q, c=k.e.c; if(!FI[q]) continue; const {M,yo}=baseMoves(k); const living=/存命|2016|不明/.test(k.judge[1]);
+for(const k of keep){ const q=k.a.q, c=k.e.c; if(!FI[q]) continue; const {M,yo}=baseMoves(k); const living=/存命|年以降に亡くなった|不明/.test(k.judge[1]);
  const QT={}; const pk=(kk,p,div=1)=>{ const x=qty(c,p); if(x!==null) QT[kk]=+(x/div).toPrecision(6); };
  if(!living){ pk('h','P2048'); pk('m','P2067'); } if(qty(c,'P1082')===null) pk('e','P2044'); pk('a','P2046'); pk('p','P1082'); pk('l','P2043',1000); pk('d','P4511'); pk('s','P2052');
  const EXT=[]; for(const [p,ty] of Object.entries(MAPKEYS)){ if(living&&LIVING_SKIP.includes(p)) continue; const is=[...new Set(ids(c,p))]; const ok=is.filter(labJ); if(!ok.length) continue;
-  const n=is.length; if((ty==='C'||ty==='G')&&n<2) continue; EXT.push([p,n,ok.slice(0,2).map(t=>ty==='S'?[labJ(t),desJ(t).slice(0,30),t]:labJ(t))]); }
+  const n=is.length; if((ty==='C'||ty==='G')&&n<2) continue; EXT.push([p,n,ok.slice(0,8).map((t,j)=>ty==='S'&&j<2?[labAt(c,p,t),desJ(t).slice(0,30),t]:labAt(c,p,t))]); }   // 8件まで（本文は先頭2件、残りは脚注で見せる。説明つきは先頭2件だけ）
  const a=k.a; const pvy=Math.round((a.pop||0)*(AUX.pvScale||0));
  EXT.push(['_m',k.e.sl||0,a.bytes||0,Math.min(a.inl||0,500),(a.inl||0)>=500?1:0,pvy]);
  const isP=ids(c,'P31').includes('Q5'); const name=a.t.replace(/\s*[（(][^）)]*[）)]\s*$/,'');

@@ -72,6 +72,14 @@ for i in range(0, len(qs), 50000):
         for p in WP:
             for x in set(idsj(e, p)): localW[x] += 1
 print('main', len(qs), 'typeCnt', len(typeCnt), 'works(search)', len(works), 'localW', len(localW), flush=True)
+# 本文データの補助（extract_all.py の3つ目の出力）：履歴保存の「/log」ページの作成日、パンくず（Pathnav）の親
+LOGCT = {}; PNAV = {}
+for f in glob.glob(os.path.join(D, 'all/extra_*.jsonl')):
+    for l in open(f):
+        x = json.loads(l)
+        if 'log' in x and x.get('ct'): LOGCT[x['log']] = min(LOGCT.get(x['log'], '9999'), x['ct'])
+        elif 'pnav' in x: PNAV[x['t']] = x['pnav']
+print('log', len(LOGCT), 'pnav', len(PNAV), flush=True)
 def lj(q):
     l = ((get(q) or {}).get('l') or {}).get('ja')
     return l if l and JP.search(l) and not re.search(r'一覧|ウィキメディア', l) else None
@@ -118,10 +126,12 @@ for sh in (only or shards):
         q = a['q']; e = json.loads(E[q]) if q in E else None; m = M.get(q, {}); g = {}
         x = idsj(e, 'P31')
         if x and lj(x[0]) and not SENS.search(lj(x[0])):
+            g['cn'] = cls_freq[x[0]]   # 同じ分類の収録記事の数（脚注で見せる）
             g['c'] = lj(x[0]); g['cf'] = round(max(0, min(5, 4.6 - 1.15 * math.log10(max(1, cls_freq[x[0]] / 13.1)))), 2)  # 旧データ（約10.8万記事）と同じ尺度にそろえる
         red = [r for r in m.get('red', []) if r != a['t'] and not SENS.search(r)]
-        if red: g['r'] = [len(m.get('red', []))] + red[:2]
-        if m.get('ct'): g['ct'] = m['ct'][:7]
+        if red: g['r'] = [len(m.get('red', []))] + red[:10]   # 本文は先頭2件、残りは脚注で見せる
+        ct = min(m.get('ct') or '9999', (LOGCT.get(a['t']) or '9999')[:10])   # 履歴保存で古い版が別ページに移った記事は、そちらの作成日を使う
+        if ct != '9999': g['ct'] = ct[:7]
         if m.get('maint'): g['mt'] = m['maint']
         if m.get('coord'): g['co'] = m['coord']
         hs = [h for h in m.get('heads', []) if len(h) <= 14 and not SENS.search(h)]
@@ -129,6 +139,10 @@ for sh in (only or shards):
         cs = [c for c in a.get('cats', []) if c != '存命人物' and not re.search(r'\d{3,4}年(生|没)$', c) and not SENS.search(c) and len(c) <= 22]
         if len(cs) >= 2: g['cc'] = cs[:2]
         if m.get('ext'): g['x'] = m['ext']
+        yo = [((s.get('mainsnak') or {}).get('datavalue') or {}).get('value') for s in ((e or {}).get('c') or {}).get('P1814') or []]
+        yo = [v for v in yo if isinstance(v, str) and v]
+        if yo: g['y'] = yo[0]   # 読み（カナ）
+        if PNAV.get(a['t']): g['pn'] = PNAV[a['t']][:3]   # パンくずの親
         loc = [v for v in idsj(e, 'P131') if lj(v)]
         if loc: g['loc'] = [lj(loc[0]), dj(loc[0]), loc[0]]
         jobs = [v for v in idsj(e, 'P106') if lj(v)]

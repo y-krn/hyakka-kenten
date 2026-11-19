@@ -44,7 +44,7 @@ s = s[:j] + "  return out; }" + s[j + len("  return out; });"):]
 rep("const HOLD=DATA.HOLD||{};", "const HOLD={};")
 rep("const QIX={}; F.forEach((f,i)=>QIX[f[2]]=i);", """const QIX={};
 function register(rec){ const t=rec.f[1]; /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
-  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;
+  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=(rec.ext||[]).map(e=>e[0]!=='_m'&&Array.isArray(e[2])&&e[2].length>2?[e[0],e[1],e[2].slice(0,2),e[2].slice(2)]:e); if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen){ const g={...rec.gen}; if(Array.isArray(g.r)&&g.r.length>3){ g.ra=g.r.slice(3); g.r=g.r.slice(0,3); } GEN[i]=g; }   /* 一覧の事実・別名は先頭2件を本文に使い、残り（e[3]・ra）は脚注で見せる */ if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }""")
 
@@ -1941,6 +1941,13 @@ repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {
     if(tg){ const ds=tg.filter(x=>x[1]&&!/英語の説明のみ/.test(x[1])).slice(0,3).map(x=>x[0]+'は「'+x[1]+'」'); if(ds.length) out.push(ds.join('、')+'。'); }
     else { const k=d.indexOf('：'); if(k>0){ const names=d.slice(k+1).replace(/\\s*など.*$/,'').split(/[、・]/).map(x=>x.trim());   // 一覧の技：同じ事実の記録に説明があれば使う
         for(const e of (EXT[who]||[])) if(Array.isArray(e[2])) for(const x of e[2]) if(Array.isArray(x)&&x[1]&&names.includes(x[0])&&out.length<2) out.push(x[0]+'は「'+x[1]+'」。'); } }
+    { const g=GEN[who]||{};   // 作り直し（2026-11）で足した情報：読み・同じ分類の記事数・別名と一覧の残り
+      if(nm==='名前で殴る'&&g.y) out.push('読みは「'+g.y+'」。');
+      if(nm==='正体開示'&&g.c&&g.cn>1) out.push('日本語版Wikipediaで「'+g.c+'」に分類される記事は約'+fnFmt(g.cn)+'件。');
+      if(nm==='分身の術'&&g.ra&&g.ra.length) out.push('ほかの別名に'+g.ra.slice(0,6).map(x=>'「'+x+'」').join('')+'など。');
+      const k=d.indexOf('：'); if(k>0&&!out.some(x=>x.startsWith('ほかに'))){ const shown=d.slice(k+1).replace(/\\s*など.*$/,'').split(/[、・]/).map(x=>x.trim());
+        const e=(EXT[who]||[]).find(e=>Array.isArray(e[3])&&e[3].length&&(e[2]||[]).some(x=>shown.includes(Array.isArray(x)?x[0]:x)));
+        if(e) out.push('ほかに'+e[3].map(x=>Array.isArray(x)?x[0]:x).slice(0,6).join('、')+(e[1]>2+Math.min(6,e[3].length)?'など、全'+e[1]+'件':'')+'。'); } }
     if(!out.length&&nm==='同族召喚'&&isFinite(v)) out.push('Wikidataには、「'+F[who][0]+'」の一つとして登録された項目が'+fnFmt(v)+'件ある。');   // P31＝この記事 の項目数
     if(!out.length&&/ 対 /.test(d)){ const pq=d.slice(d.indexOf('：')+1).split(' 対 ').map(x=>x.trim()), [p,q]=pq.map(fnNum); if(p>0&&q>0){ const r=Math.max(p,q)/Math.min(p,q); if(/倍/.test(body||'')){ v=p; us=pq[0]; } else if(r>=1.05) out.push((p>=q?pq[0]+'は'+pq[1]:pq[1]+'は'+pq[0])+'の約'+fnFmt(r)+'倍。'); } }   // 比べ技：差を倍率で
     if(!out.length&&isFinite(v)){ const me=F[who][0];

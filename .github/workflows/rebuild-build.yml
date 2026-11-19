@@ -75,8 +75,8 @@ jobs:
       - name: 受け取る
         run: |
           mkdir -p /tmp/w/full && gh run download "${{ github.run_id }}" -n ents-db -D /tmp/w/full && zstd -d --rm /tmp/w/full/ents.db.zst -o /tmp/w/full/ents.db
-          gh run download "${{ inputs.cirrus_run }}" -n cirrus-all -D /tmp/w/all
-          gunzip /tmp/w/all/arts_*.jsonl.gz /tmp/w/all/meta_*.jsonl.gz
+          for k in 1 2 3; do gh run download "${{ inputs.cirrus_run }}" -n cirrus-all -D /tmp/w/all && break; rm -rf /tmp/w/all; sleep 20; done
+          gunzip /tmp/w/all/*.jsonl.gz
           ls /tmp/w/all | head -3 && df -h /tmp | tail -1
       - name: 能力値と技を作る（区画 ${{ matrix.shard }}）
         env:
@@ -119,6 +119,13 @@ jobs:
           rm -rf data/a data/t data/g data/fam
           python3 tools/build_full.py /tmp/w/full/gen data
           python3 tools/norand.py data
+          python3 - <<'PY'
+          # おまかせ用の人気記事から、ランダムに出さない記事（性的な内容など）と扱わない記事を除く
+          import json
+          m = json.load(open('data/meta.json')); ng = set(json.load(open('data/norand.json'))) | set(json.load(open('data/exclude.json')))
+          m['popular'] = [t for t in m['popular'] if t not in ng]
+          json.dump(m, open('data/meta.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+          PY
           python3 tools/build_fam.py data
           python3 tools/build_titles.py data
           python3 tools/build_ngram.py data

@@ -539,7 +539,7 @@ function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事
     if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }
     if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }
     for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number'&&v>0) rec.qt[q]=v; else if(v===null||typeof v==='number'){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
-  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;
+  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=(rec.ext||[]).map(e=>e[0]!=='_m'&&Array.isArray(e[2])&&e[2].length>2?[e[0],e[1],e[2].slice(0,2),e[2].slice(2)]:e); if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen){ const g={...rec.gen}; if(Array.isArray(g.r)&&g.r.length>3){ g.ra=g.r.slice(3); g.r=g.r.slice(0,3); } GEN[i]=g; }   /* 一覧の事実・別名は先頭2件を本文に使い、残り（e[3]・ra）は脚注で見せる */ if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
 const BLOCK=new Set();
