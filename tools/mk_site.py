@@ -2090,6 +2090,39 @@ repall("""    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>""", """
 repall("+'の応援試合 ／ '+esc(c.orig.c)+'対決（相手は'+esc(c.orig.q)+'）':", "+'の応援試合 ／ '+esc(c.orig.c)+'対決':")
 repall("#pref select{", ".sb .ptag{font-size:12px;color:var(--muted);font-weight:700}\n.sb .ptag.me{align-self:flex-start;background:var(--a);color:#fff;padding:1px 7px;border-radius:3px}\n#pref select{")
 
+# ---- 105. 試作：都道府県の応援は「県対抗の勝ち抜き戦」。勝てば同じ代表が別の県と戦い、負ければ自分の県の次の代表が勝った相手に挑む（仇を討つ）
+#   応援試合の結果では、自由対戦へ移るボタン（次の挑戦者・別の組み合わせ・選び直す）と「次の相手」を出さない
+repall("async function prefGo(){", r"""async function prefBattle(o){ o=o||{}; const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
+  try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
+    for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const A=(R[p]||{})[c]||[], B=(R[q]||{})[c]||[];
+      if((o.a==null&&!A.length)||(o.b==null&&!B.length)) continue;
+      const a=o.a!=null?o.a:await loadTitle(pick(A)), b=o.b!=null?o.b:await loadTitle(pick(B));
+      if(a<0||b<0||a===b||(o.ex||[]).includes(a)||BLOCK.has(a)||BLOCK.has(b)||isChamp(a)||isChamp(b)) continue;
+      const x=prefGet(); x.c=x.c||{}; x.c[p]=(x.c[p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
+      ORIG={k:'pref',p,q,c,n:o.n||0,rev:o.rev||null}; startBattle([a,b]); return; } }
+  finally{ prefDraw(); } }
+// 結果の札：県としての流れと、続けるボタン
+function prefLine(cur,w){ const O=cur.orig, me=esc(F[cur.ai][0]), P=esc(O.p);
+  if(w===null) return `<div class="sub pfl">${P}：引き分け</div>`;
+  if(w===cur.ai) return `<div class="sub pfl">${O.rev?`${P}の${me}が、${esc(O.rev)}の仇を討った！ `:''}${O.n+1>=2?`${P} ${O.n+1}連勝中`:`${P}の勝ち`}</div>`;
+  return `<div class="sub pfl">${P}の${me}が敗れた。次の代表が仇を討つ</div>`; }
+function prefBtns(won){ return won===true?'<button type="button" class="btn big" id="pwin">勝ち抜く</button><button type="button" class="btn" id="pnew">別の代表で応援</button>'
+  :won===false?'<button type="button" class="btn big" id="prev">仇を討つ</button><button type="button" class="btn" id="pnew">別の代表で応援</button>'
+  :'<button type="button" class="btn big" id="pnew">別の代表で応援</button>'; }
+async function prefGo(){ return prefBattle({}); }
+async function prefGoOld(){""")
+repall("+'の応援試合 ／ '+esc(c.orig.c)+'対決':", "+'の応援試合 ／ '+esc(c.orig.c)+'対決'+(c.orig.rev?'（仇討ち）':c.orig.n?'（'+(c.orig.n+1)+'戦目）':''):")
+repall("""<div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>""", """<div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>${current.orig&&current.orig.k==='pref'?prefLine(current,w):''}""")
+repall("""${w!==null&&streak.n>=2?`<div class="sub">""", """${w!==null&&streak.n>=2&&!(current.orig&&current.orig.k==='pref')?`<div class="sub">""")
+repall("""${!TDY&&!M?'<div class="reads nextops\"""", """${!TDY&&!M&&!(current.orig&&current.orig.k==='pref')?'<div class="reads nextops\"""")
+repall("""`:`\n      ${w!==null?`<button type="button" class="btn big" id="cont">""", """`:current.orig&&current.orig.k==='pref'?prefBtns(w===null?null:w===ai):`\n      ${w!==null?`<button type="button" class="btn big" id="cont">""")
+repall("if($('#again')) $('#again').onclick=async()=>{", """if(current.orig&&current.orig.k==='pref'){ const O=current.orig;
+    if($('#pwin')) $('#pwin').onclick=()=>prefBattle({a:ai,c:O.c,n:O.n+1});
+    if($('#prev')) $('#prev').onclick=()=>prefBattle({b:bi,q:O.q,c:O.c,n:0,rev:F[ai][0],ex:[ai]});
+    if($('#pnew')) $('#pnew').onclick=()=>prefBattle({}); }
+  if($('#again')) $('#again').onclick=async()=>{""")
+repall(".sb .ptag{", ".result .pfl{font-weight:700;color:var(--hl)}\n.sb .ptag{")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
