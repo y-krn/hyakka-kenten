@@ -2094,7 +2094,7 @@ repall("#pref select{", ".sb .ptag{font-size:12px;color:var(--muted);font-weight
 #   応援試合の結果では、自由対戦へ移るボタン（次の挑戦者・別の組み合わせ・選び直す）と「次の相手」を出さない
 repall("async function prefGo(){", r"""async function prefBattle(o){ o=o||{}; const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
   try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
-    for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const A=(R[p]||{})[c]||[], B=(R[q]||{})[c]||[];
+    for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const fx=new Set((o.f||[]).map(i=>F[i]&&F[i][1])), A0=(R[p]||{})[c]||[], A1=A0.filter(t=>!fx.has(t)), A=A1.length?A1:A0, B=(R[q]||{})[c]||[];   // 仇討ちでは、敗れた代表を候補から先に除く
       if((o.a==null&&!A.length)||(o.b==null&&!B.length)) continue;
       const a=o.a!=null?o.a:await loadTitle(pick(A)), b=o.b!=null?o.b:await loadTitle(pick(B));
       if(a<0||b<0||a===b||(o.f||[]).includes(a)||BLOCK.has(a)||BLOCK.has(b)||isChamp(a)||isChamp(b)) continue;
