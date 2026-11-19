@@ -1,0 +1,135 @@
+# データの作り直し（4）：取り直したデータから、公開用の記事データ（data/）を作り直し、ブランチ rebuild-data-（実行ID）に入れる
+#   入力：「Wikidataを取り直す」の取り終えた実行（wikidata-raw）と、「記事本文データを取り出す」の実行（cirrus-all）
+#   手順は tools/README.md のとおり：mkdb → prep_full（区画ごと、gen_v2.js も）→ rv_global → build_full → 付随データ（norand・仲間・題名・検索・誕生年）
+#   補助データ（種類ごとの項目数・人物の作品数）は前回のもの（rebuild/aux/）を使う
+#   本番やプレビューには入れない。中身を比べてから、別に入れる
+name: 作り直し：記事データを作る
+on:
+  workflow_dispatch:
+    inputs:
+      raw_run:
+        description: Wikidataを取り終えた実行のID
+        required: true
+      cirrus_run:
+        description: 記事本文データを取り出した実行のID
+        required: true
+      asof:
+        description: データの時点（YYYY-MM-DD）
+        default: '2026-11-19'
+      only:
+        description: 試しに作る区画（例：00003。空なら全部）
+        default: ''
+permissions:
+  contents: write
+  actions: read
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+jobs:
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      shards: ${{ steps.s.outputs.shards }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - name: 取り直しデータをSQLiteにまとめる
+        run: |
+          gh run download "${{ inputs.raw_run }}" -n wikidata-raw -D /tmp/dl
+          tar -I zstd -xf /tmp/dl/raw.tar.zst -C /tmp && rm -rf /tmp/dl
+          python3 tools/mkdb.py /tmp/ents.db /tmp/R/ents/*.jsonl | tail -3
+          rm -rf /tmp/R && ls -la /tmp/ents.db
+          zstd -T0 -6 --rm /tmp/ents.db -o /tmp/ents.db.zst && ls -la /tmp/ents.db.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ents-db
+          path: /tmp/ents.db.zst
+          retention-days: 7
+          compression-level: 0
+      - id: s
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          if [ -n "$ONLY" ]; then echo "shards=$(python3 -c "import json,os;print(json.dumps(os.environ['ONLY'].split(',')))")" >> $GITHUB_OUTPUT
+          else echo "shards=$(python3 -c "import json;print(json.dumps(['%05d'%i for i in range(15)]))")" >> $GITHUB_OUTPUT; fi
+  prep:
+    needs: db
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: ${{ fromJSON(needs.db.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools
+            rebuild
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 受け取る
+        run: |
+          mkdir -p /tmp/w/full && gh run download "${{ github.run_id }}" -n ents-db -D /tmp/w/full && zstd -d --rm /tmp/w/full/ents.db.zst -o /tmp/w/full/ents.db
+          gh run download "${{ inputs.cirrus_run }}" -n cirrus-all -D /tmp/w/all
+          gunzip /tmp/w/all/arts_*.jsonl.gz /tmp/w/all/meta_*.jsonl.gz
+          ls /tmp/w/all | head -3 && df -h /tmp | tail -1
+      - name: 能力値と技を作る（区画 ${{ matrix.shard }}）
+        env:
+          GEN: '1'
+          HK_AUX: rebuild/aux
+          HK_ASOF: ${{ inputs.asof }}
+        run: |
+          python3 tools/prep_full.py /tmp/w ${{ matrix.shard }}
+          ls -la /tmp/w/full/gen/${{ matrix.shard }}
+          test -f /tmp/w/full/gen/${{ matrix.shard }}/big_v2.json
+      - name: 固める
+        run: |
+          cd /tmp/w/full/gen && rm -f ${{ matrix.shard }}/ents.jsonl ${{ matrix.shard }}/arts.jsonl
+          tar -I 'zstd -T0 -6' -cf /tmp/gen-${{ matrix.shard }}.tar.zst ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gen-${{ matrix.shard }}
+          path: /tmp/gen-${{ matrix.shard }}.tar.zst
+          retention-days: 7
+          compression-level: 0
+  build:
+    needs: prep
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - name: 受け取る
+        run: |
+          mkdir -p /tmp/w/full/gen
+          gh run download "${{ github.run_id }}" -n ents-db -D /tmp/w/full && zstd -d --rm /tmp/w/full/ents.db.zst -o /tmp/w/full/ents.db
+          gh run download "${{ github.run_id }}" -p 'gen-*' -D /tmp/dl
+          for f in /tmp/dl/*/gen-*.tar.zst; do tar -I zstd -xf $f -C /tmp/w/full/gen; done
+          ls /tmp/w/full/gen
+      - name: 因縁を全体で作る
+        run: python3 tools/rv_global.py /tmp/w
+      - name: 公開用の記事データを作る
+        run: |
+          rm -rf data/a data/t data/g data/fam
+          python3 tools/build_full.py /tmp/w/full/gen data
+          python3 tools/norand.py data
+          python3 tools/build_fam.py data
+          python3 tools/build_titles.py data
+          python3 tools/build_ngram.py data
+          python3 tools/build_bd.py
+          cat data/meta.json | head -c 300; echo
+          du -sh data/*
+      - name: ブランチ rebuild-data-（実行ID）に入れる
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898299+github-actions[bot]@users.noreply.github.com'
+          git checkout -B rebuild-data-${{ github.run_id }}
+          git add -A data
+          git commit -qm "作り直し：記事データ（Wikidata ${{ inputs.raw_run }}、本文 ${{ inputs.cirrus_run }}、時点 ${{ inputs.asof }}${{ inputs.only && format('、区画 {0} だけ', inputs.only) || '' }}）"
+          git push origin rebuild-data-${{ github.run_id }}

@@ -41,9 +41,9 @@ def anc(q, d=0):
         for x in idsj(get(q), 'P279'): s |= anc(x, d + 1)
     memo[q] = s; return s
 # 補助データ（旧＋今回の検索）
-old = json.load(open('/mnt/user-data/uploads/Downloads/wikibattler_work/big/aux.json'))
+AUXD = os.environ.get('HK_AUX', '/mnt/user-data/uploads/Downloads/wikibattler_work/full/').rstrip('/') + '/'   # 作り直しでは rebuild/aux/ を使う
+old = json.load(open(AUXD + 'aux.json' if os.path.exists(AUXD + 'aux.json') else '/mnt/user-data/uploads/Downloads/wikibattler_work/big/aux.json'))
 typeCnt = dict(old['typeCnt']); works = dict(old['works']); rev = dict(old['rev'])
-AUXD = '/mnt/user-data/uploads/Downloads/wikibattler_work/full/'
 for f, kind in [(AUXD + 'aux_type.jsonl', 't'), (AUXD + 'aux_works.jsonl', 'w')]:
     if not os.path.exists(f): continue
     for l in open(f):
@@ -51,7 +51,7 @@ for f, kind in [(AUXD + 'aux_type.jsonl', 't'), (AUXD + 'aux_works.jsonl', 'w')]
         if kind == 't': typeCnt[x[0]] = x[1]
         else: works[x[0]] = x[1]; rev[x[0]] = {'mil': x[3], 'wrk': x[2], 'wrkTotal': x[1]}
 # 記事データ（全区画）を読み、P31の出現数（全体）を数える
-shards = sorted(os.path.basename(f)[5:7] for f in glob.glob(os.path.join(D, 'all/arts_*.jsonl')))
+shards = sorted(os.path.basename(f)[5:-6] for f in glob.glob(os.path.join(D, 'all/arts_*.jsonl')))
 cls_freq = collections.Counter(); P31 = {}
 for sh in shards:
     for l in open(os.path.join(D, f'all/arts_{sh}.jsonl')):
@@ -111,7 +111,7 @@ for sh in (only or shards):
             for c in (P31.get(a['q']) or []): s |= anc(c)
             if s: cls[a['q']] = sorted(s)
     W2 = {q: max(works.get(q, 0), localW[q]) for q in main if q in works or localW[q]}
-    json.dump({'typeCnt': {q: typeCnt[q] for q in main if q in typeCnt}, 'rev': {q: rev[q] for q in main if q in rev}, 'works': W2, 'cls': cls, 'pvScale': 1.3e10, 'asof': '2026-10-18'}, open(os.path.join(out, 'aux.json'), 'w'))
+    json.dump({'typeCnt': {q: typeCnt[q] for q in main if q in typeCnt}, 'rev': {q: rev[q] for q in main if q in rev}, 'works': W2, 'cls': cls, 'pvScale': 1.3e10, 'asof': os.environ.get('HK_ASOF', '2026-10-18')}, open(os.path.join(out, 'aux.json'), 'w'))
     # 汎用技の素材
     G = {}
     for a in A:
@@ -135,7 +135,7 @@ for sh in (only or shards):
         if len(jobs) == 1: g['job'] = lj(jobs[0])
         G[q] = g
     json.dump(G, open(os.path.join(out, 'gen_extra.json'), 'w'), ensure_ascii=False)
-    os.system(f'cp {D}/gen/k_fit.json {out}/')
+    os.system(f'cp {D}/gen/k_fit.json {out}/ 2>/dev/null || cp {os.path.dirname(os.path.abspath(__file__))}/k_fit.json {out}/')
     print(sh, 'arts', len(A), 'ents', len(E), 'cls', len(cls), flush=True)
     if os.environ.get('GEN'):
         rc = os.system(f'node --max-old-space-size=4500 {os.path.dirname(os.path.abspath(__file__))}/gen_v2.js {out} > {out}/gen.log 2>&1')
