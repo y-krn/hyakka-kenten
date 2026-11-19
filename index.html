@@ -164,6 +164,7 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .logbar h3{margin:0;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:500}
 ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sb .ptag{font-size:12px;color:var(--muted);font-weight:700}
+.sb .ptag.me{align-self:flex-start;background:var(--a);color:#fff;padding:1px 7px;border-radius:3px}
 #pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
 #ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
 .toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
@@ -1141,7 +1142,7 @@ function startBattle(pair){
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
   <div class="scoreboard" id="sb">
-    <div class="sb A">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.p)}（応援中）</span>`:''}<span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
+    <div class="sb A">${current.orig&&current.orig.k==='pref'?`<span class="ptag me">${esc(current.orig.p)}を応援中</span>`:''}<span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
     <div class="tick" id="tk">0</div>
     <div class="sb B">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.q)}</span>`:''}<span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
   </div>
