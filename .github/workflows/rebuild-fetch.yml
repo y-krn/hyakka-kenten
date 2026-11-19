@@ -15,6 +15,9 @@ on:
       minutes:
         description: この回で取る時間（分）
         default: '320'
+      add_cirrus:
+        description: 足りない記事を足すときの、記事本文データを取り出した実行のID（その記事のうち、まだ取っていないものを束にして足す）
+        default: ''
 permissions:
   contents: read
   actions: write
@@ -39,6 +42,7 @@ jobs:
         env:
           PREV: ${{ inputs.prev }}
           LIMIT: ${{ inputs.limit }}
+          ADD: ${{ inputs.add_cirrus }}
         run: |
           if [ -n "$PREV" ]; then
             gh run download "$PREV" -n wikidata-raw -D /tmp/dl
@@ -60,6 +64,22 @@ jobs:
               open(f"{os.environ['R']}/batches/{i // n:03d}.q", 'w').write('\n'.join(qs[i:i + n]) + '\n')
           print('記事', len(qs), '束', (len(qs) + n - 1) // n)
           PY
+          fi
+          if [ -n "$ADD" ]; then
+            gh run download "$ADD" -n cirrus-all -D /tmp/cirrus
+            python3 - <<'PY'
+          import json, gzip, glob, os
+          R = os.environ['R']; have = set(open(f'{R}/have_full.txt').read().split())
+          qs = set()
+          for f in glob.glob('/tmp/cirrus/arts_*.jsonl.gz'):
+              for l in gzip.open(f, 'rt', encoding='utf-8'): qs.add(json.loads(l)['q'])
+          miss = sorted(qs - have, key=lambda q: int(q[1:]))
+          cur = sorted(f for f in os.listdir(f'{R}/batches') if f.endswith('.q')); k0 = len(cur); n = 21500
+          for i in range(0, len(miss), n):
+              open(f'{R}/batches/{k0 + i // n:03d}.q', 'w').write('\n'.join(miss[i:i + n]) + '\n')
+          print('本文データにあって、まだ取っていない記事', len(miss), '足した束', (len(miss) + n - 1) // n)
+          PY
+            rm -f $R/DONE
           fi
           cat $R/state.json 2>/dev/null || true
       - name: 取る
