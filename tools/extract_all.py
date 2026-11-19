@@ -6,12 +6,24 @@ DIS = re.compile(r'Template:(Aimai|曖昧さ回避|人名の曖昧さ回避|地�
 MAINT = {'出典の明記':'出典','要出典範囲':'出典','要出典':'出典','出典の明記/dateHandler':'出典','独自研究':'独自研究','特筆性':'特筆性','正確性':'正確性','宣伝':'宣伝','未検証':'未検証','更新':'更新','観点':'観点','単一の出典':'単一の出典','一次資料':'一次資料','大言壮語':'大言壮語','言葉を濁さない':'言葉を濁す','雑多な内容の箇条書き':'雑多','Wikify':'整形','スタブ':'スタブ','Substub':'スタブ'}
 SKIPH = re.compile(r'^(脚注|注釈|出典|参考文献|関連項目|外部リンク|関連文献|参考資料|注|補注|脚注・出典|出典・脚注|外部サイト)$')
 d1, d2 = sys.argv[1], sys.argv[2]
+d3 = sys.argv[3] if len(sys.argv) > 3 else None   # 作り直し（2026-11）：パンくず（Pathnav）の親と、履歴保存の「/log」ページの作成日
+PNAV = re.compile(r'\{\{\s*[Pp]athnav\s*\|([^{}]*)\}\}')
+LOGP = re.compile(r'^(.+)/log(\d{8})$')
+out3 = open(d3, 'w', encoding='utf-8') if d3 else None
 n = 0
 with open(d1,'w',encoding='utf-8') as out, open(d2,'w',encoding='utf-8') as out2:
     for line in sys.stdin:
         if line.startswith('{"index"'): continue
         o = json.loads(line)
+        if out3 and str(o.get('namespace')) == '0':
+            m = LOGP.match(o.get('title') or '')
+            if m: out3.write(json.dumps({'log': m.group(1), 'ct': o.get('create_timestamp')}, ensure_ascii=False) + '\n')
         if str(o.get('namespace')) != '0' or not o.get('wikibase_item'): continue
+        if out3:
+            pn = PNAV.search(o.get('source_text') or '')
+            if pn:
+                ps = [x.strip() for x in pn.group(1).split('|') if x.strip() and '=' not in x]
+                if ps: out3.write(json.dumps({'t': o['title'], 'pnav': ps[:6]}, ensure_ascii=False) + '\n')
         st = o.get('source_text') or ''
         imgs = {m.strip().lower() for m in IMG.findall(st)}
         tpl = o.get('template') or []

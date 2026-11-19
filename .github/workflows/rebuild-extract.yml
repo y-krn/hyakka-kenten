@@ -1,0 +1,81 @@
+# データの作り直し（2）：Wikimedia の検索用データ（jawiki_content）から、記事ごとの数量と補助情報を取り出す
+#   区画（約15個、1つ約600MB）ごとに並べて動かす。ダンプのサーバーに負担をかけないよう、同時に3つまで
+#   取り出すもの：arts（記事の数量）・meta（転送ページ・見出しなど）・extra（パンくずの親、履歴保存の「/log」ページの作成日）
+#   結果は「cirrus-all」にまとめて残る（30日）
+name: 作り直し：記事本文データを取り出す
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: ダンプの日付（YYYYMMDD。空なら最新）
+        default: ''
+      limit:
+        description: 試しに動かすときの区画の数（空なら全部）
+        default: ''
+permissions:
+  contents: read
+  actions: read
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.l.outputs.shards }}
+      base: ${{ steps.l.outputs.base }}
+    steps:
+      - id: l
+        env:
+          DATE: ${{ inputs.date }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          UA='hyakka-kenten data rebuild (https://github.com/y-krn)'
+          top=https://dumps.wikimedia.org/other/cirrus_search_index
+          d=${DATE:-$(curl -sS -A "$UA" $top/ | grep -o 'href="[0-9]\{8\}/"' | grep -o '[0-9]\{8\}' | sort | tail -1)}
+          base="$top/$d/index_name=jawiki_content"
+          files=$(curl -sS -A "$UA" "$base/" | grep -o 'jawiki_content-[0-9]*-[0-9]*\.json\.bz2' | sort -u)
+          [ -n "$LIMIT" ] && files=$(echo "$files" | head -n "$LIMIT")
+          echo "日付 $d、区画 $(echo "$files" | wc -l)"
+          echo "base=$base" >> $GITHUB_OUTPUT
+          echo "shards=$(echo "$files" | python3 -c 'import sys,json;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')" >> $GITHUB_OUTPUT
+  extract:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 3
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.list.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - name: 取り出す
+        run: |
+          sudo apt-get install -y -qq lbzip2 >/dev/null
+          n=$(echo "${{ matrix.shard }}" | grep -o '[0-9]*\.json' | grep -o '[0-9]*')
+          mkdir -p out
+          curl -sS --retry 5 -A 'hyakka-kenten data rebuild (https://github.com/y-krn)' "${{ needs.list.outputs.base }}/${{ matrix.shard }}" \
+            | lbzip2 -dc | python3 tools/extract_all.py out/arts_$n.jsonl out/meta_$n.jsonl out/extra_$n.jsonl
+          gzip -6 out/*.jsonl && ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cirrus-${{ strategy.job-index }}
+          path: out
+          retention-days: 3
+          compression-level: 0
+  merge:
+    needs: extract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cirrus-*
+          merge-multiple: true
+          path: all
+      - run: ls -la all | head -60 && du -sh all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cirrus-all
+          path: all
+          retention-days: 30
+          compression-level: 0
