@@ -1,0 +1,37 @@
+# データの作り直し（3）：都道府県の応援の選手一覧（data/pref/roster.json）を、Wikidataの取り直しデータから作り、プレビューのブランチに入れる
+#   取り直しデータは「作り直し：Wikidataを取り直す」の、取り終えた実行の wikidata-raw を使う
+name: 作り直し：都道府県の選手一覧を作る
+on:
+  workflow_dispatch:
+    inputs:
+      raw_run:
+        description: Wikidataを取り終えた実行のID
+        required: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  pref:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - name: 取り直しデータを受け取る
+        run: |
+          gh run download "${{ inputs.raw_run }}" -n wikidata-raw -D /tmp/dl
+          tar -I zstd -xf /tmp/dl/raw.tar.zst -C /tmp && du -sh /tmp/R
+      - name: 選手一覧を作る
+        run: python3 tools/pref_roster.py /tmp/R
+      - name: プレビューのブランチに入れる
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898299+github-actions[bot]@users.noreply.github.com'
+          git add data/pref/roster.json
+          git diff --cached --quiet && { echo 変わりなし; exit 0; }
+          git commit -m "都道府県の応援：選手一覧を作り直しの取得データから作る（実行 ${{ inputs.raw_run }}）"
+          git push origin HEAD:preview
