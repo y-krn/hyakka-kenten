@@ -72,6 +72,33 @@ jobs:
           done
           tail -3 $R/log.txt
           du -sh $R
+      - name: 中身を確かめる
+        run: |
+          python3 - <<'PY'
+          import json, glob, collections
+          c = collections.Counter(); P131 = {}; JT = {}
+          for f in glob.glob('/tmp/R/ents/*.jsonl'):
+              for l in open(f):
+                  e = json.loads(l); c['項目'] += 1; cl = e.get('c') or {}
+                  for p in ('P19', 'P131', 'P1448', 'P1814', 'P17'):
+                      if p in cl: c[p] += 1
+                  if e.get('a'): c['別名'] += 1
+                  v = [s['mainsnak']['datavalue']['value']['id'] for s in cl.get('P131', []) if (s.get('mainsnak') or {}).get('datavalue')]
+                  if v: P131[e['id']] = v
+                  if (e.get('l') or {}).get('ja'): JT[e['id']] = e['l']['ja']
+          print(dict(c))
+          # 所在地を都道府県までたどれるか（日本の都道府県 Q50337 かどうかは、ここでは名前の末尾で見る）
+          ok = 0; tot = 0
+          for q in list(P131)[:3000]:
+              tot += 1; cur = q
+              for _ in range(6):
+                  n = JT.get(cur, '')
+                  if n.endswith(('県', '府', '都')) or n == '北海道': ok += 1; break
+                  nx = P131.get(cur)
+                  if not nx: break
+                  cur = nx[0]
+          print('所在地をたどって都道府県に着いた割合', ok, '/', tot)
+          PY
       - name: 固める
         run: tar -I 'zstd -T0 -6' -cf /tmp/raw.tar.zst -C /tmp R && ls -la /tmp/raw.tar.zst
       - uses: actions/upload-artifact@v4
