@@ -32,11 +32,11 @@ async function fetchEnts(list,mode){ const full=mode!=='lab';
  const isMain=mode==='main'; const has=q=>isMain?!!(ENTS[q]&&ENTS[q].sl!==undefined&&ENTS[q].c):(haveF.has(q)||(!full&&haveL.has(q)));
  const need=[...new Set(list)].filter(q=>/^Q\d+$/.test(q)&&!miss.has(q)&&!has(q));
  const PAR=+(process.env.MAXC||3); for(let i=0;i<need.length&&!timeUp();i+=50*PAR){ const parts=[]; for(let k=0;k<PAR;k++){ const p=need.slice(i+50*k,i+50*k+50); if(p.length) parts.push(p);}
-  await Promise.all(parts.map(async part=>{ const j=await W.getJ('https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props='+(full?'claims|labels|descriptions'+(mode==='main'?'|sitelinks':''):'labels|descriptions')+'&languages=ja|en&ids='+part.join('|'));
+  await Promise.all(parts.map(async part=>{ const j=await W.getJ('https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props='+(full?'claims|labels|descriptions'+(mode==='main'?'|sitelinks|aliases':''):'labels|descriptions')+'&languages=ja|en&ids='+part.join('|'));
    const got=new Set(); Object.values(j.entities||{}).forEach(e=>{ if(e.id&&!e.missing&&(e.claims||!full)){ store(W.trim(e),!full); got.add(e.id);} });
    part.forEach(q=>{ if(!got.has(q)&&!has(q)){ miss.add(q); fs.writeSync(fM,q+'\n'); } }); })); }
  return need.filter(q=>!has(q)&&!miss.has(q)).length; }
-const NEEDP=['P31','P279','P138','P61','P112','P170','P50','P131','P276','P137','P176','P127','P749','P449','P179','P361','P1433','P106'];
+const NEEDP=['P19','P31','P279','P138','P61','P112','P170','P50','P131','P276','P137','P176','P127','P749','P449','P179','P361','P1433','P106'];
 const p279of=q=>ENTS[q]&&ENTS[q].c&&Object.keys(ENTS[q].c).length?ids(ENTS[q],'P279'):(P279[q]||[]);
 (async()=>{
  while(S.cur<BATCHES.length&&!timeUp()){
@@ -49,7 +49,12 @@ const p279of=q=>ENTS[q]&&ENTS[q].c&&Object.keys(ENTS[q].c).length?ids(ENTS[q],'P
   if(S.phase==='class'&&!timeUp()){ // 記事のP31 → P279 を最大6段
    let fr=new Set(MAIN.flatMap(q=>ids(ENTS[q],'P31'))); for(let d=0;d<S.depth;d++){ const nx=new Set(); fr.forEach(q=>p279of(q).forEach(x=>nx.add(x))); fr=nx; }
    while(S.depth<6&&!timeUp()){ const left=await fetchEnts([...fr],'full'); if(left) break; const nx=new Set(); fr.forEach(q=>p279of(q).forEach(x=>nx.add(x))); fr=nx; S.depth++; }
-   if(S.depth>=6){ S.cur++; S.phase='main'; S.depth=0; } }
+   if(S.depth>=6){ S.phase='admin'; S.depth=0; } }
+  if(S.phase==='admin'&&!timeUp()){ // 所在地（P131）を都道府県・国までたどる：記事と、記事が指す場所（出生地・所在地など）から最大5段
+   const up=qs=>{ const nx=new Set(); qs.forEach(q=>ids(ENTS[q],'P131').forEach(x=>nx.add(x))); return nx; };
+   let fr=up([...MAIN,...W.linkedOf(MAIN,ENTS,['P19','P131','P276','P159','P740','P937'])]); for(let d=0;d<S.depth;d++) fr=up([...fr]);
+   while(S.depth<5&&!timeUp()){ const left=await fetchEnts([...fr],'full'); if(left) break; fr=up([...fr]); S.depth++; }
+   if(S.depth>=5){ S.cur++; S.phase='main'; S.depth=0; } }
   fs.writeFileSync(ST,JSON.stringify(S));
  }
  fs.writeFileSync(ST,JSON.stringify(S));

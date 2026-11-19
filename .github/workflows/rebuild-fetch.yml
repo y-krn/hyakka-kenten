@@ -1,0 +1,86 @@
+# データの作り直し（1）：Wikidata から、収録記事とそのつながる項目を取り直す
+#   約138万件あるので1回では終わらない。決めた時間だけ取って、途中のデータを固めて残し、自分で続きを呼ぶ
+#   取り方は tools/fetch_all.js（束ごとに区切り、続きから進める）。問い合わせは同時3本まで、連絡先付き（tools/wm_vm.js）
+#   取り終わったデータは、最後の実行の「wikidata-raw」に残る（30日）
+name: 作り直し：Wikidataを取り直す
+on:
+  workflow_dispatch:
+    inputs:
+      prev:
+        description: 続きから進めるときの、前回の実行ID（空なら最初から）
+        default: ''
+      limit:
+        description: 試しに動かすときの記事数（空なら全件）
+        default: ''
+      minutes:
+        description: この回で取る時間（分）
+        default: '320'
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: rebuild-fetch
+  cancel-in-progress: false
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      R: /tmp/R
+      MAXC: '3'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 前回の続きを受け取る（最初なら、記事の束を作る）
+        env:
+          PREV: ${{ inputs.prev }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          if [ -n "$PREV" ]; then
+            gh run download "$PREV" -n wikidata-raw -D /tmp/dl
+            tar -I zstd -xf /tmp/dl/raw.tar.zst -C /tmp
+          else
+            mkdir -p $R/batches $R/ents
+            python3 - <<'PY'
+          import json, gzip, os
+          D = 'data/a'; qs = set()
+          for fn in os.listdir(D):
+              for r in json.load(gzip.open(os.path.join(D, fn))).values():
+                  q = r['f'][2]
+                  if isinstance(q, str) and q.startswith('Q'): qs.add(q)
+          qs = sorted(qs, key=lambda q: int(q[1:]))
+          lim = os.environ.get('LIMIT') or ''
+          if lim: qs = qs[:int(lim)]
+          n = 21500 if not lim else max(50, len(qs) // 3)
+          for i in range(0, len(qs), n):
+              open(f"{os.environ['R']}/batches/{i // n:03d}.q", 'w').write('\n'.join(qs[i:i + n]) + '\n')
+          print('記事', len(qs), '束', (len(qs) + n - 1) // n)
+          PY
+          fi
+          cat $R/state.json 2>/dev/null || true
+      - name: 取る
+        run: |
+          end=$(( $(date +%s) + ${{ inputs.minutes }} * 60 ))
+          while true; do
+            left=$(( end - $(date +%s) )); [ $left -lt 60 ] && break
+            node tools/fetch_all.js $R $(( left < 900 ? left : 900 )) || sleep 30
+            if python3 -c "import json,os,sys;s=json.load(open('$R/state.json'));n=len([f for f in os.listdir('$R/batches') if f.endswith('.q')]);sys.exit(0 if s['cur']>=n else 1)"; then touch $R/DONE; echo "取り終わり"; break; fi
+          done
+          tail -3 $R/log.txt
+          du -sh $R
+      - name: 固める
+        run: tar -I 'zstd -T0 -6' -cf /tmp/raw.tar.zst -C /tmp R && ls -la /tmp/raw.tar.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wikidata-raw
+          path: /tmp/raw.tar.zst
+          retention-days: 30
+          compression-level: 0
+      - name: 終わっていなければ、続きを呼ぶ
+        run: |
+          if [ -f $R/DONE ]; then echo "全部取り終えました（実行ID ${{ github.run_id }}）"; exit 0; fi
+          gh workflow run rebuild-fetch.yml -f prev=${{ github.run_id }} -f limit="${{ inputs.limit }}" -f minutes=${{ inputs.minutes }}
