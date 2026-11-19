@@ -2053,6 +2053,37 @@ repall('${gloss.length?`<section class="card gloss"', '${false&&gloss.length?`<s
 # ---- 102. 今日の一戦の予想ボタン：記事名が長くても2つを同じ幅にし、カードからはみ出さないようにする（1fr は中身の最小幅より縮まないため）
 repall("#today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}", "#today .tdbtn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}\n#today .tdbtn .btn{min-width:0;overflow-wrap:anywhere}")
 
+# ---- 103. 試作：都道府県を応援（プレビューだけ）。ゆかりのある都道府県の記事が、ほかの県の同じ種類の記事と戦う
+#   選手の一覧は data/pref/roster.json（{都道府県: {人物|名所|自然|名物・文化: [記事名…]}}）。応援した試合数はこの端末にだけ残す（集計はまだ）
+repall('  <section id="setup" class="card"', '  <section id="pref" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"></section>\n  <section id="setup" class="card"')
+repall("c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':", "c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':c&&c.orig&&c.orig.k==='pref'?esc(c.orig.p)+'の応援試合 ／ '+esc(c.orig.c)+'対決（相手は'+esc(c.orig.q)+'）':")
+repall("$('#fight').onclick=()=>startBattle();", r"""$('#fight').onclick=()=>startBattle();
+/* ---------- 都道府県を応援（試作） ---------- */
+const PREFS='北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県 石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県 岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県'.split(' ');
+const PCATS=['人物','名所','自然','名物・文化'];
+let PREFR=null; function prefLoad(){ return PREFR||(PREFR=fetch('data/pref/roster.json?v=1').then(r=>r.ok?r.json():{}).catch(()=>{ PREFR=null; return {}; })); }
+const prefGet=()=>{ try{ return JSON.parse(localStorage.getItem('hk_pref'))||{}; }catch(_){ return {}; } };
+const prefSet=o=>{ try{ localStorage.setItem('hk_pref',JSON.stringify(o)); }catch(_){} };
+function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n=o.p&&o.c?o.c[o.p]||0:0;
+  box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりのある都道府県の記事が、ほかの県の記事と戦う</span></div>
+    <select id="psel" aria-label="応援する都道府県"><option value="">都道府県を選ぶ</option>${PREFS.map(p=>`<option${o.p===p?' selected':''}>${p}</option>`).join('')}</select>
+    <div class="trow"><button type="button" class="btn big" id="pgo"${o.p?'':' disabled'}>応援試合</button></div>
+    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}`;
+  $('#psel').onchange=e=>{ const x=prefGet(); x.p=e.target.value||undefined; prefSet(x); prefDraw(); };
+  $('#pgo').onclick=prefGo; }
+async function prefGo(){ const o=prefGet(); if(!o.p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
+  try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
+    for(let k=0;k<20;k++){ const c=pick(PCATS), q=pick(PREFS.filter(p=>p!==o.p)); const A=(R[o.p]||{})[c]||[], B=(R[q]||{})[c]||[]; if(!A.length||!B.length) continue;
+      const a=await loadTitle(pick(A)), b=await loadTitle(pick(B));
+      if(a<0||b<0||a===b||BLOCK.has(a)||BLOCK.has(b)||isChamp(a)||isChamp(b)) continue;
+      const x=prefGet(); x.c=x.c||{}; x.c[o.p]=(x.c[o.p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
+      ORIG={k:'pref',p:o.p,q,c}; startBattle([a,b]); return; } }
+  finally{ prefDraw(); } }
+prefDraw();""")
+repall("#ring[hidden]+.toc,", "#pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}\n#ring[hidden]+.toc,")
+repall("""scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>""", """scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#pref" onclick="event.preventDefault();document.getElementById('pref').scrollIntoView()">都道府県を応援</a><small>ゆかりのある県の記事で戦う</small></li>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
