@@ -163,6 +163,7 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .logbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .logbar h3{margin:0;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:500}
 ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sb .ptag{font-size:12px;color:var(--muted);font-weight:700}
 #pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
 #ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
 .toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
@@ -1090,7 +1091,7 @@ prefDraw();
 
 /* ---------- 対戦 ---------- */
 let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
-function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間さがしから':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':c&&c.orig&&c.orig.k==='pref'?esc(c.orig.p)+'の応援試合 ／ '+esc(c.orig.c)+'対決（相手は'+esc(c.orig.q)+'）':'自由対戦')+'</div>';
+function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間さがしから':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':c&&c.orig&&c.orig.k==='pref'?esc(c.orig.p)+'の応援試合 ／ '+esc(c.orig.c)+'対決':'自由対戦')+'</div>';
   return `<div class="ringhead th">${m.replay?'王座戦の記録（'+esc(dt(m.res.at))+'）':'王座戦'} ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
@@ -1140,9 +1141,9 @@ function startBattle(pair){
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
   <div class="scoreboard" id="sb">
-    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
+    <div class="sb A">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.p)}（応援中）</span>`:''}<span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
     <div class="tick" id="tk">0</div>
-    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
+    <div class="sb B">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.q)}</span>`:''}<span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
   </div>
   <div class="plan"><div><b>${esc(F[ai][0])}</b>の技：${pickMoves(ai,bi).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div><div><b>${esc(F[bi][0])}</b>の技：${pickMoves(bi,ai).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div></div>
   <div class="logbar"><h3>実況</h3><div style="display:flex;gap:6px"><button type="button" class="btn small" id="skip">結果に移動</button></div></div>

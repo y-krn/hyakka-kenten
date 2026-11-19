@@ -2084,6 +2084,12 @@ repall("#ring[hidden]+.toc,", "#pref select{font:inherit;font-size:16px;padding:
 repall("""scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>""", """scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
     <li><a href="#pref" onclick="event.preventDefault();document.getElementById('pref').scrollIntoView()">都道府県を応援</a><small>ゆかりのある県の記事で戦う</small></li>""")
 
+# ---- 104. 試作：都道府県の応援試合では、両方の記事の上にどの都道府県の記事かを出す（どちらが自分の県か分かるように）
+repall("""    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>""", """    <div class="sb A">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.p)}（応援中）</span>`:''}<span class="nm">${esc(F[ai][0])}</span>""")
+repall("""    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>""", """    <div class="sb B">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.q)}</span>`:''}<span class="nm">${esc(F[bi][0])}</span>""")
+repall("+'の応援試合 ／ '+esc(c.orig.c)+'対決（相手は'+esc(c.orig.q)+'）':", "+'の応援試合 ／ '+esc(c.orig.c)+'対決':")
+repall("#pref select{", ".sb .ptag{font-size:12px;color:var(--muted);font-weight:700}\n#pref select{")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
