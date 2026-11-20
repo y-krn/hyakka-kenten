@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # 脚注に添える「記事の本文の1文」を作る（作り直しのときに使う）
-#   技に使う事実（data/a の先出しの技：生年・成立年・標高・人口など数字のもの）について、その数字が出てくる本文の1文を探す
+#   技に使う事実について、それが書かれた本文の1文を探す
+#     数字の事実（先出しの技：生年・成立年・標高・人口など）… その数字（量は0.5%以内）と単位が出てくる文
+#     名前の事実（生みの親・所属グループ・代表作など、ext の先頭2件）… その名前が出てくる文（鍵は「n:名前」）
 #   対象はよく読まれている記事（年1万回以上）だけ。データが重くなりすぎないように、1文は90字まで
 #   使い方:
 #     bzcat jawiki_content-…json.bz2 | python3 tools/snippets.py collect data out/sn_00.json   … 本文データ1区画ぶんを探す
@@ -24,26 +26,53 @@ def facts(r):
         if not unit: continue
         out.append((d, n.group(0), unit))
     return out
+def clip(s, m):
+    s = re.sub(r'^（\d{4}年\d{1,2}月）\s*', '', s.strip())   # 保守用の札の名残を除く
+    s = re.sub(r'^ポータル\s+\S+\s+', '', s)   # ポータルへの案内の名残を除く
+    i = s.find(m)
+    if len(s) > 90:
+        a = max(0, i - 40); s = ('…' if a > 0 else '') + s[a:a + 88] + '…'
+    return s
+SENT = re.compile(r'(?<=。)')
 def find(text, tok, unit):
-    plain = tok.replace(',', '').split('.')[0]
-    digs = r',?'.join(plain) if len(plain) <= 9 else re.escape(plain)
-    pat = re.compile(r'(?<![\d.,])' + digs + r'(?:\.\d+)?' + unit)
-    for s in re.split(r'(?<=。)', text):
-        m = pat.search(s)
-        if not m or JUNK.search(s): continue
-        s = re.sub(r'^（\d{4}年\d{1,2}月）\s*', '', s.strip())   # 保守用の札の名残を除く
-        s = re.sub(r'^ポータル\s+\S+\s+', '', s)   # ポータルへの案内の名残を除く
-        if len(s) > 90:
-            a = max(0, m.start() - 40); s = ('…' if a > 0 else '') + s[a:a + 88] + '…'
-        return s
+    want = float(tok.replace(',', '')); year = unit == r'年'
+    pat = re.compile(r'(?<![\d.,])(\d[\d,]*(?:\.\d+)?)' + unit)
+    for s in SENT.split(text):
+        if JUNK.search(s): continue
+        for m in pat.finditer(s):
+            try: v = float(m.group(1).replace(',', ''))
+            except ValueError: continue
+            if (v == want) if year else (want > 0 and abs(v - want) / want <= 0.005):
+                return clip(s, m.group(0))
     return None
+def find_name(text, name):
+    if len(name) < 2: return None
+    for s in SENT.split(text):
+        if JUNK.search(s) or len(s.strip()) <= len(name) + 6: continue
+        if len(re.findall(r'\s', s.strip())) >= 3 or not s.rstrip().endswith('。'): continue   # 一覧・ナビの寄せ集め（空白区切り）や文になっていないものは使わない
+        for m in re.finditer(re.escape(name), s):
+            a, b = s[m.start() - 1:m.start()], s[m.end():m.end() + 1]
+            if KANA.match(name[0]) and KANA.match(a or ' ') or KANA.match(name[-1]) and KANA.match(b or ' '): continue   # 「ミステリ」が「ミステリー」の一部、などは別物
+            return clip(s, name)
+    return None
+KANA = re.compile(r'[ァ-ヶー]')
+# 名前を探さない属性：ジャンル・分野・言語・素材・用途など（ありふれた語で、本文の別の文に当たってしまう）
+NOPROP = {'_m', 'P1343', 'P106', 'P31', 'P136', 'P101', 'P1412', 'P186', 'P366', 'P2283', 'P135', 'P1552', 'P2348'}
+def names(r, title):
+    out = []
+    for e in r.get('ext') or []:
+        if e[0] in NOPROP or not isinstance(e[2], list): continue
+        for x in e[2][:2]:
+            n = x[0] if isinstance(x, list) else x
+            if isinstance(n, str) and len(n) >= 2 and n != title and n not in title: out.append(n)
+    return out[:8]
 def load_targets(D):
     T = {}
     for f in glob.glob(os.path.join(D, 'a', '*.json.gz')):
         for t, r in json.load(gzip.open(f)).items():
             pv = next((e[5] for e in r.get('ext') or [] if e[0] == '_m' and len(e) > 5), 0)
             if pv >= PV_MIN:
-                fs = facts(r)
+                fs = facts(r) + [('n:' + n, n, None) for n in names(r, t)]
                 if fs: T[t] = fs
     return T
 if sys.argv[1] == 'collect':
@@ -60,7 +89,7 @@ if sys.argv[1] == 'collect':
         if t not in T: continue
         sn = {}
         for d, tok, unit in T[t]:
-            s = find(o.get('text') or '', tok, unit)
+            s = find_name(o.get('text') or '', tok) if unit is None else find(o.get('text') or '', tok, unit)
             if s: sn[d] = s
         if sn: R[t] = sn; n += len(sn)
     json.dump(R, open(out, 'w'), ensure_ascii=False)
