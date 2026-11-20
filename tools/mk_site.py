@@ -2129,6 +2129,9 @@ repall("if($('#again')) $('#again').onclick=async()=>{", """if(current.orig&&cur
   if($('#again')) $('#again').onclick=async()=>{""")
 repall(".sb .ptag{", ".result .pfl{font-weight:700;color:var(--hl)}\n.sb .ptag{")
 
+# ---- 107. 比べ合い（数字勝負）の各1本にも脚注を付ける。どの事実を比べたか（勝った側の記事・両者の数字）と、差の倍率を見せる
+repall("log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）'});", "log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）',mv:['K',RLAB[x.k],'',RLAB[x.k]+'：'+(aw?va+' 対 '+vb:vb+' 対 '+va)]});")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
