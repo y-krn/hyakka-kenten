@@ -19,6 +19,9 @@ on:
       only:
         description: 試しに作る区画（例：00003。空なら全部）
         default: ''
+      dump:
+        description: 脚注の本文の1文を探す、本文データ（検索用ダンプ）の日付
+        default: '20261115'
 permissions:
   contents: write
   actions: read
@@ -100,7 +103,7 @@ jobs:
   build:
     needs: prep
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
         with:
@@ -118,6 +121,17 @@ jobs:
         run: |
           rm -rf data/a data/t data/g data/fam
           python3 tools/build_full.py /tmp/w/full/gen data
+      - name: 脚注に添える本文の1文を探す（よく読まれている記事の、数字の事実だけ）
+        run: |
+          sudo apt-get install -y -qq lbzip2 >/dev/null
+          UA='hyakka-kenten data rebuild (https://github.com/y-krn)'
+          base="https://dumps.wikimedia.org/other/cirrus_search_index/${{ inputs.dump }}/index_name=jawiki_content"
+          for f in $(curl -sS -A "$UA" "$base/" | grep -o 'jawiki_content-[0-9]*-[0-9]*\.json\.bz2' | sort -u); do
+            curl -sS --retry 5 -A "$UA" "$base/$f" | lbzip2 -dc | python3 tools/snippets.py collect data /tmp/sn_${f%%.json.bz2}.json /tmp/sn_targets.json
+          done
+          python3 tools/snippets.py apply data /tmp/sn_*.json
+      - name: 付随データを作る
+        run: |
           python3 tools/norand.py data
           python3 - <<'PY'
           # おまかせ用の人気記事から、ランダムに出さない記事（性的な内容など）と扱わない記事を除く
