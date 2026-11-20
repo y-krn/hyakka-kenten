@@ -78,7 +78,7 @@ const jn=n=>{ n=+n; if(n<1e4) return (n<10?+n.toFixed(1):Math.round(n)).toLocale
 const unitv=(k,v)=>k==='wca'||k==='wse'?v+'個':k==='wim'?v+'枚':k==='wln'?v+'本':k==='_sl'?v+'言語':k==='_ch'?'約'+jn(v)+'文字':k==='_lh'?v+'本':k==='_pv'?'年間'+jn(v)+'回':k.startsWith('P')?fmt(v)+'件':k==='m'?(v<1?Math.round(v*1000)+'g':jn(v)+'kg'):k==='a'?jn(v)+'km²':k==='p'?jn(v)+'人':k==='l'?(v<1?jn(v*1000)+'m':jn(v)+'km'):k==='s'?'時速'+jn(v)+'km':jn(v)+'m';
 const AT={'@領土拡大':i=>'面積'+unitv('a',QT[i].a),'@人海戦術':i=>'人口'+unitv('p',QT[i].p),'@のしかかり':i=>'体重'+unitv('m',QT[i].m),'@全長包囲':i=>'全長'+unitv('l',QT[i].l)};
 /* ---------- 追加の技（Wikidataの各プロパティと、記事そのもののデータから） ---------- */
-const EXT={};
+const EXT={}, SN={};   /* SN：脚注に添える本文の1文（作り直しで入る） */
 const MAP={
  P1552:['K','特徴アピール','特徴','{A}の【{N}】！ 自慢の「{F}」を見せつけて{B}にぶつかる。'],
  P1299:['C','肖像ラッシュ','{A}を描いた作品','{A}の【{N}】！ 記録された{A}の肖像作品{n}点が額縁ごと押し寄せ、{B}に{H}連撃。'],
@@ -476,7 +476,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
       const res=ratio>=10?P(['測るまでもなかった。{W}の1本。','ジャッジ陣、物差しを出しかけて、しまった。{W}。','{W}、1本。{L}陣営は数字を二度見した。'],o)
         :ratio<1.1?P(['ジャッジ陣、定規を三度当て直す。わずかな差で{W}の手が上がる。','協議は長引いた。僅差で{W}の1本。','ジャッジ陣、桁を数え直す。{W}、辛くも1本。'],o)
         :P(['ジャッジ陣、協議の末、{W}の手を挙げる。','{W}の1本。','レフェリーが{W}の手を挙げる。'],o);
-      log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）'});
+      log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）',mv:['K',RLAB[x.k],'',RLAB[x.k]+'：'+(aw?va+' 対 '+vb:vb+' 対 '+va)]});
       if(ratio>=100) log.push(kai(P(['{lab}で{L}の'+ratioTxt(ratio)+'。比べる前から分かっていたことですが、比べました','この一番は、比べるという行為の意味を問いかけています','{L}陣営としては、この項目が選ばれた時点で覚悟していたでしょう','桁が違います。桁が違うものを比べるのも、比べ合いの醍醐味です','{W}の数字を読み上げるのに、少し時間がかかりました'],o),[hp[0],hp[1]]));
       else if(ratio<1.05) log.push(kai(P(['僅差です。記事が一度編集されていれば、結果は逆だったかもしれません','この差は誤差ではありません。誤差ならジャッジ陣が困ります','ほぼ同じです。ほぼ同じですが、比べ合いに「ほぼ」はありません','ジャッジ陣、メガネを拭いています','この差を見るために、我々はここに集まりました','{L}陣営、写真判定を要求しています。数字に写真はありません'],o),[hp[0],hp[1]])); });
     const w=sa>sb?ai:bi, W=F[w][0], L=w===ai?B:A; const lastW=[...Q].reverse().find(x=>(x.a>x.b)===(sa>sb)); an.tail='決勝点は【'+RLAB[lastW.k]+'】。';
@@ -539,7 +539,7 @@ function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事
     if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }
     if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }
     for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number'&&v>0) rec.qt[q]=v; else if(v===null||typeof v==='number'){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
-  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=rec.ext||[]; if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen) GEN[i]=rec.gen; if(rec.hold) HOLD[i]=rec.hold;
+  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=(rec.ext||[]).map(e=>e[0]!=='_m'&&Array.isArray(e[2])&&e[2].length>2?[e[0],e[1],e[2].slice(0,2),e[2].slice(2)]:e); if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.sn) SN[i]=rec.sn; if(rec.gen){ const g={...rec.gen}; if(Array.isArray(g.r)&&g.r.length>3){ g.ra=g.r.slice(3); g.r=g.r.slice(0,3); } GEN[i]=g; }   /* 一覧の事実・別名は先頭2件を本文に使い、残り（e[3]・ra）は脚注で見せる */ if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
 const BLOCK=new Set();
