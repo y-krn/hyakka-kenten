@@ -1939,6 +1939,8 @@ repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {
   const fnCt=new Set();   // 記事の作成年月は、1試合で記事ごとに1回だけ添える
   const fnNote=(mv,who,body)=>{ const nm=mv[1], d=String(mv[3]||''); let v=fnNum(mv[2]), us=String(mv[2]||''); const out=[];
     if(SN[who]&&SN[who][d]) return '記事には「'+SN[who][d]+'」とある。';   // 本文の1文（日本語版Wikipedia）
+    if(SN[who]){ const pat=x=>x.replace(/[0-9][0-9,.]*/,'#'), nv=x=>parseFloat((x.match(/[0-9][0-9,.]*/)||['NaN'])[0].replace(/,/g,''));   // 直しで数字が変わった事実（富士山の標高 3,777→3,776 など）も、ほぼ同じ数なら同じ1文を使う
+      for(const key in SN[who]) if(!key.startsWith('n:')&&pat(key)===pat(d)&&Math.abs(nv(key)-nv(d))<=nv(d)*0.005) return '記事には「'+SN[who][key]+'」とある。'; }
     if(SN[who]){ const k0=d.indexOf('：'), tail=k0>0?d.slice(k0+1):d; for(const key in SN[who]) if(key.startsWith('n:')&&tail.includes(key.slice(2))&&!/^#|も参照/.test(SN[who][key])) return '記事には「'+SN[who][key]+'」とある。'; }   // 名前の事実：その名前が出てくる本文の1文
     const tg=Array.isArray(mv[7])&&Array.isArray(mv[7][0])?mv[7]:Array.isArray(mv[6])&&Array.isArray(mv[6][0])?mv[6]:null;   // 呼ばれた記事 [名前, 説明, QID]
     if(tg){ const ds=tg.filter(x=>x[1]&&!/英語の説明のみ/.test(x[1])).slice(0,3).map(x=>x[0]+'は「'+x[1]+'」'); if(ds.length) out.push(ds.join('、')+'。'); }
