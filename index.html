@@ -548,7 +548,7 @@ const jn=n=>{ n=+n; if(n<1e4) return (n<10?+n.toFixed(1):Math.round(n)).toLocale
 const unitv=(k,v)=>k==='wca'||k==='wse'?v+'個':k==='wim'?v+'枚':k==='wln'?v+'本':k==='_sl'?v+'言語':k==='_ch'?'約'+jn(v)+'文字':k==='_lh'?v+'本':k==='_pv'?'年間'+jn(v)+'回':k.startsWith('P')?fmt(v)+'件':k==='m'?(v<1?Math.round(v*1000)+'g':jn(v)+'kg'):k==='a'?jn(v)+'km²':k==='p'?jn(v)+'人':k==='l'?(v<1?jn(v*1000)+'m':jn(v)+'km'):k==='s'?'時速'+jn(v)+'km':jn(v)+'m';
 const AT={'@領土拡大':i=>'面積'+unitv('a',QT[i].a),'@人海戦術':i=>'人口'+unitv('p',QT[i].p),'@のしかかり':i=>'体重'+unitv('m',QT[i].m),'@全長包囲':i=>'全長'+unitv('l',QT[i].l)};
 /* ---------- 追加の技（Wikidataの各プロパティと、記事そのもののデータから） ---------- */
-const EXT={};
+const EXT={}, SN={};   /* SN：脚注に添える本文の1文（作り直しで入る） */
 const MAP={
  P1552:['K','特徴アピール','特徴','{A}の【{N}】！ 自慢の「{F}」を見せつけて{B}にぶつかる。'],
  P1299:['C','肖像ラッシュ','{A}を描いた作品','{A}の【{N}】！ 記録された{A}の肖像作品{n}点が額縁ごと押し寄せ、{B}に{H}連撃。'],
@@ -1017,7 +1017,7 @@ function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事
     if(Array.isArray(fx['主要作品'])&&fx['主要作品'].length){ rec.ext=(rec.ext||[]).map(e=>e[0]==='P800'?[e[0],e[1],fx['主要作品']]:e); }
     if('職業' in fx&&rec.gen){ rec.gen={...rec.gen}; if(typeof fx['職業']==='string'&&fx['職業']) rec.gen.job=fx['職業']; else delete rec.gen.job; }
     for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number'&&v>0) rec.qt[q]=v; else if(v===null||typeof v==='number'){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
-  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=(rec.ext||[]).map(e=>e[0]!=='_m'&&Array.isArray(e[2])&&e[2].length>2?[e[0],e[1],e[2].slice(0,2),e[2].slice(2)]:e); if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.gen){ const g={...rec.gen}; if(Array.isArray(g.r)&&g.r.length>3){ g.ra=g.r.slice(3); g.r=g.r.slice(0,3); } GEN[i]=g; }   /* 一覧の事実・別名は先頭2件を本文に使い、残り（e[3]・ra）は脚注で見せる */ if(rec.hold) HOLD[i]=rec.hold;
+  F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=(rec.ext||[]).map(e=>e[0]!=='_m'&&Array.isArray(e[2])&&e[2].length>2?[e[0],e[1],e[2].slice(0,2),e[2].slice(2)]:e); if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.sn) SN[i]=rec.sn; if(rec.gen){ const g={...rec.gen}; if(Array.isArray(g.r)&&g.r.length>3){ g.ra=g.r.slice(3); g.r=g.r.slice(0,3); } GEN[i]=g; }   /* 一覧の事実・別名は先頭2件を本文に使い、残り（e[3]・ra）は脚注で見せる */ if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
   CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
 const BLOCK=new Set();
@@ -1123,7 +1123,9 @@ function startBattle(pair){
   const fnNum=x=>{ const m=String(x).match(/([0-9][0-9,]*(?:\.[0-9]+)?)\s*(億|万)?/); if(!m) return NaN; let v=parseFloat(m[1].replace(/,/g,'')); if(m[2]==='億') v*=1e8; else if(m[2]==='万') v*=1e4; return v; };
   const fnFmt=v=>v>=100?Math.round(v).toLocaleString('ja-JP'):v>=10?String(Math.round(v)):String(Math.round(v*10)/10);
   const fnTimes=(v,ref,unit)=>{ const r=v/ref; return r>=1?unit+'の約'+fnFmt(r)+'倍':unit+'の約'+Math.round(r*100)+'%'; };
+  const fnCt=new Set();   // 記事の作成年月は、1試合で記事ごとに1回だけ添える
   const fnNote=(mv,who,body)=>{ const nm=mv[1], d=String(mv[3]||''); let v=fnNum(mv[2]), us=String(mv[2]||''); const out=[];
+    if(SN[who]&&SN[who][d]) return '記事には「'+SN[who][d]+'」とある。';   // 本文の1文（日本語版Wikipedia）
     const tg=Array.isArray(mv[7])&&Array.isArray(mv[7][0])?mv[7]:Array.isArray(mv[6])&&Array.isArray(mv[6][0])?mv[6]:null;   // 呼ばれた記事 [名前, 説明, QID]
     if(tg){ const ds=tg.filter(x=>x[1]&&!/英語の説明のみ/.test(x[1])).slice(0,3).map(x=>x[0]+'は「'+x[1]+'」'); if(ds.length) out.push(ds.join('、')+'。'); }
     else { const k=d.indexOf('：'); if(k>0){ const names=d.slice(k+1).replace(/\s*など.*$/,'').split(/[、・]/).map(x=>x.trim());   // 一覧の技：同じ事実の記録に説明があれば使う
@@ -1147,7 +1149,7 @@ function startBattle(pair){
       else if(nm==='年功序列'&&/年/.test(mv[2])){ const y=new Date().getFullYear()-v; if(y>0) out.push('いまから約'+fnFmt(y)+'年前。'); }
       else if(nm==='作品ラッシュ') out.push('1日1作ずつ追っても約'+(v>=60?fnFmt(v/30)+'か月':fnFmt(v)+'日')+'かかる。');
     }
-    if(!out.length&&(mv.some(x=>x==='meta'||x==='wp')||fnSrc(d.replace(/^Wikidataでの/,''))!=='Wikidata')&&!/^記事の作成/.test(d)){ const ct=GEN[who]&&GEN[who].ct; const m=ct&&String(ct).match(/^(\d{4})-(\d{2})/); if(m) out.push('この記事が日本語版Wikipediaに作られたのは'+m[1]+'年'+(+m[2])+'月。'); }
+    if(!out.length&&!fnCt.has(who)&&(mv.some(x=>x==='meta'||x==='wp')||fnSrc(d.replace(/^Wikidataでの/,''))!=='Wikidata')&&!/^記事の作成/.test(d)){ fnCt.add(who); const ct=GEN[who]&&GEN[who].ct; const m=ct&&String(ct).match(/^(\d{4})-(\d{2})/); if(m) out.push('この記事が日本語版Wikipediaに作られたのは'+m[1]+'年'+(+m[2])+'月。'); }
     return out.join(''); };
   const FN=[], fnOf=l=>{ if(!l.mv||!l.mv[3]) return ''; const who=l.side===0?ai:bi, t=String(l.mv[3]).replace(/^Wikidataでの/,''), key=who+'|'+t; let n=FN.findIndex(x=>x.key===key); if(n<0){ FN.push({key,who,t,nt:fnNote(l.mv,who,l.s)}); n=FN.length-1; return '<sup class="fn" id="fnr'+(n+1)+'"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; } return '<sup class="fn"><a href="#fn'+(n+1)+'">['+(n+1)+']</a></sup>'; };
   // 脚注番号を押したら、本物のWikipedia（スマホ版）と同じく、下から「引用」の札を出す
@@ -1177,7 +1179,7 @@ function startBattle(pair){
     if(l.side<0) return `<li class="${l.kai?'kai':'sys'} hide"><span class="t"></span><div class="bub">${mark(l.s)}</div></li>`;
     const tgt=l.side===0?F[bi][0]:F[ai][0]; const rem=l.side===0?l.hp[1]:l.hp[0];
     return `<li class="${l.side===0?'A':'B'} hide"><span class="t">${l.t}</span><div class="bub"><div>${mark(l.s)}${fnOf(l)}</div>${l.d>0?`<div class="dmg"><b>−${l.d}</b>${esc(tgt)}</div>`:'<div class="dmg">ダメージなし</div>'}</div></li>`;}).join('')}</ol>
-  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a class="fnb" href="#fnr${n+1}" aria-label="本文に戻る">^</a> <span class="fnc">${x.nt?`<span class="fnn">${esc(x.t)}。${esc(x.nt)}</span> `:''}“<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a>”. ${x.nt?'':esc(x.t)+'. '}${fnSrc(x.t)==='Wikidata'&&F[x.who][2]?`<a href="https://www.wikidata.org/wiki/${esc(F[x.who][2])}" target="_blank" rel="noopener">Wikidata ${esc(F[x.who][2])}</a>`:fnSrc(x.t)}${fnAsof?' ('+fnAsof[1]+'時点)':''}.</span></li>`).join('')}</ol></div>`:''}`;
+  <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a class="fnb" href="#fnr${n+1}" aria-label="本文に戻る">^</a> <span class="fnc">${x.nt?`<span class="fnn">${esc(x.t)}。${esc(x.nt)}</span> `:''}“<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a>”. ${x.nt?'':esc(x.t)+'. '}${/^記事には/.test(x.nt||'')?'日本語版Wikipedia（CC BY-SA 4.0）':fnSrc(x.t)==='Wikidata'&&F[x.who][2]?`<a href="https://www.wikidata.org/wiki/${esc(F[x.who][2])}" target="_blank" rel="noopener">Wikidata ${esc(F[x.who][2])}</a>`:fnSrc(x.t)}${fnAsof?' ('+fnAsof[1]+'時点)':''}.</span></li>`).join('')}</ol></div>`:''}`;
   ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
