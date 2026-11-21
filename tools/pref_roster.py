@@ -143,6 +143,8 @@ for i, p in enumerate(PREF):
             if i not in v: v.append(i)
 os.makedirs('data/pref/map', exist_ok=True)
 for k, m in enumerate(MAP): json.dump(m, open('data/pref/map/%02d.json' % k, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+# 共有カード用：県ごとに、種類ごとの1位の代表（サーバーが ?pref=県名 のページの説明文に使う）
+json.dump({p: {b: L[0] for b, L in out[p].items() if L} for p in PREF}, open('data/pref/card.json', 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print(dict(cnt))
 print('種類ごとの最少', {b: min((len(R[p][b]), p) for p in PREF) for b in ('人物', '名所', '自然', '名物・文化')})
 for p in PREF:

@@ -2159,13 +2159,16 @@ function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; pre
 repall("  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;", "  const pr=presGet().slice(0,n); const body=JSON.stringify({n,k,r:pr,client:clientId()}); let ok=false;")
 repall("  if(ok){ setPend(pend()-n);", "  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n);")
 # 今月の県対抗
-repall("""    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}`;""", """    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="pboard"></div>`;
+repall("""    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}`;""", """    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="preps"></div><div id="pboard"></div>`;
   prefBoardLater();""")   # 表は応援の欄が画面に入ってから読む（API は後で定義されるので、どのみち読み込みが終わってから）
 repall("async function prefBattle(o){", r"""let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
 function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
   if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
   if(PBIO) PBIO.disconnect(); PBIO=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ PBIO.disconnect(); PBIO=null; prefBoard(); } },{rootMargin:'200px'}); PBIO.observe(el); }
-function prefBoard(){ const el=$('#pboard'); if(!el||!API) return;
+function prefReps(){ const el=$('#preps'), me=prefGet().p; if(!el||!me) return;   // 選んだ県の代表（種類ごとに上位3つ）
+  prefLoad().then(R=>{ const r=R[me]||{}, el=$('#preps'); if(!el||prefGet().p!==me) return; const nm=t=>t.replace(/\s*\(.*\)$/,'');
+    el.innerHTML=`<div class="pbd"><div class="pbh">${esc(me)}の代表</div><dl class="preps">${PCATS.filter(k=>(r[k]||[]).length).map(k=>`<dt>${k}</dt><dd>${r[k].slice(0,3).map(t=>esc(nm(t))).join('、')}</dd>`).join('')}</dl></div>`; }); }
+function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
   if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
   PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;
     const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);
@@ -2174,7 +2177,7 @@ function prefBoard(){ const el=$('#pboard'); if(!el||!API) return;
     el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗</div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません。最初の1勝を挙げよう</p>'}
       <p class="fsub">どの遊び方の試合でも、各県の代表の記事が勝つと県の1勝に数えます。並びは勝率の順（毎月1日に始まります）</p></div>`; }); }
 async function prefBattle(o){""")
-repall("#pref select{", ".pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}\n#pref select{")
+repall("#pref select{", ".preps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:14px}.preps dt{color:var(--muted)}.preps dd{margin:0}\n.pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}\n#pref select{")
 # 共有文とURL
 repall("  share=fitPost(share)+'\\n'+DISC;\n  const SHAREURL=TDY?location.origin+'/?today=1':battleURL();", r"""  const PRF=current.orig&&current.orig.k==='pref'?current.orig:null;
   if(PRF){ const me=F[ai][0], op=F[bi][0];

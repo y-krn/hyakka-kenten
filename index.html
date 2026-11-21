@@ -166,6 +166,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .result .pfl{font-weight:700;color:var(--hl)}
 .sb .ptag{font-size:12px;color:var(--muted);font-weight:700}
 .sb .ptag.me{align-self:flex-start;background:var(--a);color:#fff;padding:1px 7px;border-radius:3px}
+.preps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:14px}.preps dt{color:var(--muted)}.preps dd{margin:0}
 .pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}
 #pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
 #ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
@@ -1079,7 +1080,7 @@ function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n
   box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりのある都道府県の記事が、ほかの県の記事と戦う</span></div>
     <select id="psel" aria-label="応援する都道府県"><option value="">都道府県を選ぶ</option>${PREFS.map(p=>`<option${o.p===p?' selected':''}>${p}</option>`).join('')}</select>
     <div class="trow"><button type="button" class="btn big" id="pgo"${o.p?'':' disabled'}>応援試合</button></div>
-    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="pboard"></div>`;
+    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="preps"></div><div id="pboard"></div>`;
   prefBoardLater();
   $('#psel').onchange=e=>{ const x=prefGet(); x.p=e.target.value||undefined; prefSet(x); prefDraw(); };
   $('#pgo').onclick=prefGo; }
@@ -1087,7 +1088,10 @@ let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ご
 function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
   if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
   if(PBIO) PBIO.disconnect(); PBIO=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ PBIO.disconnect(); PBIO=null; prefBoard(); } },{rootMargin:'200px'}); PBIO.observe(el); }
-function prefBoard(){ const el=$('#pboard'); if(!el||!API) return;
+function prefReps(){ const el=$('#preps'), me=prefGet().p; if(!el||!me) return;   // 選んだ県の代表（種類ごとに上位3つ）
+  prefLoad().then(R=>{ const r=R[me]||{}, el=$('#preps'); if(!el||prefGet().p!==me) return; const nm=t=>t.replace(/\s*\(.*\)$/,'');
+    el.innerHTML=`<div class="pbd"><div class="pbh">${esc(me)}の代表</div><dl class="preps">${PCATS.filter(k=>(r[k]||[]).length).map(k=>`<dt>${k}</dt><dd>${r[k].slice(0,3).map(t=>esc(nm(t))).join('、')}</dd>`).join('')}</dl></div>`; }); }
+function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
   if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
   PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;
     const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);

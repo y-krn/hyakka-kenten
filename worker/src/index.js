@@ -335,6 +335,12 @@ async function famGet(env, key) {
   if (!r.ok) return null;
   return JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text())[key] || null;
 }
+let PCARD = null;   // data/pref/card.json（県ごとの、種類ごとの1位の代表）。1時間覚えておく
+async function prefCard(env, u) {
+  if (PCARD && Date.now() - PCARD.t < 3600e3) return PCARD.c;
+  const r = await env.ASSETS.fetch(new Request(new URL('/data/pref/card.json', u)));
+  PCARD = { t: Date.now(), c: r.ok ? await r.json() : {} }; return PCARD.c;
+}
 async function cardFor(env, u) {
   const q = u.searchParams, clip = (t, n) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
   const c = q.get('c');
@@ -348,6 +354,13 @@ async function cardFor(env, u) {
     if (g) { const top = g.m.slice(0, 5).map(m => m[1]);
       return { title: `${FAMK[g.k](g.n)} ${g.c}記事 ― 百科拳典 仲間さがし`, url: SITE + '/?fam=' + fk,
         desc: top.join('、') + (g.c > top.length ? `…ほか${g.c - top.length}記事。` : '。') + 'Wikipediaのつながりから集めた仲間たち。' }; }
+  }
+  const pf = q.get('pref');
+  if (pf && PREFS.includes(pf)) {   // 都道府県を応援の入口：県ごとの共有画像と、種類ごとの1位の代表
+    const c = await prefCard(env, u), r = c[pf] || {}, reps = ['人物', '名所', '自然', '名物・文化'].map(k => r[k]).filter(Boolean).map(t => t.replace(/\s*\(.*\)$/, ''));
+    return { title: `${pf}を応援しよう ― 百科拳典 都道府県を応援`, url: SITE + '/?pref=' + encodeURIComponent(pf),
+      image: SITE + '/data/pref/og/' + String(PREFS.indexOf(pf)).padStart(2, '0') + '.jpg',
+      desc: (reps.length ? `${pf}の代表は${reps.join('、')}など。` : '') + 'ゆかりのある県の記事が、ほかの県の記事と戦う。今月の県対抗で、あなたの県は何位？' };
   }
   const a = q.get('a'), b = q.get('b');
   if (a && b && a !== b && (await Promise.all([known(env, a), known(env, b)])).every(Boolean)) return { title: `${clip(a, 40)} vs ${clip(b, 40)} ― 百科拳典`, desc: 'Wikipediaの記事どうしが、事実だけで殴り合う。勝ったのはどちらか。', url: SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) };
