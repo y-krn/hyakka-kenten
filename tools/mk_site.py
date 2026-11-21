@@ -2076,7 +2076,7 @@ let PREFR=null; function prefLoad(){ return PREFR||(PREFR=fetch('data/pref/roste
 const prefGet=()=>{ try{ return JSON.parse(localStorage.getItem('hk_pref'))||{}; }catch(_){ return {}; } };
 const prefSet=o=>{ try{ localStorage.setItem('hk_pref',JSON.stringify(o)); }catch(_){} };
 function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n=o.p&&o.c?o.c[o.p]||0:0;
-  box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりのある都道府県の記事が、ほかの県の記事と戦う</span></div>
+  box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりの県の記事で戦う</span></div>
     <select id="psel" aria-label="応援する都道府県"><option value="">都道府県を選ぶ</option>${PREFS.map(p=>`<option${o.p===p?' selected':''}>${p}</option>`).join('')}</select>
     <div class="trow"><button type="button" class="btn big" id="pgo"${o.p?'':' disabled'}>応援試合</button></div>
     ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}`;
@@ -2174,8 +2174,7 @@ function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
     const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);
     const T=S.slice(0,10); if(rk>=10) T.push(S[rk]);
     const mon=+String(j.m||'').slice(5,7);
-    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗</div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません。最初の1勝を挙げよう</p>'}
-      <p class="fsub">どの遊び方の試合でも、各県の代表の記事が勝つと県の1勝に数えます。並びは勝率の順（毎月1日に始まります）</p></div>`; }); }
+    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗<small class="fsub">（勝率順）</small></div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません</p>'}</div>`; }); }
 async function prefBattle(o){""")
 repall("#pref select{", ".preps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:14px}.preps dt{color:var(--muted)}.preps dd{margin:0}\n.pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}\n#pref select{")
 # 共有文とURL
