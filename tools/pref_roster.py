@@ -21,6 +21,14 @@ XC=re.compile('戦闘|戦役|の乱|一揆|事変|クーデター|反乱|謀反|
 CUL=re.compile('料理|寿司|菓子|麺|餅|鍋|丼|焼き|漬|茶|日本酒|焼酎|ワイン|ビール|牛|豚|鶏|魚介|果物|柑橘|梨|ブドウ|品種|米|味噌|醤油|祭|まつり|踊|神楽|舞|行事|芸能|工芸|焼き物|陶|磁器|織物|染|漆|人形|ご当地キャラクター|ゆるキャラ|マスコット|アイドルグループ|方言|民謡|食品|調味料|ラーメン|うどん|そば|カレー|スナック|駄菓子')
 MYTH=re.compile('伝説上の人物|架空かもしれない人間|神話上の人物|日本の神|架空の人物')
 PLX=re.compile('攻城戦|私鉄|方面隊|指数|市街地|島$|都道府県')
+# 名物・文化から外すもの：新しい催し（映画祭・フェスティバル・展示会など）と博物館。伝統の祭り・行事は残す
+MODERN = re.compile('映画祭|映像|フェスティバル|フェス$|フェア$|ショー|EXPO|エキスポ|コンテスト|グランプリ|マラソン|大会|ラリー|電車まつり|[A-Za-z]{2,}まつり|小径|肉祭|グルメ|B-1|サミット|コレクション|博$|館$')
+EVC = re.compile('^(イベント|定期行事|映画祭|展覧会|博覧会|興行|ロック・フェスティバル|同人誌即売会|音楽祭|見本市|フェスティバル)$')
+TRAD = re.compile('祭|まつり|踊|神事|花火|神楽|山笠|くんち|ねぶた|ねぷた|囃子|念仏')
+MUSE = re.compile('博物館|美術館|資料館|記念館|館$')
+def kind(c, t):
+    if c == '日本語の方言' or re.search('(弁|方言|言葉|ことば|標準語)$', t): return '方言'
+    return c or ''
 PREF = PREF.split() if isinstance(PREF, str) else PREF
 TOP = 30
 RAW = sys.argv[1]
@@ -83,6 +91,7 @@ for fn in sorted(os.listdir('data/a')):
         ccp = {m.group(1) for m in (PRX.match(x) for x in g.get('cc') or []) if m}
         if not b and ccp and not XC.search(c or ''): b = '名物・文化'
         if not b or b == '名所' and re.search('鉄道|学校|高等学校|大学|中学校|小学校|駅伝|選挙', t): continue
+        if b == '名物・文化' and (MODERN.search(t) or EVC.search(c or '') and not TRAD.search(t) or MUSE.search(c or '')): continue   # 新しい催し・博物館は名物にしない（伝統の祭りは残す）
         if b == '名物・文化' and re.search('検定|学校|協議会|プロジェクト|委員会|実行委員|協会|組合|賞$|一覧|^.{1,3}県の', t): continue   # 名物・文化に紛れる、試験・団体・一覧など
         v = E.get(q)
         if not v: cnt['取得データなし'] += 1; continue
@@ -96,6 +105,7 @@ for fn in sorted(os.listdir('data/a')):
             for x in v[1]: ps |= prefs_of(x)
             if len(ps) > 4: ps = set()
             if not ps and ccp:
+                if len(ccp) > 1: continue   # 所在地がなく、いくつもの県のカテゴリにあるもの（ふつうの「ちゃんぽん」など）は、どこの名物とも言えない
                 ps = ccp
                 if b == '名所': b = '名物・文化'
         if not ps: continue
@@ -104,12 +114,19 @@ for fn in sorted(os.listdir('data/a')):
         sc = math.log10(pv + 1) + 0.7 * math.log10(bl + 1) + 0.4 * math.log10(ln + 1)
         cnt[b] += 1
         if len(ps) > 1: cnt['複数の県'] += 1
-        for p in ps: R[p][b].append((sc, t))
+        for p in ps: R[p][b].append((sc, t, kind(c, t)))
 # 3) 手直しを足して、上位を残す
 for t, a in (FIX.get('add') or {}).items():
     for p in a['都道府県']:
-        if all(t != x[1] for x in R[p][a['種類']]): R[p][a['種類']].append((99, t))
-out = {p: {b: [t for _, t in sorted(R[p][b], reverse=True)[:TOP]] for b in ('人物', '名所', '自然', '名物・文化') if R[p][b]} for p in PREF}
+        if all(t != x[1] for x in R[p][a['種類']]): R[p][a['種類']].append((99, t, '手直し'))
+def pick(xs):   # 同じ種類が並びすぎないように：方言は1つまで、ほかの分類は3つまで
+    out, n = [], collections.Counter()
+    for sc, t, k in sorted(xs, reverse=True):
+        if k and n[k] >= (1 if k == '方言' else 3): continue
+        n[k] += 1; out.append(t)
+        if len(out) >= TOP: break
+    return out
+out = {p: {b: pick(R[p][b]) if b == '名物・文化' else [t for _, t, _ in sorted(R[p][b], reverse=True)[:TOP]] for b in ('人物', '名所', '自然', '名物・文化') if R[p][b]} for p in PREF}
 os.makedirs('data/pref', exist_ok=True)
 json.dump(out, open('data/pref/roster.json', 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print(dict(cnt))
