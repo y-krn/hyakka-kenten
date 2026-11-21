@@ -1,4 +1,4 @@
-# データの作り直し（3）：都道府県の応援の選手一覧（data/pref/roster.json）を、Wikidataの取り直しデータから作り、プレビューのブランチに入れる
+# データの作り直し（3）：都道府県の応援の選手一覧（data/pref/roster.json）と、サーバー用の記事と県の対応表（data/pref/map）を、Wikidataの取り直しデータから作り、プレビューのブランチに入れる
 #   取り直しデータは「作り直し：Wikidataを取り直す」の、取り終えた実行の wikidata-raw を使う
 name: 作り直し：都道府県の選手一覧を作る
 on:
@@ -31,7 +31,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898299+github-actions[bot]@users.noreply.github.com'
-          git add data/pref/roster.json
+          git add data/pref/roster.json data/pref/map
           git diff --cached --quiet && { echo 変わりなし; exit 0; }
           git commit -m "都道府県の応援：選手一覧を作り直しの取得データから作る（実行 ${{ inputs.raw_run }}）"
           git push origin HEAD:preview
