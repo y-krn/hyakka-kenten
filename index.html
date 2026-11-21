@@ -169,7 +169,6 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .preps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:14px}.preps dt{color:var(--muted)}.preps dd{margin:0}
 .pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}
 #pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
-.crownbar[hidden]{display:none}.crownbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid #f2c94c;border-radius:6px;background:var(--paper)}.crownbar .cbn,.crownbar .cbd{color:var(--muted);font-size:13px}.crownbar b{font-size:16px}.crownbar .btn{margin-left:auto}
 .morebox{margin-top:8px}.morebox .moreh{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 6px}
 details.more{border-top:1px solid var(--line)}details.more:last-child{border-bottom:1px solid var(--line)}
 details.more>summary{list-style:none;cursor:pointer;padding:12px 2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
@@ -430,7 +429,6 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
     <h1>百科拳典</h1>
     <p class="sub">Wikipediaの記事が、事実だけで殴り合う。</p>
   </header>
-  <div id="crownbar" class="crownbar" hidden></div>
 
   <section id="today" class="card tdload"><div class="sechead"><h2>今日の一戦</h2><span>きょうの組み合わせを準備しています…</span></div></section>
 
@@ -1746,13 +1744,10 @@ const isChamp=i=>!!(THRONE&&i!==null&&i>=0&&F[i]&&F[i][1]===THRONE.champ.title);
 async function fixChamp(){ for(const s of [0,1]){ if(isChamp(sel[s])){ sel[s]=await rnd([sel[1-s]]); renderPick(s); const n=$(s===0?'#pickA':'#pickB').querySelector('.pmsg'); if(n) n.textContent='いまの王者は自由対戦に出せないので、入れ替えました'; } } updateFight(); }
 const dt=s=>{ try{ const d=new Date(s); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(_){ return ''; } };
 const RES={win:'<span class="r-win">王座奪取</span>',lose:'防衛',draw:'引き分け（防衛）',late:'ひと足遅れ'};
-function crownBar(d){ const b=$('#crownbar'); if(!b) return; if(!d||!d.champ){ b.hidden=true; return; } b.hidden=false;
-  b.innerHTML=`<span class="cbn">第${d.reignNo}代王者</span><b>${esc(d.champ.display)}</b><span class="cbd">防衛${d.champ.defenses}回</span><button type="button" class="btn small" id="cbgo">挑む</button>`;
-  $('#cbgo').onclick=()=>goThrone(); }
 function goThrone(t){ THOPEN=true; const th=$('#throne'); if(!th) return; th.scrollIntoView({behavior:'smooth',block:'start'}); const x=$('#thx'); if(x) x.open=true;
   const inp=$('#chT'); if(!inp) return; if(t&&t!==champTitle()){ inp.value=t; CHOPT=new Set([t]); inp.dispatchEvent(new Event('change')); }
   setTimeout(()=>{ (t&&$('#chf button')&&!$('#chf button').disabled?$('#chN'):inp).focus({preventScroll:true}); },400); }
-function renderThrone(d,msg){ crownBar(d); const el=$('#throne'); if(!d){ el.hidden=true; return; } THRONE=d; const c=d.champ; el.hidden=false;
+function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; return; } THRONE=d; const c=d.champ; el.hidden=false;
   let nm=''; try{ nm=localStorage.getItem('hk-name')||''; }catch(_){}
   el.innerHTML=`<div class="sechead"><h2>王座戦</h2><span>いまの王者に挑み、勝てば王座を奪う</span></div>
   <div class="crown">第${d.reignNo}代王者</div>
