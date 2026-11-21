@@ -2238,6 +2238,24 @@ repall("  if($('#tdback')) $('#tdback').onclick=", "  if($('#topref')) $('#topre
 # ?pref=県名 で来たら応援試合を始める
 repall("setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }", "setTimeout(()=>{ prefBattle({}); },300); } }")
 
+# ---- 111. 試作：王座戦を「見える目玉」にする（プレビューだけ）
+#   ・見出しのすぐ下に、いまの王者の帯（第N代王者・記事名・防衛回数）と「挑む」
+#   ・自由対戦・県の応援で勝った記事で、そのまま王者に挑める（「勝者で王者に挑む」。挑戦の欄に記事名を入れた状態で開く）
+repall('  </header>\n', '  </header>\n  <div id="crownbar" class="crownbar" hidden></div>\n')
+repall("function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; return; }", r"""function crownBar(d){ const b=$('#crownbar'); if(!b) return; if(!d||!d.champ){ b.hidden=true; return; } b.hidden=false;
+  b.innerHTML=`<span class="cbn">第${d.reignNo}代王者</span><b>${esc(d.champ.display)}</b><span class="cbd">防衛${d.champ.defenses}回</span><button type="button" class="btn small" id="cbgo">挑む</button>`;
+  $('#cbgo').onclick=()=>goThrone(); }
+function goThrone(t){ THOPEN=true; const th=$('#throne'); if(!th) return; th.scrollIntoView({behavior:'smooth',block:'start'}); const x=$('#thx'); if(x) x.open=true;
+  const inp=$('#chT'); if(!inp) return; if(t&&t!==champTitle()){ inp.value=t; CHOPT=new Set([t]); inp.dispatchEvent(new Event('change')); }
+  setTimeout(()=>{ (t&&$('#chf button')&&!$('#chf button').disabled?$('#chN'):inp).focus({preventScroll:true}); },400); }
+function renderThrone(d,msg){ crownBar(d); const el=$('#throne'); if(!d){ el.hidden=true; return; }""")
+repall("    </div>\n  </div>\n  ${false&&gloss.length?", r"""    </div>
+    ${!TDY&&!M&&w!==null&&THRONE&&!isChamp(w)&&!(current.orig&&current.orig.k==='dg')?'<div class="next"><button type="button" class="btn" id="tothr">勝者で王者に挑む</button></div>':''}
+  </div>
+  ${false&&gloss.length?""")
+repall("  if($('#topref')) $('#topref').onclick=", "  if($('#tothr')) $('#tothr').onclick=()=>goThrone(F[w][1]);\n  if($('#topref')) $('#topref').onclick=")
+repall(".morebox{margin-top:8px}", ".crownbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid #f2c94c;border-radius:6px;background:var(--paper)}.crownbar .cbn,.crownbar .cbd{color:var(--muted);font-size:13px}.crownbar b{font-size:16px}.crownbar .btn{margin-left:auto}\n.morebox{margin-top:8px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
