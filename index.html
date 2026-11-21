@@ -169,6 +169,11 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .preps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:14px}.preps dt{color:var(--muted)}.preps dd{margin:0}
 .pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}
 #pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
+.morebox{margin-top:8px}.morebox .moreh{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 6px}
+details.more{border-top:1px solid var(--line)}details.more:last-child{border-bottom:1px solid var(--line)}
+details.more>summary{list-style:none;cursor:pointer;padding:12px 2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+details.more>summary::-webkit-details-marker{display:none}details.more>summary::after{content:'＋';margin-left:auto;color:var(--muted)}details.more[open]>summary::after{content:'−'}
+details.more>summary small{color:var(--muted);font-size:13px}details.more>section{margin-bottom:12px}details.more>section>.sechead:first-child{display:none}
 #ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
 .toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
 .toc .toch{font-weight:700;text-align:center;margin-bottom:4px}
@@ -423,17 +428,11 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
     <div class="eyebrow" id="eyebrow">ひゃっかけんてん ／ 試作</div>
     <h1>百科拳典</h1>
     <p class="sub">Wikipediaの記事が、事実だけで殴り合う。</p>
-    <p class="lede">勝敗も技も、記事に書かれた事実だけで決まります。まずは「今日の一戦」からどうぞ。</p>
   </header>
 
   <section id="today" class="card tdload"><div class="sechead"><h2>今日の一戦</h2><span>きょうの組み合わせを準備しています…</span></div></section>
 
-  <section id="throne" class="card" hidden aria-live="polite"></section>
 
-  <section id="dg" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
-    <div class="sechead"><h2>百科ダンジョン</h2><span>リンクの扉をくぐって、どこまで潜れるか</span></div>
-    <div id="dgbox" class="dgbox" aria-live="polite">準備しています…</div>
-  </section>
 
   <section id="pref" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"></section>
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
@@ -453,16 +452,28 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
   <section id="ring" class="ring" hidden></section>
   <nav class="toc" aria-label="遊びの目次"><div class="toch">目次</div><ol>
     <li><a href="#today" onclick="event.preventDefault();document.getElementById('today').scrollIntoView()">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
-    <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView()">王座戦</a><small>王者に挑んで王座を奪う</small></li>
-    <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
     <li><a href="#pref" onclick="event.preventDefault();document.getElementById('pref').scrollIntoView()">都道府県を応援</a><small>ゆかりのある県の記事で戦う</small></li>
     <li><a href="#setup" onclick="event.preventDefault();document.getElementById('setup').scrollIntoView()">自由対戦</a><small>好きな2記事を戦わせる</small></li>
+    <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView()">王座戦</a><small>王者に挑んで王座を奪う</small></li>
+    <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
     <li><a href="#find" onclick="event.preventDefault();document.getElementById('find').scrollIntoView()">見つける</a><small>意外な仲間や一門を探す</small></li>
   </ol></nav>
 
+  <div class="morebox"><h2 class="moreh">ほかの遊び方</h2>
+  <details class="more"><summary><b>王座戦</b><small>いまの王者に挑み、勝てば王座を奪う</small></summary>
+  <section id="throne" class="card" hidden aria-live="polite"></section>
+  </details>
+  <details class="more"><summary><b>百科ダンジョン</b><small>リンクの扉をくぐって、どこまで潜れるか</small></summary>
+  <section id="dg" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div class="sechead"><h2>百科ダンジョン</h2><span>リンクの扉をくぐって、どこまで潜れるか</span></div>
+    <div id="dgbox" class="dgbox" aria-live="polite">準備しています…</div>
+  </section>
+  </details>
+  <details class="more"><summary><b>見つける</b><small>仲間さがし・あなたの代表戦</small></summary>
   <section id="find" class="card"><div class="sechead"><h2>見つける</h2><span>まだ知らない記事を探して、戦わせる</span></div>
     <div class="fgrid"><div id="zukan" hidden></div>
     <div id="mine"><h3>あなたの代表戦</h3><p class="fsub">誕生日や出身地から、ゆかりのある人を代表に</p><div class="trow"><button type="button" class="btn" id="mineopen">自分の代表を探す</button></div></div></div></section>
+  </details></div>
   <dialog id="famdlg" aria-label="仲間さがし"></dialog>
 
   <footer>
@@ -473,6 +484,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
 </div>
 
 <script>
+{ const siv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ const d=this.closest&&this.closest('details.more'); if(d&&!d.open) d.open=true; return siv.apply(this,a); }; }
 const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
@@ -1133,7 +1145,7 @@ async function prefGoOld(){ const o=prefGet(); if(!o.p) return; const btn=$('#pg
       const x=prefGet(); x.c=x.c||{}; x.c[o.p]=(x.c[o.p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
       ORIG={k:'pref',p:o.p,q,c}; startBattle([a,b]); return; } }
   finally{ prefDraw(); } }
-{ const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ try{ const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), key=day+q; if(localStorage.getItem('hk-pin')!==key){ localStorage.setItem('hk-pin',key); prefEv('in',q); } }catch(_){} },0); setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }
+{ const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ try{ const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), key=day+q; if(localStorage.getItem('hk-pin')!==key){ localStorage.setItem('hk-pin',key); prefEv('in',q); } }catch(_){} },0); setTimeout(()=>{ prefBattle({}); },300); } }
 prefDraw();
 
 /* ---------- 対戦 ---------- */
@@ -1306,8 +1318,9 @@ function showResult(){
     <div class="share"><output id="share">${esc(share)}</output></div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${TDY?`
-      <button type="button" class="btn big" id="tdback">今日の一戦の戦績表へ</button>
-      <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>`:M?`
+      <button type="button" class="btn big" id="topref">県を応援する</button>
+      <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>
+      <div style="flex-basis:100%"><button type="button" class="btn small" id="tdback">今日の一戦の戦績表へ</button></div>`:M?`
       ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
       <button type="button" class="btn" id="tofree">自由対戦へ</button>`:current.orig&&current.orig.k==='pref'?prefBtns(w===null?null:w===ai):`
@@ -1362,6 +1375,7 @@ function showResult(){
   if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
   if($('#tofree')&&!M) $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
+  if($('#topref')) $('#topref').onclick=()=>{ const p=$('#pref'); if(p) p.scrollIntoView({behavior:'smooth',block:'start'}); };
   if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };
   { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }
   if(current.orig&&current.orig.k==='pref'){ const O=current.orig;
