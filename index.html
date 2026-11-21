@@ -1089,7 +1089,7 @@ let PREFR=null; function prefLoad(){ return PREFR||(PREFR=fetch('data/pref/roste
 const prefGet=()=>{ try{ return JSON.parse(localStorage.getItem('hk_pref'))||{}; }catch(_){ return {}; } };
 const prefSet=o=>{ try{ localStorage.setItem('hk_pref',JSON.stringify(o)); }catch(_){} };
 function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n=o.p&&o.c?o.c[o.p]||0:0;
-  box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりのある都道府県の記事が、ほかの県の記事と戦う</span></div>
+  box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりの県の記事で戦う</span></div>
     <select id="psel" aria-label="応援する都道府県"><option value="">都道府県を選ぶ</option>${PREFS.map(p=>`<option${o.p===p?' selected':''}>${p}</option>`).join('')}</select>
     <div class="trow"><button type="button" class="btn big" id="pgo"${o.p?'':' disabled'}>応援試合</button></div>
     ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="preps"></div><div id="pboard"></div>`;
@@ -1110,8 +1110,7 @@ function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
     const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);
     const T=S.slice(0,10); if(rk>=10) T.push(S[rk]);
     const mon=+String(j.m||'').slice(5,7);
-    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗</div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません。最初の1勝を挙げよう</p>'}
-      <p class="fsub">どの遊び方の試合でも、各県の代表の記事が勝つと県の1勝に数えます。並びは勝率の順（毎月1日に始まります）</p></div>`; }); }
+    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗<small class="fsub">（勝率順）</small></div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません</p>'}</div>`; }); }
 async function prefBattle(o){ o=o||{}; const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
   try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
     for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const fx=new Set((o.f||[]).map(i=>F[i]&&F[i][1])), A0=(R[p]||{})[c]||[], A1=A0.filter(t=>!fx.has(t)), A=A1.length?A1:A0, B=(R[q]||{})[c]||[];   // 仇討ちでは、敗れた代表を候補から先に除く
