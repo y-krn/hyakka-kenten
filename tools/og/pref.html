@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="node_modules/@fontsource/dela-gothic-one/index.css">
+<link rel="stylesheet" href="node_modules/@fontsource/zen-kaku-gothic-new/700.css">
+<style>
+html,body{margin:0}
+:root{--gold:#f2c94c;--gold2:#ffe58a;--ink:#f3f1e7;--muted:#a9b3d6;--blue:#3a6cf0}
+.c{position:relative;width:1200px;height:630px;overflow:hidden;color:var(--ink);font-family:"Zen Kaku Gothic New",sans-serif;
+  background:radial-gradient(760px 420px at 50% 40%,#1a3bb8 0%,#0e288c 40%,#071233 85%)}
+.rays{position:absolute;inset:-500px;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(242,201,76,.07) 0 3deg,transparent 3deg 15deg);transform:translateY(-90px)}
+.top{position:absolute;left:48px;right:48px;top:34px;display:flex;align-items:center;gap:16px}
+.top img{width:56px;height:56px;border-radius:12px}
+.top .ttl{font-family:"Dela Gothic One";font-size:34px;letter-spacing:.06em;color:var(--gold2)}
+.top .sub{font-size:22px;color:var(--muted);font-weight:700}
+.hero{position:absolute;left:48px;right:48px;top:118px;text-align:center}
+.hero .p{font-family:"Dela Gothic One";font-size:112px;line-height:1.05;color:var(--gold);text-shadow:0 6px 0 rgba(0,0,0,.45);white-space:nowrap}
+.hero .s{font-size:36px;font-weight:700;margin-top:8px;letter-spacing:.08em}
+.reps{position:absolute;left:48px;right:48px;top:350px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.rep{border-radius:16px;padding:16px 18px;background:rgba(7,18,51,.72);border:2px solid rgba(255,255,255,.12);border-top:6px solid var(--blue);height:130px;box-sizing:border-box;display:flex;flex-direction:column}
+.rep .k{font-size:19px;font-weight:700;color:#8fb0ff;letter-spacing:.1em}
+.rep .n{font-family:"Dela Gothic One";line-height:1.15;flex:1;display:flex;align-items:center;word-break:break-all}
+.foot{position:absolute;left:52px;right:52px;bottom:22px;display:flex;align-items:baseline}
+.foot .t{font-size:22px;font-weight:700;color:var(--ink)}
+.foot .url{margin-left:auto;font-size:19px;letter-spacing:.12em;color:var(--gold)}
+</style></head><body><div class="c" id="c"></div>
+<script>
+// 百科拳典 都道府県を応援の共有画像（1200×630）。render_pref.mjs が window.draw(県名, 代表) を呼んで撮影する
+window.draw=(P,R)=>{
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nm=t=>String(t).replace(/\s*\(.*\)$/,'');   // 「大山 (鳥取県)」の括弧書きは外す
+document.getElementById('c').innerHTML=`<div class="rays"></div>
+<div class="top"><img src="../../icon-512.png"><span class="ttl">百科拳典</span><span class="sub">都道府県を応援</span></div>
+<div class="hero"><div class="p">${esc(P)}</div><div class="s">を応援しよう</div></div>
+<div class="reps">${['人物','名所','自然','名物・文化'].map(k=>`<div class="rep"><div class="k">${k}の代表</div><div class="n" data-fit>${esc(nm((R[k]||['—'])[0]))}</div></div>`).join('')}</div>
+<div class="foot"><span class="t">ゆかりのある県の記事が、ほかの県の記事と戦う。今月の県対抗は何位？</span><span class="url">hyakkakenten.com</span></div>`;
+document.fonts.ready.then(()=>{
+  document.querySelectorAll('[data-fit]').forEach(e=>{ let s=40; e.style.fontSize=s+'px'; const W=e.parentElement.clientWidth-36;
+    while(s>18&&(e.scrollWidth>W||e.scrollHeight>e.clientHeight)){ s-=2; e.style.fontSize=s+'px'; } });
+  document.body.dataset.ready=1; }); };
+</script></body></html>

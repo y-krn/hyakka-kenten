@@ -163,6 +163,12 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .logbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .logbar h3{margin:0;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:500}
 ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.result .pfl{font-weight:700;color:var(--hl)}
+.sb .ptag{font-size:12px;color:var(--muted);font-weight:700}
+.sb .ptag.me{align-self:flex-start;background:var(--a);color:#fff;padding:1px 7px;border-radius:3px}
+.preps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:14px}.preps dt{color:var(--muted)}.preps dd{margin:0}
+.pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}
+#pref select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
 #ring[hidden]+.toc,#ring:not(:has(.result))+.toc{display:none}
 .toc{display:table;margin:14px 0 4px;padding:8px 14px 10px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink)}
 .toc .toch{font-weight:700;text-align:center;margin-bottom:4px}
@@ -429,6 +435,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
     <div id="dgbox" class="dgbox" aria-live="polite">準備しています…</div>
   </section>
 
+  <section id="pref" class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"></section>
   <section id="setup" class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px">
     <div class="sechead"><h2>自由対戦</h2><span>好きな2記事を選んで戦わせる</span></div>
     <div class="setup">
@@ -448,6 +455,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
     <li><a href="#today" onclick="event.preventDefault();document.getElementById('today').scrollIntoView()">今日の一戦</a><small>毎日入れ替わる、みんな同じ対戦</small></li>
     <li><a href="#throne" onclick="event.preventDefault();document.getElementById('throne').scrollIntoView()">王座戦</a><small>王者に挑んで王座を奪う</small></li>
     <li><a href="#dg" onclick="event.preventDefault();document.getElementById('dg').scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
+    <li><a href="#pref" onclick="event.preventDefault();document.getElementById('pref').scrollIntoView()">都道府県を応援</a><small>ゆかりのある県の記事で戦う</small></li>
     <li><a href="#setup" onclick="event.preventDefault();document.getElementById('setup').scrollIntoView()">自由対戦</a><small>好きな2記事を戦わせる</small></li>
     <li><a href="#find" onclick="event.preventDefault();document.getElementById('find').scrollIntoView()">見つける</a><small>意外な仲間や一門を探す</small></li>
   </ol></nav>
@@ -1062,10 +1070,75 @@ function updateFight(){ if(sel[0]!==null&&sel[1]!==null&&F[sel[0]]&&F[sel[1]]&&F
   const n=k=>sel[k]===null?'？':esc(F[sel[k]][0]); $('#mu').innerHTML=`<span class="a">${n(0)}</span><span class="vs">VS</span><span class="b">${n(1)}</span>`; }
 $('#omakase').onclick=async()=>{ sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); streak={idx:null,n:0}; renderPick(0); renderPick(1); updateFight(); };
 $('#fight').onclick=()=>startBattle();
+/* ---------- 都道府県を応援（試作） ---------- */
+const PREFS='北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県 石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県 岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県'.split(' ');
+const PCATS=['人物','名所','自然','名物・文化'];
+let PREFR=null; function prefLoad(){ return PREFR||(PREFR=fetch('data/pref/roster.json?v=6').then(r=>r.ok?r.json():{}).catch(()=>{ PREFR=null; return {}; })); }
+const prefGet=()=>{ try{ return JSON.parse(localStorage.getItem('hk_pref'))||{}; }catch(_){ return {}; } };
+const prefSet=o=>{ try{ localStorage.setItem('hk_pref',JSON.stringify(o)); }catch(_){} };
+function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n=o.p&&o.c?o.c[o.p]||0:0;
+  box.innerHTML=`<div class="sechead"><h2>都道府県を応援</h2><span>ゆかりのある都道府県の記事が、ほかの県の記事と戦う</span></div>
+    <select id="psel" aria-label="応援する都道府県"><option value="">都道府県を選ぶ</option>${PREFS.map(p=>`<option${o.p===p?' selected':''}>${p}</option>`).join('')}</select>
+    <div class="trow"><button type="button" class="btn big" id="pgo"${o.p?'':' disabled'}>応援試合</button></div>
+    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="preps"></div><div id="pboard"></div>`;
+  prefBoardLater();
+  $('#psel').onchange=e=>{ const x=prefGet(); x.p=e.target.value||undefined; prefSet(x); prefDraw(); };
+  $('#pgo').onclick=prefGo; }
+function prefEv(k,p){ try{ if(!API||NOSTAT||!PREFS.includes(p)) return; fetch(API+'/api/pref/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k,p}),keepalive:true}).catch(()=>{}); }catch(_){} }
+let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
+  if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
+  if(PBIO) PBIO.disconnect(); PBIO=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ PBIO.disconnect(); PBIO=null; prefBoard(); } },{rootMargin:'200px'}); PBIO.observe(el); }
+function prefReps(){ const el=$('#preps'), me=prefGet().p; if(!el||!me) return;   // 選んだ県の代表（種類ごとに上位3つ）
+  prefLoad().then(R=>{ const r=R[me]||{}, el=$('#preps'); if(!el||prefGet().p!==me) return; const nm=t=>t.replace(/\s*\(.*\)$/,'');
+    el.innerHTML=`<div class="pbd"><div class="pbh">${esc(me)}の代表</div><dl class="preps">${PCATS.filter(k=>(r[k]||[]).length).map(k=>`<dt>${k}</dt><dd>${r[k].slice(0,3).map(t=>esc(nm(t))).join('、')}</dd>`).join('')}</dl></div>`; }); }
+function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
+  if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
+  PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;
+    const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);
+    const T=S.slice(0,10); if(rk>=10) T.push(S[rk]);
+    const mon=+String(j.m||'').slice(5,7);
+    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗</div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません。最初の1勝を挙げよう</p>'}
+      <p class="fsub">どの遊び方の試合でも、各県の代表の記事が勝つと県の1勝に数えます。並びは勝率の順（毎月1日に始まります）</p></div>`; }); }
+async function prefBattle(o){ o=o||{}; const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
+  try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
+    for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const fx=new Set((o.f||[]).map(i=>F[i]&&F[i][1])), A0=(R[p]||{})[c]||[], A1=A0.filter(t=>!fx.has(t)), A=A1.length?A1:A0, B=(R[q]||{})[c]||[];   // 仇討ちでは、敗れた代表を候補から先に除く
+      if((o.a==null&&!A.length)||(o.b==null&&!B.length)) continue;
+      // 組み方：一覧は記事の強さ（閲覧数・被リンク・長さ）の順。名物・文化は上位10件から選び、相手は一覧の中で同じくらいの順位から選ぶ（短い記事どうしの泥仕合や、差がありすぎる試合を減らす）
+      const near=(L,f)=>L[Math.max(0,Math.min(L.length-1,Math.round(f*(L.length-1))+Math.floor(Math.random()*5)-2))], top=L=>c==='名物・文化'?L.slice(0,10):L;
+      const rk=(L,i)=>{ const j=L.indexOf(F[i]&&F[i][1]); return j<0?0.5:j/Math.max(1,L.length-1); };
+      let ta, tb;
+      if(o.a!=null){ tb=near(top(B),rk(top(R[p][c]||[]),o.a)); }   // 勝ち抜き：勝った代表と同じくらいの相手
+      else if(o.b!=null){ ta=near(top(A),rk(top(B),o.b)); }   // 仇討ち：勝った相手と同じくらいの代表
+      else { const T=top(A), j=Math.floor(Math.random()*T.length); ta=T[j]; tb=near(top(B),j/Math.max(1,T.length-1)); }
+      const a=o.a!=null?o.a:await loadTitle(ta), b=o.b!=null?o.b:await loadTitle(tb);
+      if(a<0||b<0||a===b||(o.f||[]).includes(a)||BLOCK.has(a)||BLOCK.has(b)||isChamp(a)||isChamp(b)) continue;
+      const x=prefGet(); x.c=x.c||{}; x.c[p]=(x.c[p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
+      ORIG={k:'pref',p,q,c,n:o.n||0,rev:o.rev||null,f:o.f||[]}; startBattle([a,b]); return; } }
+  finally{ prefDraw(); } }
+// 結果の札：県としての流れと、続けるボタン
+function prefLine(cur,w){ const O=cur.orig, me=esc(F[cur.ai][0]), P=esc(O.p);
+  if(w===null) return `<div class="sub pfl">${P}：引き分け</div>`;
+  if(w===cur.ai) return `<div class="sub pfl">${O.rev?((O.f||[]).length>=2?`${P}の${me}が、${(O.f||[]).length+1}人目で仇を討った！ `:`${P}の${me}が、${esc(O.rev)}の仇を討った！ `):''}${O.n+1>=2?`${P} ${O.n+1}連勝中`:`${P}の勝ち`}</div>`;
+  return `<div class="sub pfl">${P}の${me}が敗れた。次の代表が仇を討つ</div>`; }
+function prefBtns(won){ return won===true?'<button type="button" class="btn big" id="pwin">次の相手と戦う</button><button type="button" class="btn" id="pnew">別の代表で応援</button>'
+  :won===false?'<button type="button" class="btn big" id="prev">仇を討つ</button><button type="button" class="btn" id="pnew">別の代表で応援</button>'
+  :'<button type="button" class="btn big" id="pnew">別の代表で応援</button>'; }
+async function prefGo(){ return prefBattle({}); }
+async function prefGoOld(){ const o=prefGet(); if(!o.p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
+  try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
+    for(let k=0;k<20;k++){ const c=pick(PCATS), q=pick(PREFS.filter(p=>p!==o.p)); const A=(R[o.p]||{})[c]||[], B=(R[q]||{})[c]||[]; if(!A.length||!B.length) continue;
+      const a=await loadTitle(pick(A)), b=await loadTitle(pick(B));
+      if(a<0||b<0||a===b||BLOCK.has(a)||BLOCK.has(b)||isChamp(a)||isChamp(b)) continue;
+      const x=prefGet(); x.c=x.c||{}; x.c[o.p]=(x.c[o.p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
+      ORIG={k:'pref',p:o.p,q,c}; startBattle([a,b]); return; } }
+  finally{ prefDraw(); } }
+{ const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ try{ const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), key=day+q; if(localStorage.getItem('hk-pin')!==key){ localStorage.setItem('hk-pin',key); prefEv('in',q); } }catch(_){} },0); setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }
+prefDraw();
 
 /* ---------- 対戦 ---------- */
 let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
-function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間さがしから':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':'自由対戦')+'</div>';
+function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間さがしから':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':c&&c.orig&&c.orig.k==='pref'?esc(c.orig.p)+'の応援試合 ／ '+esc(c.orig.c)+'対決'+(c.orig.rev?'（仇討ち）':c.orig.n?'（'+(c.orig.n+1)+'戦目）':''):'自由対戦')+'</div>';
   return `<div class="ringhead th">${m.replay?'王座戦の記録（'+esc(dt(m.res.at))+'）':'王座戦'} ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
@@ -1126,9 +1199,9 @@ function startBattle(pair){
   ring.innerHTML=`
   ${ringHead(current.mode,current)}${an.type&&an.type!=='normal'?`<div class="mtype">試合の型：<b>${esc(an.tlabel||'')}</b>${an.type==='kurabe'?'（●は取った本数）':''}</div>`:''}
   <div class="scoreboard" id="sb">
-    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
+    <div class="sb A">${current.orig&&current.orig.k==='pref'?`<span class="ptag me">${esc(current.orig.p)}を応援中</span>`:''}<span class="nm">${esc(F[ai][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipA">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnA">0本</span>`:`<span class="hpbar"><i id="hpA" style="width:100%"></i></span>`}</div>
     <div class="tick" id="tk">0</div>
-    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
+    <div class="sb B">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.q)}</span>`:''}<span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
   </div>
   <div class="plan"><div><b>${esc(F[ai][0])}</b>の技：${pickMoves(ai,bi).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div><div><b>${esc(F[bi][0])}</b>の技：${pickMoves(bi,ai).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div></div>
   <div class="logbar"><h3>実況</h3><div style="display:flex;gap:6px"><button type="button" class="btn small" id="skip">結果に移動</button></div></div>
@@ -1208,22 +1281,28 @@ function showResult(){
   const TDY=current.today&&TD&&current.today.day===TD.day;
   if(TDY){ const me=tdLoad()[TD.day]||{}; const wi=w===null?null:(w===TD.a?0:1); const hit=(me.p===0||me.p===1)&&me.p===wi; const st=tdStreak({...tdLoad(),[TD.day]:{...me,done:1,hit}});
     share=`【百科拳典 今日の一戦 ${mdJ(TD.day)}】${F[TD.a][0]} vs ${F[TD.b][0]}`+(me.p===0||me.p===1?`\n予想は${hit?'当たり！'+(st>1?`（${tdTitle(st)?tdTitle(st)+'・':''}${st}日連続）`:''):'外れ…'}`:'')+'\nあなたはどっちが勝つと思う？'; }
+  const PRF=current.orig&&current.orig.k==='pref'?current.orig:null;
+  if(PRF){ const me=F[ai][0], op=F[bi][0];
+    share=w===null?`【百科拳典 都道府県を応援】${PRF.p}代表・${me}と${PRF.q}代表・${op}は引き分け。`
+      :w===ai?`【百科拳典 都道府県を応援】${PRF.p}代表・${me}が、${PRF.q}代表・${op}に${PRF.rev?'勝って仇を討った！':'勝った！'}${PRF.n+1>=2?`（${PRF.p} ${PRF.n+1}連勝）`:''}`
+      :`【百科拳典 都道府県を応援】${PRF.p}代表・${me}は、${PRF.q}代表・${op}に敗れた…。仇を討つ代表は次の試合で`;
+    share+=`\nあなたの県も応援しよう #${PRF.p}を応援`; }
   share=fitPost(share)+'\n'+DISC;
-  const SHAREURL=TDY?location.origin+'/?today=1':battleURL();
+  const SHAREURL=TDY?location.origin+'/?today=1':PRF?location.origin+'/?pref='+encodeURIComponent(PRF.p):battleURL();
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));
   const gloss=[...seen.values()];
   const wHP=w===null?'':(w===ai?r.hp[0]:r.hp[1]);
   $('#res').innerHTML=`
   <div class="result">
-    <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>
-    ${w!==null&&streak.n>=2?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中</div>`:''}
+    <div class="win">${esc(title)}${upset?'<span class="tagU">番狂わせ</span>':''}</div>${current.orig&&current.orig.k==='pref'?prefLine(current,w):''}
+    ${w!==null&&streak.n>=2&&!(current.orig&&current.orig.k==='pref')?`<div class="sub">${esc(F[w][0])} ${streak.n}連勝中</div>`:''}
     ${an.type==='kurabe'?'<div class="sub">比べ合いは技を使わない数字勝負。</div>':''}${an.type==='kurabe'?'':lines.length?`<div class="keys">${lines.map(x=>`<div>${x}</div>`).join('')}</div>`:'<div class="sub">どの技を1つ外しても結果は変わらない。地力の勝利。</div>'}
     ${(()=>{ if(!M||!M.replay) return ''; const x=M.res; const recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; const calcW=w===null?null:F[w][1];
       return recW===calcW?'':`<div class="sub">※この挑戦は、判定の計算を直す前に記録されたものです。記録上は「${esc(recW?(recW===x.challenger.title?x.challenger.display:x.champ.display):'引き分け')}」の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>`; })()}
     ${facts.length||API?`<div class="facts">${facts.length?'<div class="fh">2つの記事から分かること</div>':''}${(()=>{ const cmp=facts.filter(f=>f.who===null), by=[ai,bi].map(i=>({i,L:facts.filter(f=>f.who===i)})).filter(g=>g.L.length);   // 比べは先に、あとは記事ごとにまとめる
       return (cmp.length?`<ul>${cmp.map(f=>`<li${fxa(f)}>${ibx(f.t)}</li>`).join('')}</ul>`:'')+by.map(g=>`<div class="fwho">${esc(F[g.i][0])}</div><ul>${g.L.map(f=>`<li${fxa(f)}>${ibx(f.t)}</li>`).join('')}</ul>`).join(''); })()}<div class="fsrc">Wikidataと日本語版Wikipediaの記録${ASOF?'（'+ASOF[1]+'時点）':''}より。${API&&facts.some(f=>f.rp)?'<button type="button" class="fxgo" aria-pressed="false">違う点を知らせる</button>':''}${API?'<button type="button" class="fxbad">不適切な内容を知らせる</button>':''}</div><div class="fxhint" hidden>違うと思う行を押してください</div><div class="fxmsg" aria-live="polite"></div></div>`:''}
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
-    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
+    ${!TDY&&!M&&!(current.orig&&current.orig.k==='pref')?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>
     <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${TDY?`
@@ -1231,7 +1310,7 @@ function showResult(){
       <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>`:M?`
       ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
-      <button type="button" class="btn" id="tofree">自由対戦へ</button>`:`
+      <button type="button" class="btn" id="tofree">自由対戦へ</button>`:current.orig&&current.orig.k==='pref'?prefBtns(w===null?null:w===ai):`
       ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
       <button type="button" class="btn" id="again">別の組み合わせ</button>
       <button type="button" class="btn" id="back">選び直す</button>
@@ -1257,6 +1336,7 @@ function showResult(){
     <div class="rerr" id="rperr" aria-live="polite"></div>
     <div class="rnote">送られるのは、この報告の内容と、続けて送られるのを防ぐための回線・ブラウザの番号（元に戻せない形に変えて保存）です。見るのは管理者だけです。</div>
   </form>`;
+  if(current.orig&&current.orig.k==='pref'){ const P=current.orig.p; let sent=false; ['tw','nshare','copy'].forEach(id=>{ const e=$('#'+id); if(e) e.addEventListener('click',()=>{ if(!sent){ sent=true; prefEv('sh',P); } }); }); }   // 1試合1回
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
@@ -1284,6 +1364,10 @@ function showResult(){
   if($('#tofree')&&!M) $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
   if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };
   { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }
+  if(current.orig&&current.orig.k==='pref'){ const O=current.orig;
+    if($('#pwin')) $('#pwin').onclick=()=>prefBattle({a:ai,c:O.c,n:O.n+1});
+    if($('#prev')) $('#prev').onclick=()=>prefBattle({b:bi,q:O.q,c:O.c,n:0,rev:F[ai][0],f:[...(O.f||[]),ai]});   // f：この相手に敗れた代表（仇討ちに二度は出さない）
+    if($('#pnew')) $('#pnew').onclick=()=>prefBattle({}); }
   if($('#again')) $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
   { const f=$('#repf'), msg=$('#res .fxmsg'), err=$('#rperr'), bad=$('#res .fxbad'); let st=null, t0=0;
@@ -1596,13 +1680,19 @@ function setPend(n){ try{ localStorage.setItem(PEND_KEY,String(Math.max(0,n))); 
 const PENDK_KEY='hk-plays-k';
 function pendK(){ try{ const o=JSON.parse(localStorage.getItem(PENDK_KEY)||'{}'); return o&&typeof o==='object'?o:{}; }catch(_){ return {}; } }
 function setPendK(o){ try{ localStorage.setItem(PENDK_KEY,JSON.stringify(o)); }catch(_){} }
-function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
+const PRES_KEY='hk-pres';   // 送る前の試合結果 [勝った記事, 負けた記事, 応援した県]
+function presGet(){ try{ const a=JSON.parse(localStorage.getItem(PRES_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+function presSet(a){ try{ localStorage.setItem(PRES_KEY,JSON.stringify(a.slice(-30))); }catch(_){} }
+function presAdd(){ try{ const c=current; if(!c||!c.an||!c.an.r) return; const w=c.an.r.w, p=c.orig&&c.orig.k==='pref'?c.orig.p:'';
+  if(w===null){ if(p) presSet([...presGet(),['','',p]]); return; }
+  presSet([...presGet(),[F[w][1],F[w===c.ai?c.bi:c.ai][1],p]]); }catch(_){} }
+function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; presAdd(); setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
 function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
 function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f','d']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
-  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;
+  const pr=presGet().slice(0,n); const body=JSON.stringify({n,k,r:pr,client:clientId()}); let ok=false;
   try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
     else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
-  if(ok){ setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }
+  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }
 setInterval(()=>flushPlays(false),120000);
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPlays(true); });
 addEventListener('pagehide',()=>flushPlays(true));
