@@ -2107,7 +2107,14 @@ repall("async function prefGo(){", r"""async function prefBattle(o){ o=o||{}; co
   try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
     for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const fx=new Set((o.f||[]).map(i=>F[i]&&F[i][1])), A0=(R[p]||{})[c]||[], A1=A0.filter(t=>!fx.has(t)), A=A1.length?A1:A0, B=(R[q]||{})[c]||[];   // 仇討ちでは、敗れた代表を候補から先に除く
       if((o.a==null&&!A.length)||(o.b==null&&!B.length)) continue;
-      const a=o.a!=null?o.a:await loadTitle(pick(A)), b=o.b!=null?o.b:await loadTitle(pick(B));
+      // 組み方：一覧は記事の強さ（閲覧数・被リンク・長さ）の順。名物・文化は上位10件から選び、相手は一覧の中で同じくらいの順位から選ぶ（短い記事どうしの泥仕合や、差がありすぎる試合を減らす）
+      const near=(L,f)=>L[Math.max(0,Math.min(L.length-1,Math.round(f*(L.length-1))+Math.floor(Math.random()*5)-2))], top=L=>c==='名物・文化'?L.slice(0,10):L;
+      const rk=(L,i)=>{ const j=L.indexOf(F[i]&&F[i][1]); return j<0?0.5:j/Math.max(1,L.length-1); };
+      let ta, tb;
+      if(o.a!=null){ tb=near(top(B),rk(top(R[p][c]||[]),o.a)); }   // 勝ち抜き：勝った代表と同じくらいの相手
+      else if(o.b!=null){ ta=near(top(A),rk(top(B),o.b)); }   // 仇討ち：勝った相手と同じくらいの代表
+      else { const T=top(A), j=Math.floor(Math.random()*T.length); ta=T[j]; tb=near(top(B),j/Math.max(1,T.length-1)); }
+      const a=o.a!=null?o.a:await loadTitle(ta), b=o.b!=null?o.b:await loadTitle(tb);
       if(a<0||b<0||a===b||(o.f||[]).includes(a)||BLOCK.has(a)||BLOCK.has(b)||isChamp(a)||isChamp(b)) continue;
       const x=prefGet(); x.c=x.c||{}; x.c[p]=(x.c[p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
       ORIG={k:'pref',p,q,c,n:o.n||0,rev:o.rev||null,f:o.f||[]}; startBattle([a,b]); return; } }
