@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援]
+        options: [都道府県の応援, 遊び方の内訳]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -31,3 +31,9 @@ jobs:
         run: |
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT day, pref, k, n FROM pref_ev ORDER BY day, pref, k"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT month, pref, w, l, c FROM pref_month ORDER BY month, pref"
+      - name: 遊び方の内訳（週ごと。日本時間。王座戦以外の対戦と、王座戦の挑戦、開いたブラウザ）
+        if: inputs.what == '遊び方の内訳'
+        run: |
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%Y-%W', datetime(at, '+9 hours')) AS wk, SUM(n) AS n, SUM(kt) AS t, SUM(km) AS m, SUM(kf) AS f, SUM(kd) AS d, COUNT(DISTINCT COALESCE(client, iphash)) AS u FROM plays WHERE at >= '2026-10-20' GROUP BY wk ORDER BY wk"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%Y-%W', datetime(at, '+9 hours')) AS wk, COUNT(*) AS ch, COUNT(DISTINCT COALESCE(client, iphash)) AS u FROM challenges WHERE result <> 'late' AND at >= '2026-10-20' GROUP BY wk ORDER BY wk"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%Y-%W', datetime(at, '+9 hours')) AS wk, COUNT(DISTINCT client) AS v, COUNT(DISTINCT CASE WHEN fresh = 1 THEN client END) AS nw FROM visits GROUP BY wk ORDER BY wk"
