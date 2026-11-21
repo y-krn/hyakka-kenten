@@ -27,11 +27,15 @@ jobs:
           tar -I zstd -xf /tmp/dl/raw.tar.zst -C /tmp && du -sh /tmp/R
       - name: 選手一覧を作る
         run: python3 tools/pref_roster.py /tmp/R
+      - name: 県ごとの共有画像を作る（data/pref/og）
+        run: |
+          cd tools/og && npm ci
+          node render_pref.mjs ../../data/pref/roster.json ../../data/pref/og
       - name: プレビューのブランチに入れる
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898299+github-actions[bot]@users.noreply.github.com'
-          git add data/pref/roster.json data/pref/map
+          git add data/pref
           git diff --cached --quiet && { echo 変わりなし; exit 0; }
           git commit -m "都道府県の応援：選手一覧を作り直しの取得データから作る（実行 ${{ inputs.raw_run }}）"
           git push origin HEAD:preview
