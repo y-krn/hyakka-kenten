@@ -206,7 +206,42 @@ async function plays(env, req) {
   try { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client, kt, km, kf, kd) VALUES (?,?,?,?,?,?,?,?)').bind(add, now(), ih, cl, K.t, K.m, K.f, K.d), st]); }
   catch (_) { try { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client, kt, km, kf) VALUES (?,?,?,?,?,?,?)').bind(add, now(), ih, cl, K.t, K.m, K.f), st]); }   // ダンジョンの列がまだないとき
   catch (_) { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl), st]); } }   // 内訳の列がまだないとき
+  try { await prefCount(env, req, body.r, add); } catch (_) {}   // 県対抗（表がまだないときなどは数えずに進む）
   return json(env, req, { ok: true, added: add });
+}
+
+// 都道府県の応援：県対抗の集計
+//   ブラウザは対戦数と一緒に、試合結果 [勝った記事, 負けた記事, 応援した県] を送ってくる（受け付けた対戦数まで）
+//   記事を選手一覧（data/pref/roster.json）で県に読み替えて、月ごと（日本時間）に県の勝ち・負け・応援の数を足す
+let ROSTER = null;   // 記事名 → その記事が代表になっている県の一覧
+async function rosterMap(env, req) {
+  if (ROSTER && Date.now() - ROSTER.t < 3600e3) return ROSTER.m;
+  const r = await env.ASSETS.fetch(new Request(new URL('/data/pref/roster.json', req.url)));
+  const m = new Map();
+  if (r.ok) { const j = await r.json(); for (const [p, cs] of Object.entries(j)) for (const L of Object.values(cs)) for (const t of L) { if (!m.has(t)) m.set(t, new Set()); m.get(t).add(p); } }
+  ROSTER = { t: Date.now(), m }; return m;
+}
+const prefMonth = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7);
+async function prefCount(env, req, rs, add) {
+  if (!Array.isArray(rs) || !rs.length || !env.ASSETS) return;
+  const M = await rosterMap(env, req), P = new Set(); for (const ps of M.values()) for (const p of ps) P.add(p);
+  const W = new Map(), inc = (p, k) => { const o = W.get(p) || { w: 0, l: 0, c: 0 }; o[k]++; W.set(p, o); };
+  for (const x of rs.slice(0, add)) {
+    if (!Array.isArray(x)) continue; const [w, l, c] = x.map(v => String(v || '').slice(0, 200));
+    const pw = M.get(w) || new Set(), pl = M.get(l) || new Set();
+    for (const p of pw) if (!pl.has(p)) inc(p, 'w');   // 同じ県の記事どうしの試合は数えない
+    for (const p of pl) if (!pw.has(p)) inc(p, 'l');
+    if (c && P.has(c)) inc(c, 'c');
+  }
+  if (!W.size) return;
+  const m = prefMonth();
+  await env.DB.batch([...W].map(([p, o]) => env.DB.prepare('INSERT INTO pref_month (month, pref, w, l, c) VALUES (?,?,?,?,?) ON CONFLICT(month, pref) DO UPDATE SET w = w + excluded.w, l = l + excluded.l, c = c + excluded.c').bind(m, p, o.w, o.l, o.c)));
+}
+async function prefBoardApi(env, req) {
+  const m = prefMonth();
+  let rows = [];
+  try { rows = (await env.DB.prepare('SELECT pref AS p, w, l, c FROM pref_month WHERE month = ?').bind(m).all()).results || []; } catch (_) {}
+  const res = json(env, req, { m, rows }); res.headers.set('Cache-Control', 'public, max-age=30'); return res;
 }
 
 // ページを開いたブラウザを数える。ブラウザごとの乱数番号を変換したもの（plays の client と同じ）で、同じ日の2回目からは数えない
@@ -429,6 +464,7 @@ export default {
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
+      if (u.pathname === '/api/pref' && req.method === 'GET') return await prefBoardApi(env, req);
       if (u.pathname === '/api/visit' && req.method === 'POST') return await visit(env, req);
       if (u.pathname === '/api/report' && req.method === 'POST') return await report(env, req, ctx);
       if (u.pathname === '/api/holds' && req.method === 'GET') return await holds(env, req, ctx);

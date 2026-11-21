@@ -2144,6 +2144,48 @@ repall(".sb .ptag{", ".result .pfl{font-weight:700;color:var(--hl)}\n.sb .ptag{"
 # ---- 107. 比べ合い（数字勝負）の各1本にも脚注を付ける。どの事実を比べたか（勝った側の記事・両者の数字）と、差の倍率を見せる
 repall("log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）'});", "log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）',mv:['K',RLAB[x.k],'',RLAB[x.k]+'：'+(aw?va+' 対 '+vb:vb+' 対 '+va)]});")
 
+# ---- 108. 試作：都道府県の応援を「県対抗」にする（プレビューだけ）
+#   ・どの遊び方の試合でも、勝った記事・負けた記事を対戦数と一緒に送る。サーバーが選手一覧から県に読み替えて、月ごとに県の勝ち・負けを数える
+#   ・応援試合は、応援した県の「応援の数」も数える
+#   ・都道府県を応援の欄に「今月の県対抗」を出す（勝率の順。試合の少ない県が1位になりすぎないよう、勝ち5・負け5を足してから割る）
+#   ・応援試合の共有文は県が主役。共有するURLは ?pref=県名（開くとその県を選んだ状態で応援の欄へ）
+repall("function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return;", r"""const PRES_KEY='hk-pres';   // 送る前の試合結果 [勝った記事, 負けた記事, 応援した県]
+function presGet(){ try{ const a=JSON.parse(localStorage.getItem(PRES_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+function presSet(a){ try{ localStorage.setItem(PRES_KEY,JSON.stringify(a.slice(-30))); }catch(_){} }
+function presAdd(){ try{ const c=current; if(!c||!c.an||!c.an.r) return; const w=c.an.r.w, p=c.orig&&c.orig.k==='pref'?c.orig.p:'';
+  if(w===null){ if(p) presSet([...presGet(),['','',p]]); return; }
+  presSet([...presGet(),[F[w][1],F[w===c.ai?c.bi:c.ai][1],p]]); }catch(_){} }
+function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; presAdd();""")
+repall("  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;", "  const pr=presGet().slice(0,n); const body=JSON.stringify({n,k,r:pr,client:clientId()}); let ok=false;")
+repall("  if(ok){ setPend(pend()-n);", "  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n);")
+# 今月の県対抗
+repall("""    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}`;""", """    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="pboard"></div>`;
+  setTimeout(prefBoard,0);""")   # API は後で定義されるので、読み込みが終わってから
+repall("async function prefBattle(o){", r"""let PBD=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+function prefBoard(){ const el=$('#pboard'); if(!el||!API) return;
+  if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
+  PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;
+    const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);
+    const T=S.slice(0,10); if(rk>=10) T.push(S[rk]);
+    const mon=+String(j.m||'').slice(5,7);
+    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗</div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません。最初の1勝を挙げよう</p>'}
+      <p class="fsub">どの遊び方の試合でも、各県の代表の記事が勝つと県の1勝に数えます。並びは勝率の順（毎月1日に始まります）</p></div>`; }); }
+async function prefBattle(o){""")
+repall("#pref select{", ".pbd{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.pbd .pbh{font-weight:700;margin-bottom:4px}.pbd ol{margin:0;padding:0;list-style:none}.pbd li{display:flex;align-items:baseline;gap:8px;padding:2px 0}.pbd li i{font-style:normal;min-width:1.6em;text-align:right;color:var(--muted);font-size:13px}.pbd li b{flex:1}.pbd li span{color:var(--muted);font-size:13px}.pbd li.me b{color:var(--a)}\n#pref select{")
+# 共有文とURL
+repall("  share=fitPost(share)+'\\n'+DISC;\n  const SHAREURL=TDY?location.origin+'/?today=1':battleURL();", r"""  const PRF=current.orig&&current.orig.k==='pref'?current.orig:null;
+  if(PRF){ const me=F[ai][0], op=F[bi][0];
+    share=w===null?`【百科拳典 都道府県を応援】${PRF.p}代表・${me}と${PRF.q}代表・${op}は引き分け。`
+      :w===ai?`【百科拳典 都道府県を応援】${PRF.p}代表・${me}が、${PRF.q}代表・${op}に${PRF.rev?'勝って仇を討った！':'勝った！'}${PRF.n+1>=2?`（${PRF.p} ${PRF.n+1}連勝）`:''}`
+      :`【百科拳典 都道府県を応援】${PRF.p}代表・${me}は、${PRF.q}代表・${op}に敗れた…。仇を討つ代表は次の試合で`;
+    share+=`\nあなたの県も応援しよう #${PRF.p}を応援`; }
+  share=fitPost(share)+'\n'+DISC;
+  const SHAREURL=TDY?location.origin+'/?today=1':PRF?location.origin+'/?pref='+encodeURIComponent(PRF.p):battleURL();""")
+# ?pref=県名 で開いたら、その県を選んで応援の欄へ
+repall("\nprefDraw();", r"""
+{ const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }
+prefDraw();""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
