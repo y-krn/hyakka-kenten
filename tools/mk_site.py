@@ -2095,7 +2095,7 @@ repall("#ring[hidden]+.toc,", "#pref select{font:inherit;font-size:16px;padding:
 repall("""scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>""", """scrollIntoView()">百科ダンジョン</a><small>リンクの扉をくぐって潜る</small></li>
     <li><a href="#pref" onclick="event.preventDefault();document.getElementById('pref').scrollIntoView()">都道府県を応援</a><small>ゆかりのある県の記事で戦う</small></li>""")
 
-# ---- 104. 試作：都道府県の応援試合では、両方の記事の上にどの都道府県の記事かを出す（どちらが自分の県か分かるように）
+# ---- 104. 都道府県の応援試合では、両方の記事の上にどの都道府県の記事かを出す（どちらが自分の県か分かるように）
 repall("""    <div class="sb A"><span class="nm">${esc(F[ai][0])}</span>""", """    <div class="sb A">${current.orig&&current.orig.k==='pref'?`<span class="ptag me">${esc(current.orig.p)}を応援中</span>`:''}<span class="nm">${esc(F[ai][0])}</span>""")
 repall("""    <div class="sb B"><span class="nm">${esc(F[bi][0])}</span>""", """    <div class="sb B">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.q)}</span>`:''}<span class="nm">${esc(F[bi][0])}</span>""")
 repall("+'の応援試合 ／ '+esc(c.orig.c)+'対決（相手は'+esc(c.orig.q)+'）':", "+'の応援試合 ／ '+esc(c.orig.c)+'対決':")
@@ -2200,6 +2200,44 @@ let PBD=null, PBIO=null;""")
 repall("  if($('#nshare')) $('#nshare').onclick=", r"""  if(current.orig&&current.orig.k==='pref'){ const P=current.orig.p; let sent=false; ['tw','nshare','copy'].forEach(id=>{ const e=$('#'+id); if(e) e.addEventListener('click',()=>{ if(!sent){ sent=true; prefEv('sh',P); } }); }); }   // 1試合1回
   if($('#nshare')) $('#nshare').onclick=""")
 repall("if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x);", r"""if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ try{ const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), key=day+q; if(localStorage.getItem('hk-pin')!==key){ localStorage.setItem('hk-pin',key); prefEv('in',q); } }catch(_){} },0);""")
+
+# ---- 110. トップを絞る。開いた人の多くが1戦もせずに帰るため（2026-11-21：開いた41人のうち遊んだのは3人）
+#   ・正面は「今日の一戦」「都道府県を応援」「自由対戦」の3つ。王座戦・百科ダンジョン・見つけるは「ほかの遊び方」にたたむ（押すと開く）
+#   ・見出しの下の説明文はなくす（説明に頼らない）
+#   ・今日の一戦を観たあとの次の一手は「県を応援する」（主）と「自由対戦で遊ぶ」（副）。戦績表へは補助
+#   ・?pref=県名 のURLから来たら、そのまま応援試合を始める
+repall('    <p class="lede">勝敗も技も、記事に書かれた事実だけで決まります。まずは「今日の一戦」からどうぞ。</p>\n', '')
+_th = '  <section id="throne" class="card" hidden aria-live="polite"></section>\n'
+_a = s.index('  <section id="dg" class="card"'); _b = s.index('</section>', _a) + len('</section>\n')
+_dg = s[_a:_b]
+repall('\n' + _th, '\n'); repall(_dg, '')
+repall('  <section id="find" class="card">', '  <div class="morebox"><h2 class="moreh">ほかの遊び方</h2>\n'
+  '  <details class="more"><summary><b>王座戦</b><small>いまの王者に挑み、勝てば王座を奪う</small></summary>\n' + _th + '  </details>\n'
+  '  <details class="more"><summary><b>百科ダンジョン</b><small>リンクの扉をくぐって、どこまで潜れるか</small></summary>\n' + _dg + '  </details>\n'
+  '  <details class="more"><summary><b>見つける</b><small>仲間さがし・あなたの代表戦</small></summary>\n  <section id="find" class="card">')
+repall('\n  <dialog id="famdlg"', '\n  </details></div>\n  <dialog id="famdlg"')
+repall("#ring[hidden]+.toc,", """.morebox{margin-top:8px}.morebox .moreh{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 6px}
+details.more{border-top:1px solid var(--line)}details.more:last-child{border-bottom:1px solid var(--line)}
+details.more>summary{list-style:none;cursor:pointer;padding:12px 2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+details.more>summary::-webkit-details-marker{display:none}details.more>summary::after{content:'＋';margin-left:auto;color:var(--muted)}details.more[open]>summary::after{content:'−'}
+details.more>summary small{color:var(--muted);font-size:13px}details.more>section{margin-bottom:12px}details.more>section>.sechead:first-child{display:none}
+#ring[hidden]+.toc,""")
+# たたんだ欄の中へ移るときは、先に開く（王座戦の「挑む」、目次など）
+repall("<script>\nconst NOSTAT=", """<script>
+{ const siv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ const d=this.closest&&this.closest('details.more'); if(d&&!d.open) d.open=true; return siv.apply(this,a); }; }
+const NOSTAT=""")
+# 目次の並びも正面に合わせる
+_t = s.index('<nav class="toc"'); _u = s.index('</ol></nav>', _t)
+_li = {k: re.search(r'    <li><a href="#' + k + r'".*?</li>\n', s[_t:_u]).group(0) for k in ('today', 'throne', 'dg', 'pref', 'setup', 'find')}
+s = s[:_t] + s[_t:_u].replace(''.join(_li[k] for k in ('today', 'throne', 'dg', 'pref', 'setup', 'find')), ''.join(_li[k] for k in ('today', 'pref', 'setup', 'throne', 'dg', 'find'))) + s[_u:]
+# 今日の一戦のあと
+repall("""      <button type="button" class="btn big" id="tdback">今日の一戦の戦績表へ</button>
+      <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>`""", """      <button type="button" class="btn big" id="topref">県を応援する</button>
+      <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>
+      <div style="flex-basis:100%"><button type="button" class="btn small" id="tdback">今日の一戦の戦績表へ</button></div>`""")
+repall("  if($('#tdback')) $('#tdback').onclick=", "  if($('#topref')) $('#topref').onclick=()=>{ const p=$('#pref'); if(p) p.scrollIntoView({behavior:'smooth',block:'start'}); };\n  if($('#tdback')) $('#tdback').onclick=")
+# ?pref=県名 で来たら応援試合を始める
+repall("setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }", "setTimeout(()=>{ prefBattle({}); },300); } }")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
