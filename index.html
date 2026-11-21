@@ -1084,6 +1084,7 @@ function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n
   prefBoardLater();
   $('#psel').onchange=e=>{ const x=prefGet(); x.p=e.target.value||undefined; prefSet(x); prefDraw(); };
   $('#pgo').onclick=prefGo; }
+function prefEv(k,p){ try{ if(!API||NOSTAT||!PREFS.includes(p)) return; fetch(API+'/api/pref/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k,p}),keepalive:true}).catch(()=>{}); }catch(_){} }
 let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
 function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
   if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
@@ -1132,7 +1133,7 @@ async function prefGoOld(){ const o=prefGet(); if(!o.p) return; const btn=$('#pg
       const x=prefGet(); x.c=x.c||{}; x.c[o.p]=(x.c[o.p]||0)+1; prefSet(x);   // 試作：応援した試合数はこの端末だけ
       ORIG={k:'pref',p:o.p,q,c}; startBattle([a,b]); return; } }
   finally{ prefDraw(); } }
-{ const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }
+{ const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ try{ const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), key=day+q; if(localStorage.getItem('hk-pin')!==key){ localStorage.setItem('hk-pin',key); prefEv('in',q); } }catch(_){} },0); setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }
 prefDraw();
 
 /* ---------- 対戦 ---------- */
@@ -1335,6 +1336,7 @@ function showResult(){
     <div class="rerr" id="rperr" aria-live="polite"></div>
     <div class="rnote">送られるのは、この報告の内容と、続けて送られるのを防ぐための回線・ブラウザの番号（元に戻せない形に変えて保存）です。見るのは管理者だけです。</div>
   </form>`;
+  if(current.orig&&current.orig.k==='pref'){ const P=current.orig.p; let sent=false; ['tw','nshare','copy'].forEach(id=>{ const e=$('#'+id); if(e) e.addEventListener('click',()=>{ if(!sent){ sent=true; prefEv('sh',P); } }); }); }   // 1試合1回
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで

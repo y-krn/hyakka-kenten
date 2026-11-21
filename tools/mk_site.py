@@ -2192,6 +2192,15 @@ repall("\nprefDraw();", r"""
 { const q=new URLSearchParams(location.search).get('pref'); if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ const e=$('#pref'); if(e) e.scrollIntoView({block:'start'}); },300); } }
 prefDraw();""")
 
+# ---- 109. 試作：都道府県の応援の効果を測る（プレビューだけ）
+#   ・?pref=県名 のURLから来た（1日に県ごと1回）、応援試合の結果を共有した、を県ごと・日ごとにサーバーで数える（応援試合の数はサーバーが集計のときに数える）
+#   ・名前や個人を表す情報は送らない。動作確認のブラウザ（nostat）は送らない
+repall("let PBD=null, PBIO=null;", r"""function prefEv(k,p){ try{ if(!API||NOSTAT||!PREFS.includes(p)) return; fetch(API+'/api/pref/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k,p}),keepalive:true}).catch(()=>{}); }catch(_){} }
+let PBD=null, PBIO=null;""")
+repall("  if($('#nshare')) $('#nshare').onclick=", r"""  if(current.orig&&current.orig.k==='pref'){ const P=current.orig.p; let sent=false; ['tw','nshare','copy'].forEach(id=>{ const e=$('#'+id); if(e) e.addEventListener('click',()=>{ if(!sent){ sent=true; prefEv('sh',P); } }); }); }   // 1試合1回
+  if($('#nshare')) $('#nshare').onclick=""")
+repall("if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x);", r"""if(q&&PREFS.includes(q)){ const x=prefGet(); x.p=q; prefSet(x); setTimeout(()=>{ try{ const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), key=day+q; if(localStorage.getItem('hk-pin')!==key){ localStorage.setItem('hk-pin',key); prefEv('in',q); } }catch(_){} },0);""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

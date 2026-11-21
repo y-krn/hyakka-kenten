@@ -226,6 +226,15 @@ async function prefOf(env, req, t) {
   }
   return (e.m[t] || []).map(i => PREFS[i]).filter(Boolean);
 }
+const prefDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+// 効果を測る：県ごと・日ごとの数（k = in：?pref=県名 のURLから来た、sh：応援試合の結果を共有した、pb：応援試合）
+const prefEvStmt = (env, d, p, k, n) => env.DB.prepare('INSERT INTO pref_ev (day, pref, k, n) VALUES (?,?,?,?) ON CONFLICT(day, pref, k) DO UPDATE SET n = n + excluded.n').bind(d, p, k, n);
+async function prefEvApi(env, req) {
+  let b; try { b = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
+  if (!['in', 'sh'].includes(b.k) || !PREFS.includes(b.p)) return json(env, req, { error: 'bad' }, 400);
+  try { await prefEvStmt(env, prefDay(), b.p, b.k, 1).run(); } catch (_) {}
+  return json(env, req, { ok: true });
+}
 const prefMonth = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7);
 async function prefCount(env, req, rs, add) {
   if (!Array.isArray(rs) || !rs.length || !env.ASSETS) return;
@@ -237,6 +246,7 @@ async function prefCount(env, req, rs, add) {
     for (const p of pl) if (!pw.has(p)) inc(p, 'l');
     if (c && PREFS.includes(c)) inc(c, 'c');
   }
+  try { const d = prefDay(), C = [...W].filter(([, o]) => o.c); if (C.length) await env.DB.batch(C.map(([p, o]) => prefEvStmt(env, d, p, 'pb', o.c))); } catch (_) {}   // 効果を測る：日ごとの応援試合の数
   if (!W.size) return;
   const m = prefMonth();
   await env.DB.batch([...W].map(([p, o]) => env.DB.prepare('INSERT INTO pref_month (month, pref, w, l, c) VALUES (?,?,?,?,?) ON CONFLICT(month, pref) DO UPDATE SET w = w + excluded.w, l = l + excluded.l, c = c + excluded.c').bind(m, p, o.w, o.l, o.c)));
@@ -481,6 +491,7 @@ export default {
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
+      if (u.pathname === '/api/pref/ev' && req.method === 'POST') return await prefEvApi(env, req);
       if (u.pathname === '/api/pref' && req.method === 'GET') return await prefBoardApi(env, req);
       if (u.pathname === '/api/visit' && req.method === 'POST') return await visit(env, req);
       if (u.pathname === '/api/report' && req.method === 'POST') return await report(env, req, ctx);
