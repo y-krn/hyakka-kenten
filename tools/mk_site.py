@@ -2254,7 +2254,7 @@ repall("    </div>\n  </div>\n  ${false&&gloss.length?", r"""    </div>
   </div>
   ${false&&gloss.length?""")
 repall("  if($('#topref')) $('#topref').onclick=", "  if($('#tothr')) $('#tothr').onclick=()=>goThrone(F[w][1]);\n  if($('#topref')) $('#topref').onclick=")
-repall(".morebox{margin-top:8px}", ".crownbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid #f2c94c;border-radius:6px;background:var(--paper)}.crownbar .cbn,.crownbar .cbd{color:var(--muted);font-size:13px}.crownbar b{font-size:16px}.crownbar .btn{margin-left:auto}\n.morebox{margin-top:8px}")
+repall(".morebox{margin-top:8px}", ".crownbar[hidden]{display:none}.crownbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:10px 14px;border:1px solid var(--line);border-left:4px solid #f2c94c;border-radius:6px;background:var(--paper)}.crownbar .cbn,.crownbar .cbd{color:var(--muted);font-size:13px}.crownbar b{font-size:16px}.crownbar .btn{margin-left:auto}\n.morebox{margin-top:8px}")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
