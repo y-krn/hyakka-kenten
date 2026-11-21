@@ -212,26 +212,30 @@ async function plays(env, req) {
 
 // 都道府県の応援：県対抗の集計
 //   ブラウザは対戦数と一緒に、試合結果 [勝った記事, 負けた記事, 応援した県] を送ってくる（受け付けた対戦数まで）
-//   記事を選手一覧（data/pref/roster.json）で県に読み替えて、月ごと（日本時間）に県の勝ち・負け・応援の数を足す
-let ROSTER = null;   // 記事名 → その記事が代表になっている県の一覧
-async function rosterMap(env, req) {
-  if (ROSTER && Date.now() - ROSTER.t < 3600e3) return ROSTER.m;
-  const r = await env.ASSETS.fetch(new Request(new URL('/data/pref/roster.json', req.url)));
-  const m = new Map();
-  if (r.ok) { const j = await r.json(); for (const [p, cs] of Object.entries(j)) for (const L of Object.values(cs)) for (const t of L) { if (!m.has(t)) m.set(t, new Set()); m.get(t).add(p); } }
-  ROSTER = { t: Date.now(), m }; return m;
+//   記事を県に読み替える対応表は data/pref/map/NN.json（記事名のハッシュで64個に分けたもの。tools/pref_roster.py が作る）。要る分だけ読み、1時間覚えておく
+//   月ごと（日本時間）に県の勝ち・負け・応援の数を足す
+const PREFS = '北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県 石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県 岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県'.split(' ');
+function prefShard(t) { let h = 2166136261; for (const ch of t) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h % 64; }   // FNV-1a（tools/pref_roster.py と同じ）
+const PMAP = new Map();   // 番号 → { t: 読んだ時刻, m: 対応表 }
+async function prefOf(env, req, t) {
+  if (!t) return [];
+  const k = prefShard(t); let e = PMAP.get(k);
+  if (!e || Date.now() - e.t > 3600e3) {
+    const r = await env.ASSETS.fetch(new Request(new URL('/data/pref/map/' + String(k).padStart(2, '0') + '.json', req.url)));
+    e = { t: Date.now(), m: r.ok ? await r.json() : {} }; PMAP.set(k, e);
+  }
+  return (e.m[t] || []).map(i => PREFS[i]).filter(Boolean);
 }
 const prefMonth = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7);
 async function prefCount(env, req, rs, add) {
   if (!Array.isArray(rs) || !rs.length || !env.ASSETS) return;
-  const M = await rosterMap(env, req), P = new Set(); for (const ps of M.values()) for (const p of ps) P.add(p);
   const W = new Map(), inc = (p, k) => { const o = W.get(p) || { w: 0, l: 0, c: 0 }; o[k]++; W.set(p, o); };
   for (const x of rs.slice(0, add)) {
     if (!Array.isArray(x)) continue; const [w, l, c] = x.map(v => String(v || '').slice(0, 200));
-    const pw = M.get(w) || new Set(), pl = M.get(l) || new Set();
+    const pw = new Set(await prefOf(env, req, w)), pl = new Set(await prefOf(env, req, l));
     for (const p of pw) if (!pl.has(p)) inc(p, 'w');   // 同じ県の記事どうしの試合は数えない
     for (const p of pl) if (!pw.has(p)) inc(p, 'l');
-    if (c && P.has(c)) inc(c, 'c');
+    if (c && PREFS.includes(c)) inc(c, 'c');
   }
   if (!W.size) return;
   const m = prefMonth();

@@ -129,6 +129,20 @@ def pick(xs):   # 同じ種類が並びすぎないように：方言は1つま�
 out = {p: {b: pick(R[p][b]) if b == '名物・文化' else [t for _, t, _ in sorted(R[p][b], reverse=True)[:TOP]] for b in ('人物', '名所', '自然', '名物・文化') if R[p][b]} for p in PREF}
 os.makedirs('data/pref', exist_ok=True)
 json.dump(out, open('data/pref/roster.json', 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+# サーバー用：記事名 → 代表になっている県（PREF の並びの番号）の対応表。記事名のハッシュで64個に分け、サーバーは要る分だけ読む
+#   ハッシュは FNV-1a（32ビット）を記事名の文字（コードポイント）ごとに。Worker の prefShard と同じ計算
+def shard(t):
+    h = 2166136261
+    for ch in t: h = ((h ^ ord(ch)) * 16777619) & 0xffffffff
+    return h % 64
+MAP = [dict() for _ in range(64)]
+for i, p in enumerate(PREF):
+    for L in out[p].values():
+        for t in L:
+            v = MAP[shard(t)].setdefault(t, [])
+            if i not in v: v.append(i)
+os.makedirs('data/pref/map', exist_ok=True)
+for k, m in enumerate(MAP): json.dump(m, open('data/pref/map/%02d.json' % k, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print(dict(cnt))
 print('種類ごとの最少', {b: min((len(R[p][b]), p) for p in PREF) for b in ('人物', '名所', '自然', '名物・文化')})
 for p in PREF:

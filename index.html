@@ -1080,10 +1080,13 @@ function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n
     <select id="psel" aria-label="応援する都道府県"><option value="">都道府県を選ぶ</option>${PREFS.map(p=>`<option${o.p===p?' selected':''}>${p}</option>`).join('')}</select>
     <div class="trow"><button type="button" class="btn big" id="pgo"${o.p?'':' disabled'}>応援試合</button></div>
     ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="pboard"></div>`;
-  setTimeout(prefBoard,0);
+  prefBoardLater();
   $('#psel').onchange=e=>{ const x=prefGet(); x.p=e.target.value||undefined; prefSet(x); prefDraw(); };
   $('#pgo').onclick=prefGo; }
-let PBD=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
+  if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
+  if(PBIO) PBIO.disconnect(); PBIO=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ PBIO.disconnect(); PBIO=null; prefBoard(); } },{rootMargin:'200px'}); PBIO.observe(el); }
 function prefBoard(){ const el=$('#pboard'); if(!el||!API) return;
   if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
   PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;

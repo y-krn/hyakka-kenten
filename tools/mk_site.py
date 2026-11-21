@@ -2160,8 +2160,11 @@ repall("  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;", " 
 repall("  if(ok){ setPend(pend()-n);", "  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n);")
 # 今月の県対抗
 repall("""    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}`;""", """    ${o.p?`<div class="fsub">${esc(o.p)}の応援：${n}試合</div>`:''}<div id="pboard"></div>`;
-  setTimeout(prefBoard,0);""")   # API は後で定義されるので、読み込みが終わってから
-repall("async function prefBattle(o){", r"""let PBD=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+  prefBoardLater();""")   # 表は応援の欄が画面に入ってから読む（API は後で定義されるので、どのみち読み込みが終わってから）
+repall("async function prefBattle(o){", r"""let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
+  if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
+  if(PBIO) PBIO.disconnect(); PBIO=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ PBIO.disconnect(); PBIO=null; prefBoard(); } },{rootMargin:'200px'}); PBIO.observe(el); }
 function prefBoard(){ const el=$('#pboard'); if(!el||!API) return;
   if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
   PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;
