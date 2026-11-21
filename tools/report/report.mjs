@@ -99,6 +99,17 @@ try {
     L.push('  - 来た元：' + (refs.length ? refs.map(r => `${r.ref} ${n(r.u)}`).join('、') + '、ほかは直接・不明' : '直接・不明のみ'));
   }
 } catch (_) {}
+// ---------- 都道府県の応援（2026年11月21日から数えている。表がまだなければ出さない） ----------
+try {
+  const jd = d => new Date(+d + JST).toISOString().slice(0, 10), DW = [jd(start), jd(end)], DP = [jd(pstart), jd(start)];
+  const EQ = "SELECT COALESCE(SUM(CASE WHEN k = 'pb' THEN n END), 0) AS pb, COALESCE(SUM(CASE WHEN k = 'in' THEN n END), 0) AS i, COALESCE(SUM(CASE WHEN k = 'sh' THEN n END), 0) AS sh FROM pref_ev WHERE day >= ? AND day < ?";
+  const [ew, ep, top] = await Promise.all([one(EQ, DW), one(EQ, DP),
+    q("SELECT pref, SUM(CASE WHEN k = 'pb' THEN n ELSE 0 END) AS pb, SUM(CASE WHEN k = 'in' THEN n ELSE 0 END) AS i, SUM(CASE WHEN k = 'sh' THEN n ELSE 0 END) AS sh FROM pref_ev WHERE day >= ? AND day < ? GROUP BY pref ORDER BY pb + i DESC LIMIT 5", DW)]);
+  if (ew.pb || ew.i || ew.sh) {
+    L.push(`- 都道府県の応援：応援試合 ${n(ew.pb)}戦 ${diff(ew.pb, ep.pb)}、結果の共有 ${n(ew.sh)}回 ${diff(ew.sh, ep.sh)}、共有されたURLから来た ${n(ew.i)}人 ${diff(ew.i, ep.i)}`);
+    L.push('  - よく応援された県：' + top.map(r => `${r.pref}（応援${n(r.pb)}・共有${n(r.sh)}・来た${n(r.i)}）`).join('、'));
+  }
+} catch (_) {}
 L.push(`- 王座戦の挑戦 ${n(cw.n)}回 ${diff(cw.n, cp.n)}、挑んだブラウザ ${n(cw.u)}、王座奪取 ${n(cw.w)}回`);
 if (daily.length) L.push('- 日別の対戦（王座戦以外）：' + daily.map(r => `${+r.d.slice(5, 7)}/${+r.d.slice(8)} ${n(r.n)}`).join('、'));
 if (topCh.length) L.push('- よく挑まれた記事：' + topCh.map(r => `${r.display} ${r.n}回`).join('、'));
