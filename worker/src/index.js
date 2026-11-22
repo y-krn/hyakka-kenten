@@ -315,7 +315,9 @@ async function cardFor(env, u) {
   return null;
 }
 async function page(req, env, u) {
-  const res = await env.ASSETS.fetch(new Request(new URL('/', u), req));
+  const res0 = await env.ASSETS.fetch(new Request(new URL('/', u), req));
+  // 数えない印（?nostat=1）で開いたときは、最初のHTMLから manifest を ?nostat=1 で開くものに替える（iPhone のホーム画面のWebアプリにも印が付くように）
+  const res = u.searchParams.get('nostat') === '1' ? new HTMLRewriter().on('link[rel="manifest"]', { element(e) { e.setAttribute('href', 'manifest-nostat.webmanifest'); } }).transform(res0) : res0;
   let card = null; try { card = await cardFor(env, u); } catch (_) {}
   if (u.hostname !== 'hyakkakenten.com') { const h = new Headers(res.headers); h.set('X-Robots-Tag', 'noindex'); return new Response(res.body, { status: res.status, headers: h }); }   // 試作版は検索に載せない
   if (!card || !res.ok) return res;
