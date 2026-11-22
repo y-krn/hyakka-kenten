@@ -2337,7 +2337,7 @@ repall("  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult
   const stamp=()=>{ const sb=$('#sb'); if(!sb||sb.querySelector('.kostamp')) return; const s=document.createElement('div'); const up=an.upset||/番狂わせ/.test(an.tlabel||'');
     s.className='kostamp'+(r.w===null?' draw':up?' up':''); s.textContent=r.w===null?'引き分け':up?'番狂わせ！':'決着！'; sb.append(s); };
   const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
-    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; }""")
+    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); if(follow) setTimeout(()=>{ const rs=$('#res'); if(rs) rs.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); },700); return; }   /* 最後まで自動で追っていたら、決着の判を見せてから結果へ送る */""")
 repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult();", "while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); trSync(items.length-1,true); stamp(); showResult();")
 repall(".cutin{position:absolute;", r""".ring{position:relative}
 .intro{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:none;background:#05081a;animation:inOut 1.9s ease both}

@@ -1334,7 +1334,7 @@ function startBattle(pair){
     else if(kd==='SLOW'||kd==='BIND') add(D,'fxslow','鈍った…',1200);
     else if(an.type==='kurabe'&&kd==='K'){ const m=desc.match(/：(.+?) 対 (.+)$/); if(m){ const c=document.createElement('div'); c.className='fxcmp '+atk; c.innerHTML='<span class="w">'+esc(m[1])+'</span><span class="v">対</span><span class="l">'+esc(m[2])+'</span>'; sb.querySelectorAll('.fxcmp').forEach(e=>e.remove()); sb.append(c); setTimeout(()=>c.remove(),900); } } };
   const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
-    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); trSync(k); fxHit(k); fxKind(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
+    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); if(follow) setTimeout(()=>{ const rs=$('#res'); if(rs) rs.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); },700); return; }   /* 最後まで自動で追っていたら、決着の判を見せてから結果へ送る */ items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); trSync(k); fxHit(k); fxKind(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));
   const noIntro=reduce||(current.orig&&current.orig.k==='dg');
