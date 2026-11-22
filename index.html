@@ -465,6 +465,7 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
 </div>
 
 <script>
+setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
 const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();

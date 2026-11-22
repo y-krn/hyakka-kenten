@@ -2067,6 +2067,12 @@ repall("#today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}", "#to
 # ---- 107. 比べ合い（数字勝負）の各1本にも脚注を付ける。どの事実を比べたか（勝った側の記事・両者の数字）と、差の倍率を見せる
 repall("log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）'});", "log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）',mv:['K',RLAB[x.k],'',RLAB[x.k]+'：'+(aw?va+' 対 '+vb:vb+' 対 '+va)]});")
 
+# ---- 113. 数えない印（nostat）のブラウザでホーム画面に追加したときも、Webアプリが ?nostat=1 で開くようにする
+#   iPhone のホーム画面のWebアプリは Safari と別の保存場所を持ち、manifest の start_url（./）で開くため、Safari の印が引き継がれない
+#   印のあるブラウザでは、manifest を start_url が ./?nostat=1 のもの（manifest-nostat.webmanifest）に差し替える
+repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
+const NOSTAT=(()=>{""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
