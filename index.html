@@ -1238,7 +1238,7 @@ function startBattle(pair){
   $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
 }
 function showResult(){
-  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   // 脚注は決着のあとに出す if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
+  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   /* 脚注は決着のあとに出す（同じ行に続きがあるので // は使わない） */ if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
