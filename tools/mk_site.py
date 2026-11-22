@@ -2412,6 +2412,24 @@ repall(".morebox{margin-top:8px}", r""".achl{list-style:none;margin:12px 0 0;pad
 @keyframes achIn{0%{transform:translate(-50%,30px) scale(.6);opacity:0}8%{transform:translate(-50%,0) scale(1.08);opacity:1}14%{transform:translate(-50%,0) scale(1)}88%{opacity:1}100%{opacity:0;transform:translate(-50%,10px)}}
 .morebox{margin-top:8px}""")
 
+# ---- 126. 縛る・鈍らせるの演出を、ほかの技と同じアメコミ調にする（「鈍った…」の小さな薄紫の札が地味で見づらかったため）
+#   ・札は太い黒枠・影つきの大きな文字。縛る＝「縛った！」、鈍らせる＝「鈍った…」。上から重く落ちてきて、ずしりと沈む
+#   ・受けた側の点数板に、縛る＝鎖の網、鈍らせる＝紫のもやを重ね、少しのあいだ色を抜く
+repall("else if(kd==='SLOW'||kd==='BIND') add(D,'fxslow','鈍った…',1200);", "else if(kd==='SLOW'||kd==='BIND'){ const bd=kd==='BIND'; add(D,'fxslow'+(bd?' bind':''),bd?'<i>ギチッ</i>縛った！':'<i>ズーン…</i>鈍った…',1500); if(D){ const c=bd?'fxbound':'fxslowed'; D.classList.remove('fxbound','fxslowed'); void D.offsetWidth; D.classList.add(c); setTimeout(()=>D.classList.remove(c),1500); } }")
+repall(".fxslow{position:absolute;top:-6px;font-size:13px;font-weight:700;color:#6b4bb0;background:#efe8ff;border-radius:10px;padding:2px 8px;pointer-events:none;animation:slow 1.2s ease-in-out both}.sb.A .fxslow{left:20%}.sb.B .fxslow{right:20%}\n@keyframes slow{0%{transform:rotate(0) scale(.5);opacity:0}20%{opacity:1;transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg)}80%{opacity:1;transform:rotate(-6deg)}100%{opacity:0}}",
+r""".fxslow{position:absolute;top:-26px;z-index:8;display:flex;flex-direction:column;align-items:center;font-family:var(--f-display);font-size:22px;line-height:1.1;color:#fff;background:#5b3aa8;border:3px solid #111;border-radius:6px;padding:3px 12px;box-shadow:4px 4px 0 #111;white-space:nowrap;pointer-events:none;-webkit-text-stroke:1px #111;paint-order:stroke fill;animation:slowIn 1.5s cubic-bezier(.2,1.3,.4,1) both}
+.fxslow i{font-style:normal;font-size:12px;letter-spacing:.15em;color:#e3d6ff;-webkit-text-stroke:0}.fxslow.bind{background:#3a3a46;transform-origin:center}.fxslow.bind i{color:#ffd84d}
+.sb.A .fxslow{left:10%}.sb.B .fxslow{right:10%}
+@keyframes slowIn{0%{transform:translateY(-40px) scale(1.4) rotate(-6deg);opacity:0}18%{transform:translateY(4px) scale(1,.85) rotate(-3deg);opacity:1}30%{transform:translateY(0) scale(1) rotate(-3deg)}80%{transform:translateY(10px) rotate(-3deg);opacity:1}100%{transform:translateY(18px) rotate(-3deg);opacity:0}}
+.fxslow.bind{animation-name:bindIn}
+@keyframes bindIn{0%{transform:scale(1.6);opacity:0}15%{transform:scale(.92,1.08);opacity:1}22%{transform:scale(1.04,.96) rotate(2deg)}28%,34%{transform:scale(1) rotate(-2deg)}31%,37%{transform:scale(1) rotate(2deg)}42%,80%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(.96);opacity:0}}
+.sb.fxslowed>:not(.fxslow),.sb.fxbound>:not(.fxslow){animation:sbDim 1.5s ease both}.sb.fxslowed::after,.sb.fxbound::after{content:'';position:absolute;inset:-4px -6px;border-radius:8px;pointer-events:none;z-index:5;animation:sbVeil 1.5s ease both}
+.sb.fxslowed::after{background:radial-gradient(ellipse at 50% 60%,rgba(91,58,168,.45),rgba(91,58,168,.12) 70%,transparent)}
+.sb.fxbound::after{background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(40,40,52,.55) 12px 14px),repeating-linear-gradient(-45deg,transparent 0 12px,rgba(40,40,52,.55) 12px 14px)}
+@keyframes sbDim{0%,100%{filter:none}15%,75%{filter:grayscale(.7) brightness(.92)}}
+@keyframes sbVeil{0%{opacity:0;transform:scale(1.15)}15%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.fxslow,.fxslow.bind,.sb.fxslowed>:not(.fxslow),.sb.fxbound>:not(.fxslow),.sb.fxslowed::after,.sb.fxbound::after{animation:none}}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
