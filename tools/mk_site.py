@@ -2251,6 +2251,17 @@ repall("    </div>\n  </div>\n  ${false&&gloss.length?", r"""    </div>
   ${false&&gloss.length?""")
 repall("  if($('#topref')) $('#topref').onclick=", "  if($('#tothr')) $('#tothr').onclick=()=>goThrone(F[w][1]);\n  if($('#topref')) $('#topref').onclick=")
 
+# ---- 112. 来訪の数え方を直す（2026-11-22：パソコンの来訪38件が1件も遊んでおらず、検索エンジンの巡回などの機械と見られたため）
+#   ・自動操作のブラウザ（navigator.webdriver）と、機械の名前を名乗るブラウザは数えない
+#   ・画面を触る・スクロールする・キーを押すまで数えない（巡回する機械は触らない）
+#   ・どこから入ったか（top：トップ、today：今日の一戦、pref：県応援の入口、battle：共有された対戦、c：王座戦の記録、hall：殿堂）も送る
+repall("setTimeout(sendVisit,1500);", r"""{ const bot=(()=>{ try{ return !!navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|embedly|python|curl|wget/i.test(navigator.userAgent||''); }catch(_){ return true; } })();
+  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchstart'].forEach(e=>removeEventListener(e,go,true)); sendVisit(); };
+    ['pointerdown','scroll','keydown','touchstart'].forEach(e=>addEventListener(e,go,{capture:true,passive:true})); } }""")
+repall("body:JSON.stringify({client:clientId(),ref,mob,fresh})", "body:JSON.stringify({client:clientId(),ref,mob,fresh,land:LAND})")
+repall("function sendVisit(){", r"""const LAND=(()=>{ try{ const q=new URLSearchParams(location.search); return q.has('pref')?'pref':q.has('today')?'today':q.has('c')?'c':q.has('hall')?'hall':(q.has('a')&&q.has('b'))?'battle':[...q.keys()].filter(k=>!['nostat','v'].includes(k)).length?'other':'top'; }catch(_){ return 'other'; } })();   // 入ってきたときのURLで決める（あとで書き換わる前）
+function sendVisit(){""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

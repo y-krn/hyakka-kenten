@@ -266,7 +266,9 @@ async function visit(env, req) {
   const cl = await ipHash(env, { headers: { get: () => 'client:' + body.client } });
   const ref = /^[a-z0-9.-]{1,80}$/.test(String(body.ref || '')) ? String(body.ref) : null;   // 来た元のサイトの名前だけ（URLの残りは受け取らない）
   const day = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);   // 日本時間の日付
-  await env.DB.prepare('INSERT OR IGNORE INTO visits (day, client, at, ref, mob, fresh) VALUES (?,?,?,?,?,?)').bind(day, cl, now(), ref, body.mob ? 1 : 0, body.fresh ? 1 : 0).run();
+  const land = ['top', 'today', 'pref', 'battle', 'c', 'hall', 'other'].includes(body.land) ? body.land : null;   // どこから入ったか
+  try { await env.DB.prepare('INSERT OR IGNORE INTO visits (day, client, at, ref, mob, fresh, land) VALUES (?,?,?,?,?,?,?)').bind(day, cl, now(), ref, body.mob ? 1 : 0, body.fresh ? 1 : 0, land).run(); }
+  catch (_) { await env.DB.prepare('INSERT OR IGNORE INTO visits (day, client, at, ref, mob, fresh) VALUES (?,?,?,?,?,?)').bind(day, cl, now(), ref, body.mob ? 1 : 0, body.fresh ? 1 : 0).run(); }   // land の列がまだないとき
   return json(env, req, { ok: true });
 }
 
