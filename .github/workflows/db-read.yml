@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳, アクセス解析]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -48,3 +48,8 @@ jobs:
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%H', datetime(at, '+9 hours')) AS h, COUNT(*) AS v FROM visits GROUP BY h ORDER BY h"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT date(datetime(at, '+9 hours')) AS day, COUNT(*) AS sends, SUM(n) AS n, COUNT(DISTINCT client) AS c FROM plays WHERE at >= '2026-11-10' GROUP BY day ORDER BY day"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT x.n AS battles, COUNT(*) AS clients FROM (SELECT client, SUM(n) AS n FROM plays WHERE client IS NOT NULL AND at >= '2026-11-15' GROUP BY client) x GROUP BY x.n ORDER BY x.n LIMIT 30"
+      - name: 今日の記録（日本時間の今日の来訪と対戦の時刻）
+        if: inputs.what == '今日の記録'
+        run: |
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT datetime(at, '+9 hours') AS jst, mob, fresh, ref, land FROM visits WHERE day = date('now', '+9 hours') ORDER BY at"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT datetime(at, '+9 hours') AS jst, n, kt, kd, kf, km FROM plays WHERE at >= datetime(date('now', '+9 hours'), '-9 hours') ORDER BY at"
