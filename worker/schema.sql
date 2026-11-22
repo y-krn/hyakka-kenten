@@ -48,3 +48,5 @@ CREATE INDEX IF NOT EXISTS rep_ip ON reports(iphash, at);
 -- ページを開いたブラウザ（1日1回。client は plays と同じ変換をした番号。ref は来た元のサイト名だけ）
 CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, client TEXT NOT NULL, at TEXT NOT NULL, ref TEXT, mob INTEGER NOT NULL DEFAULT 0, fresh INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, client));
 CREATE INDEX IF NOT EXISTS visits_at ON visits(at);
+-- 今日の一戦の共有画像（日付ごとに1枚。GitHub Actions が毎日0時すぎに作って預ける）
+CREATE TABLE IF NOT EXISTS today_og (day TEXT PRIMARY KEY, a TEXT NOT NULL, b TEXT NOT NULL, img BLOB NOT NULL, at TEXT NOT NULL);
