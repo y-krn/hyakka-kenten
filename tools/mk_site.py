@@ -2361,10 +2361,10 @@ repall("  const step=()=>{ if(k===finIdx", r"""  ring.querySelectorAll('#log li.
   const fxKind=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai||!l.mv) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
     const A=sb.querySelector('.sb.'+atk), D=sb.querySelector('.sb.'+def); const kd=l.mv[0], desc=String(l.mv[3]||''), add=(box,cls,html,ms)=>{ if(!box) return; const e=document.createElement('span'); e.className=cls; e.innerHTML=html; box.append(e); setTimeout(()=>e.remove(),ms||1100); };
     const hl=String(l.s||'').match(/HPを(\d+)回復/); if(hl) add(A,'fxheal','＋'+hl[1]);
-    if(kd==='S'){ const nm=(desc.split('：')[1]||'').split(/[、,]/)[0].replace(/\s*など.*$/,'').trim(); if(nm) add(A,'fxsum','<b>'+esc(nm)+'</b><i>加勢</i>',1300); }
-    else if(kd==='C'&&!reduce){ const n=Math.min(6,+((String(l.s||'').match(/(\d+)連撃/)||[])[1])||3); for(let j=1;j<n;j++) setTimeout(()=>{ if(D){ D.classList.remove('shake'); void D.offsetWidth; D.classList.add('shake'); } add(D,'fxjab','ドッ',500); },120*j); }
-    else if(kd==='G') add(A,'fxguard','受け流し',1000);
-    else if(kd==='L') add(D,'fxslow','鈍った…',1200);
+    if(kd==='SUMMON'){ const nm=(Array.isArray(l.mv[7])&&l.mv[7][0]&&l.mv[7][0][0])||String(l.mv[2]||'').split(/[と、,]/)[0].trim(); if(nm) add(A,'fxsum','<b>'+esc(nm)+'</b><i>加勢</i>',1300); }
+    else if(kd==='MULTI'&&!reduce){ const n=Math.min(6,+((String(l.s||'').match(/(\d+)連撃/)||[])[1])||3); for(let j=1;j<n;j++) setTimeout(()=>{ if(D){ D.classList.remove('shake'); void D.offsetWidth; D.classList.add('shake'); } add(D,'fxjab','ドッ',500); },120*j); }
+    else if(kd==='GUARD') add(A,'fxguard','受け流し',1000);
+    else if(kd==='SLOW'||kd==='BIND') add(D,'fxslow','鈍った…',1200);
     else if(an.type==='kurabe'&&kd==='K'){ const m=desc.match(/：(.+?) 対 (.+)$/); if(m){ const c=document.createElement('div'); c.className='fxcmp '+atk; c.innerHTML='<span class="w">'+esc(m[1])+'</span><span class="v">対</span><span class="l">'+esc(m[2])+'</span>'; sb.querySelectorAll('.fxcmp').forEach(e=>e.remove()); sb.append(c); setTimeout(()=>c.remove(),900); } } };
   const step=()=>{ if(k===finIdx""")
 repall("setHP(k); fxHit(k);", "setHP(k); fxHit(k); fxKind(k);")
