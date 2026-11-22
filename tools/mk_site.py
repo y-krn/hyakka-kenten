@@ -1929,7 +1929,7 @@ repall("function clientId(){ try{ let c=localStorage.getItem('hk-cid');", """fun
 setTimeout(sendVisit,1500);
 function clientId(){ try{ let c=localStorage.getItem('hk-cid');""")
 
-# ---- 90. 試作：実況の事実に脚注番号を付け、試合の最後に「脚注」として出どころを並べる（Wikipediaの脚注にならう） ----
+# ---- 90. 実況の事実に脚注番号を付け、試合の最後に「脚注」として出どころを並べる（Wikipediaの脚注にならう） ----
 repall("  const {r}=an; const ring=$('#ring'); ring.hidden=false;", """  const {r}=an; const ring=$('#ring'); ring.hidden=false;
   // 脚注：技の元になった事実ごとに番号を振る（同じ記事の同じ事実は同じ番号）
   // 脚注の注釈：本文に書いていない一つを添える（呼ばれた記事の説明、身近なものとの比べ、記事が作られた年月）
@@ -1988,7 +1988,7 @@ repall("function showResult(){\n  if(!current||current.shown) return; current.sh
 repall("step(); timer=setInterval(step,reduce?350:1000);", "step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv);")   # 脚注の札を開いている間、実況を止めるため
 repall(".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}", ".log li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start}\n.log sup.fn{font-size:.72em;line-height:0;margin-left:1px}.log sup.fn a{color:var(--a);text-decoration:none;display:inline-block;padding:10px 6px;margin:-10px -6px}\n.fnov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60}\n.fnsh{position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:720px;margin:0 auto;background:var(--paper);color:var(--ink);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.18);padding:12px 16px calc(20px + env(safe-area-inset-bottom));font-size:15px;line-height:1.7}\n.fnshh{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px;margin-bottom:10px}\n.fnshb a{color:var(--a)}.fnshn{color:var(--muted);font-size:.8em;vertical-align:super}\n.fnl .fnb{color:var(--a);text-decoration:none;font-weight:700}\n.fnl .fnn{color:var(--ink)}.fnshb .fnn::after{content:'';display:block;height:6px}.fnshb .fnc{color:var(--muted);font-size:13px}.fnshb .fnc .fnn{color:var(--ink);font-size:15px}\n.fnl{margin-top:14px;font-size:12px;color:var(--muted)}.fnl h3{margin:0 0 4px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px}.fnl ol{margin:6px 0 0;padding-left:2.2em;line-height:1.6}.fnl li{overflow-wrap:anywhere}.fnl .fnc a{color:var(--a)}.fnl li:target{background:color-mix(in srgb,var(--hl) 35%,transparent)}")
 
-# ---- 96. 試作：最初の1戦のあと、次の遊びへつなぐ（自由対戦の結果の札だけ）
+# ---- 96. 最初の1戦のあと、次の遊びへつなぐ（自由対戦の結果の札だけ）
 #   ・「次の相手」：試合の中に出てきた記事（召喚された仲間など）を並べ、押すと「勝った記事 対 その記事」がすぐ始まる。記事名はボタンにせず、下線付きの文字にする
 repall("""    <div class="share"><output id="share">${esc(share)}</output></div>""", """    ${!TDY&&!M?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>""")
@@ -2016,7 +2016,7 @@ repall("  if($('#cont')) $('#cont').onclick=async()=>{", """  // 次の相手：
 
 repall(".result .tdnote{", ".result .nextops{flex-direction:column;align-items:flex-start;gap:6px}.result .nextops small{opacity:.75;margin-left:4px;font-size:12px}\n.result .tdnote{")   # 次の相手は1行に1件（関係を添えるので）
 
-# ---- 97. 試作：遊びの目次（Wikipediaの「目次」風）。試合の結果が出てから（#ring に .result ができてから）、その下に出す
+# ---- 97. 遊びの目次（Wikipediaの「目次」風）。試合の結果が出てから（#ring に .result ができてから）、その下に出す
 #   外部リンクで試合から入った人にも、ほかの遊びがあると分かるように。押すとその遊びの場所へ移動する
 repall("""  <section id="ring" class="ring" hidden></section>
 """, """  <section id="ring" class="ring" hidden></section>
@@ -2067,6 +2067,63 @@ repall("#today .tdbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}", "#to
 # ---- 107. 比べ合い（数字勝負）の各1本にも脚注を付ける。どの事実を比べたか（勝った側の記事・両者の数字）と、差の倍率を見せる
 repall("log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）'});", "log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+sa+'対'+sb+'）',mv:['K',RLAB[x.k],'',RLAB[x.k]+'：'+(aw?va+' 対 '+vb:vb+' 対 '+va)]});")
 
+# ---- 110. トップを絞る。開いた人の多くが1戦もせずに帰るため（2026-11-21：開いた41人のうち遊んだのは3人）
+#   ・正面は「今日の一戦」「自由対戦」の2つ。王座戦・百科ダンジョン・見つけるは「ほかの遊び方」にたたむ（押すと開く）
+#   ・見出しの下の説明文はなくす（説明に頼らない）
+#   ・今日の一戦を観たあとの次の一手は「自由対戦で遊ぶ」。戦績表へは補助
+repall('    <p class="lede">勝敗も技も、記事に書かれた事実だけで決まります。まずは「今日の一戦」からどうぞ。</p>\n', '')
+_th = '  <section id="throne" class="card" hidden aria-live="polite"></section>\n'
+_a = s.index('  <section id="dg" class="card"'); _b = s.index('</section>', _a) + len('</section>\n')
+_dg = s[_a:_b]
+repall('\n' + _th, '\n'); repall(_dg, '')
+repall('  <section id="find" class="card">', '  <div class="morebox"><h2 class="moreh">ほかの遊び方</h2>\n'
+  '  <details class="more"><summary><b>王座戦</b><small>いまの王者に挑み、勝てば王座を奪う</small></summary>\n' + _th + '  </details>\n'
+  '  <details class="more"><summary><b>百科ダンジョン</b><small>リンクの扉をくぐって、どこまで潜れるか</small></summary>\n' + _dg + '  </details>\n'
+  '  <details class="more"><summary><b>見つける</b><small>仲間さがし・あなたの代表戦</small></summary>\n  <section id="find" class="card">')
+repall('\n  <dialog id="famdlg"', '\n  </details></div>\n  <dialog id="famdlg"')
+repall("#ring[hidden]+.toc,", """.morebox{margin-top:8px}.morebox .moreh{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 6px}
+details.more{border-top:1px solid var(--line)}details.more:last-child{border-bottom:1px solid var(--line)}
+details.more>summary{list-style:none;cursor:pointer;padding:12px 2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+details.more>summary::-webkit-details-marker{display:none}details.more>summary::after{content:'＋';margin-left:auto;color:var(--muted)}details.more[open]>summary::after{content:'−'}
+details.more>summary small{color:var(--muted);font-size:13px}details.more>section{margin-bottom:12px}details.more>section>.sechead:first-child{display:none}
+#ring[hidden]+.toc,""")
+# たたんだ欄の中へ移るときは、先に開く（王座戦の「挑む」、目次など）
+repall("/* ---------- 記録（この端末だけ） ---------- */\n", """/* ---------- 記録（この端末だけ） ---------- */
+{ const siv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ const d=this.closest&&this.closest('details.more'); if(d&&!d.open) d.open=true; return siv.apply(this,a); }; }
+""")
+# 目次の並びも正面に合わせる
+_t = s.index('<nav class="toc"'); _u = s.index('</ol></nav>', _t)
+_li = {k: re.search(r'    <li><a href="#' + k + r'".*?</li>\n', s[_t:_u]).group(0) for k in ('today', 'throne', 'dg', 'setup', 'find')}
+s = s[:_t] + s[_t:_u].replace(''.join(_li[k] for k in ('today', 'throne', 'dg', 'setup', 'find')), ''.join(_li[k] for k in ('today', 'setup', 'throne', 'dg', 'find'))) + s[_u:]
+# 今日の一戦のあと
+repall("""      <button type="button" class="btn big" id="tdback">今日の一戦の戦績表へ</button>
+      <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>`""", """      <button type="button" class="btn big" id="tofree">自由対戦で遊ぶ</button>
+      <div style="flex-basis:100%"><button type="button" class="btn small" id="tdback">今日の一戦の戦績表へ</button></div>`""")
+
+# ---- 111. 王座戦を「見える目玉」にする
+#   ・（見出しの下の王者の帯は、正面の流れがぶれるので試してやめた：2026-11-21）
+#   ・自由対戦で勝った記事で、そのまま王者に挑める（「勝者で王者に挑む」。挑戦の欄に記事名を入れた状態で開く）
+repall("function renderThrone(d,msg){", r"""function goThrone(t){ THOPEN=true; const th=$('#throne'); if(!th) return; th.scrollIntoView({behavior:'smooth',block:'start'}); const x=$('#thx'); if(x) x.open=true;
+  const inp=$('#chT'); if(!inp) return; if(t&&t!==champTitle()){ inp.value=t; CHOPT=new Set([t]); inp.dispatchEvent(new Event('change')); }
+  setTimeout(()=>{ (t&&$('#chf button')&&!$('#chf button').disabled?$('#chN'):inp).focus({preventScroll:true}); },400); }
+function renderThrone(d,msg){""")
+repall("    </div>\n  </div>\n  ${false&&gloss.length?", r"""    </div>
+    ${!TDY&&!M&&w!==null&&THRONE&&!isChamp(w)&&!(current.orig&&current.orig.k==='dg')?'<div class="next"><button type="button" class="btn" id="tothr">勝者で王者に挑む</button></div>':''}
+  </div>
+  ${false&&gloss.length?""")
+repall("  if($('#tdback')) $('#tdback').onclick=", "  if($('#tothr')) $('#tothr').onclick=()=>goThrone(F[w][1]);\n  if($('#tdback')) $('#tdback').onclick=")
+
+# ---- 112. 来訪の数え方を直す（2026-11-22：パソコンの来訪38件が1件も遊んでおらず、検索エンジンの巡回などの機械と見られたため）
+#   ・自動操作のブラウザ（navigator.webdriver）と、機械の名前を名乗るブラウザは数えない
+#   ・画面を触る・スクロールする・キーを押すまで数えない（巡回する機械は触らない）
+#   ・どこから入ったか（top：トップ、today：今日の一戦、pref：県応援の入口、battle：共有された対戦、c：王座戦の記録、hall：殿堂）も送る
+repall("setTimeout(sendVisit,1500);", r"""{ const bot=(()=>{ try{ return !!navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|embedly|python|curl|wget/i.test(navigator.userAgent||''); }catch(_){ return true; } })();
+  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchstart'].forEach(e=>removeEventListener(e,go,true)); sendVisit(); };
+    ['pointerdown','scroll','keydown','touchstart'].forEach(e=>addEventListener(e,go,{capture:true,passive:true})); } }""")
+repall("body:JSON.stringify({client:clientId(),ref,mob,fresh})", "body:JSON.stringify({client:clientId(),ref,mob,fresh,land:LAND})")
+repall("function sendVisit(){", r"""const LAND=(()=>{ try{ const q=new URLSearchParams(location.search); return q.has('pref')?'pref':q.has('today')?'today':q.has('c')?'c':q.has('hall')?'hall':(q.has('a')&&q.has('b'))?'battle':[...q.keys()].filter(k=>!['nostat','v'].includes(k)).length?'other':'top'; }catch(_){ return 'other'; } })();   // 入ってきたときのURLで決める（あとで書き換わる前）
+function sendVisit(){""")
+
 # ---- 113. 数えない印（nostat）のブラウザでホーム画面に追加したときも、Webアプリが ?nostat=1 で開くようにする
 #   iPhone のホーム画面のWebアプリは Safari と別の保存場所を持ち、manifest の start_url（./）で開くため、Safari の印が引き継がれない
 #   印のあるブラウザでは、manifest を start_url が ./?nostat=1 のもの（manifest-nostat.webmanifest）に差し替える
@@ -2083,6 +2140,277 @@ repall(".eyebrow{", ".nostat #eyebrow::after{content:'・計測なし'}\n.eyebro
 
 # ---- 115. 「今日の一戦の戦績表へ」を押しても戦績表が見えないことがある（なめらかなスクロールが途中で止まる）。戦績表そのものへ、すぐに移る
 repall("if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };", "if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; const t=c||$('#today'); t.scrollIntoView({block:'start'}); settleTo(t); };")
+
+# ---- 116. 試合の演出。技名のカットインと、打撃の手応え
+#   ・技が出るたびに、技名の帯を攻撃した側から画面に走らせる（大きな一撃は帯を太く・長く）
+#   ・受けた側の札が揺れ、ダメージの数字が飛び出して消える。HPの棒は減った分が一瞬白く残ってから縮む
+#   ・大きな一撃（とどめか、相手の最大HPの45%以上）は、画面が一瞬光る
+#   ・方針は「真面目にバカに派手に」：大きな一撃には、受けた側に擬音（ドゴォ！など）を大きく出し、帯に「必殺」の札を付ける
+#   ・端末で「視差効果を減らす」を選んでいる人には、揺れ・光・帯の動きを出さない（帯は動かさずに短く出す）
+repall("  const items=[...ring.querySelectorAll('#log li')]; let k=0;", r"""  const items=[...ring.querySelectorAll('#log li')]; let k=0;
+  const trSync=(idx,now)=>{ const l=r.log[idx]; if(!l||!r.max) return; ['A','B'].forEach((s,j)=>{ const tr=$('#hptr'+s); if(!tr) return; const w=(l.hp[j]/r.max[j]*100)+'%';   // 白い残りは、減ったときは少し遅れて、増えたとき・飛ばしたときはすぐに追いつく
+      if(now||parseFloat(tr.style.width)<=l.hp[j]/r.max[j]*100){ tr.style.transition='none'; tr.style.width=w; void tr.offsetWidth; tr.style.transition=''; } else setTimeout(()=>{ tr.style.width=w; },450); }); };
+  ['A','B'].forEach(s=>{ const h=$('#hp'+s); if(h&&h.parentElement){ h.parentElement.classList.add('fxbar'); const t=document.createElement('b'); t.className='hptr'; t.id='hptr'+s; t.style.width='100%'; h.parentElement.prepend(t); } });
+  const fxHit=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
+    const mv=l.mv&&l.mv[1]; const tgtHp=l.side===0?l.hp[1]:l.hp[0]; const big=l.d>0&&r.max&&(tgtHp<=0||l.d>=r.max[l.side===0?1:0]*0.45);   // 大きな一撃：とどめか、相手の最大HPの45%以上
+    if(mv){ sb.querySelectorAll('.cutin').forEach(e=>e.remove()); const c=document.createElement('div'); c.className='cutin '+atk+' k-'+String(l.mv[0]||'STRIKE')+(big?' big':'')+(big&&mv.length>=11?' xlong':big&&mv.length>=8?' long':'')+(reduce?' still':'');   /* 大技は真ん中に出し、長い技名は文字を小さくして見切れないように */ const fact=String(l.mv[2]||'').trim(); c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！'+(fact&&fact!==mv&&fact.length<=24?'<em>'+esc(fact)+'</em>':'')+'</span>';   /* 技の元になった事実を添える（作品ラッシュ！ 登録作品45件 など） */ sb.append(c); setTimeout(()=>c.remove(),big?1100:850); }
+    if(l.d>0){ const box=sb.querySelector('.sb.'+def); if(box){ if(!reduce){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
+        const n=document.createElement('span'); n.className='dmgfly'+(big?' big':''); n.textContent='−'+l.d; box.append(n); setTimeout(()=>n.remove(),900); }
+      if(big&&!reduce){ ring.classList.remove('flash'); void ring.offsetWidth; ring.classList.add('flash');
+        const box2=sb.querySelector('.sb.'+def); if(box2){ const o=document.createElement('span'); o.className='onom'; o.textContent=['ドゴォ！','バキィ！','ズドン！','ドーン！','メキィ！','グシャァ！'][(idx*7+l.d)%6]; box2.append(o); setTimeout(()=>o.remove(),1000); } } } };""")
+repall("items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k);", "items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); fxHit(k);")
+repall(".scoreboard.done{position:relative}", r""".scoreboard.done{position:relative}
+.scoreboard{overflow:visible}.scoreboard .sb{position:relative}
+.fxbar{position:relative}.fxbar>i{position:relative;z-index:1}.fxbar .hptr{position:absolute;top:0;bottom:0;background:#fff;opacity:.85;transition:width .5s ease-out;z-index:0}.sb.A .hptr{left:0}.sb.B .hptr{right:0}
+.cutin{position:absolute;left:0;right:0;top:100%;margin-top:6px;pointer-events:none;overflow:hidden;z-index:6;display:flex}
+.cutin span{--cc:#e8202a;--cs:#ffd400;position:relative;display:inline-block;padding:8px 18px 9px;font-family:var(--f-display);font-size:24px;line-height:1.1;color:var(--cs);-webkit-text-stroke:.8px #111;paint-order:stroke fill;text-shadow:2px 2px 0 #111,-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111;white-space:nowrap;border:3px solid #111;border-radius:2px;box-shadow:5px 5px 0 #111;background:radial-gradient(circle,rgba(0,0,0,.28) 1.3px,transparent 1.7px) 0 0/7px 7px,var(--cc)}
+.cutin.A span{border-left:10px solid var(--a);animation:cutL .85s cubic-bezier(.2,.8,.2,1) both}.cutin.B{justify-content:flex-end}.cutin.B span{border-right:10px solid var(--b);animation:cutR .85s cubic-bezier(.2,.8,.2,1) both}
+.cutin.k-SUMMON span{--cc:#7b2ff2;--cs:#fff}.cutin.k-HEAL span{--cc:#18a558;--cs:#fff}.cutin.k-GUARD span{--cc:#1f6feb;--cs:#fff}.cutin.k-MULTI span{--cc:#ff7a00;--cs:#fff}.cutin.k-BIND span,.cutin.k-SLOW span{--cc:#9b30d9;--cs:#fff}.cutin.k-K span{--cc:#111;--cs:var(--hl)}
+.cutin span::after{content:'';position:absolute;top:-3px;bottom:-3px;width:46px;background:repeating-linear-gradient(90deg,#111 0 3px,transparent 3px 9px);opacity:.55}.cutin.A span::after{right:100%;margin-right:12px}.cutin.B span::after{left:100%;margin-left:12px}
+.cutin.big{margin-top:16px;overflow:visible;justify-content:center!important;padding:0 26px}.cutin.big span{animation:burstIn 1.1s cubic-bezier(.2,1.5,.4,1) both!important;white-space:nowrap;text-align:center}.cutin.big.still span{animation:none!important;transform:rotate(-5deg)}.cutin.big.long span{font-size:22px;padding:14px 24px 16px}.cutin.big.xlong span{font-size:17px;padding:12px 20px 14px}
+@keyframes burstIn{0%{transform:scale(.2) rotate(-12deg);opacity:0}18%{transform:scale(1.12) rotate(-4deg);opacity:1}30%{transform:scale(1) rotate(-5deg)}82%{transform:scale(1) rotate(-5deg);opacity:1}100%{transform:scale(1.15) rotate(-5deg);opacity:0}}
+.cutin.big span{font-size:30px;padding:16px 30px 18px;border:none;box-shadow:none;background:none;color:#fff;text-shadow:4px 4px 0 #111;animation-duration:1.1s}
+.cutin.big span::before{content:'';position:absolute;inset:-14px -22px;z-index:-1;background:radial-gradient(circle,rgba(0,0,0,.3) 1.5px,transparent 2px) 0 0/8px 8px,var(--cc);filter:drop-shadow(5px 5px 0 #111);clip-path:polygon(50% 0,58% 18%,75% 4%,72% 26%,96% 18%,82% 38%,100% 50%,82% 60%,96% 82%,72% 74%,75% 96%,58% 82%,50% 100%,42% 82%,25% 96%,28% 74%,4% 82%,18% 60%,0 50%,18% 38%,4% 18%,28% 26%,25% 4%,42% 18%)}
+.cutin span em{display:block;font-style:normal;font-family:inherit;font-size:13px;line-height:1.3;margin-top:3px;color:#fff;-webkit-text-stroke:0;text-shadow:1px 1px 0 #111;letter-spacing:.02em}.cutin.big span em{font-size:14px}
+.cutin.big span::after{display:none}.cutin.big small{background:var(--hl);color:#111;-webkit-text-stroke:0;text-shadow:none;border:2px solid #111}
+.cutin.still span{animation:none}.cutin small{font-size:.55em;background:#fff;color:#111;border-radius:3px;padding:1px 5px;margin-right:8px;vertical-align:middle;letter-spacing:.1em}
+.onom{position:absolute;top:14px;font-family:var(--f-display);font-size:34px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke fill;white-space:nowrap;pointer-events:none;z-index:7;animation:onom 1s ease-out both}.sb.A .onom{left:4px}.sb.B .onom{right:4px}
+@keyframes onom{0%{transform:rotate(-14deg) scale(.3);opacity:0}15%{transform:rotate(-8deg) scale(1.35);opacity:1}30%{transform:rotate(-10deg) scale(1)}80%{opacity:1}100%{transform:translateY(-14px) rotate(-10deg) scale(1.05);opacity:0}}
+@keyframes cutL{0%{transform:translateX(-110%) skewX(-12deg)}18%{transform:translateX(0) skewX(-12deg)}80%{transform:translateX(0) skewX(-12deg);opacity:1}100%{transform:translateX(30%) skewX(-12deg);opacity:0}}
+@keyframes cutR{0%{transform:translateX(110%) skewX(12deg)}18%{transform:translateX(0) skewX(12deg)}80%{transform:translateX(0) skewX(12deg);opacity:1}100%{transform:translateX(-30%) skewX(12deg);opacity:0}}
+.sb.shake{animation:shake .35s ease-out}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.dmgfly{position:absolute;top:-4px;font-family:var(--f-display);font-size:18px;color:var(--hl-ink);background:var(--hl);border-radius:4px;padding:0 6px;pointer-events:none;animation:dfly .9s ease-out both}.sb.A .dmgfly{left:0}.sb.B .dmgfly{right:0}.dmgfly.big{font-size:24px}
+@keyframes dfly{0%{transform:translateY(6px) scale(.7);opacity:0}20%{transform:translateY(-6px) scale(1.15);opacity:1}100%{transform:translateY(-26px) scale(1);opacity:0}}
+.ring.flash::after{content:'';position:fixed;inset:0;background:#fff;pointer-events:none;z-index:50;animation:flash .25s ease-out both}
+@keyframes flash{0%{opacity:.7}100%{opacity:0}}""")
+
+# ---- 117. 試合の演出。選手入場とVS、決着の溜め
+#   ・始まりに、画面いっぱいの入場：青と赤の斜めの幕が左右から入り、稲妻の線が走って、巨大な「VS」が衝撃波と閃光・画面の揺れと共に落ちてくる（約1.9秒。ダンジョンと「視差効果を減らす」では出さない）
+#   ・とどめの一撃の前に一拍置いて（約0.9秒）、点数板を赤く脈打たせる
+#   ・決着したら「決着！」（番狂わせなら「番狂わせ！」、引き分けなら「引き分け」）の判を押す
+repall("  step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv);", r"""  const noIntro=reduce||(current.orig&&current.orig.k==='dg');
+  const subOf=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; };
+  let introT=null; const begin=()=>{ introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv); };
+  if(noIntro) begin();
+  else { const o=document.createElement('div'); o.className='intro';
+    o.innerHTML=`<div class="inwrap"><div class="inbg"></div><div class="inA"><span class="cn">青コーナー</span><b>${esc(F[ai][0])}</b>${subOf(ai)?`<small>${esc(subOf(ai))}</small>`:''}</div><div class="inB"><span class="cn">赤コーナー</span><b>${esc(F[bi][0])}</b>${subOf(bi)?`<small>${esc(subOf(bi))}</small>`:''}</div><div class="inslash"></div><div class="inring"></div><div class="invs">VS</div><div class="inflash"></div></div>`;
+    document.body.append(o); introT=setTimeout(begin,1900); }""")
+repall("  $('#skip').onclick=()=>{ clearInterval(timer);", "  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); } clearInterval(timer);")
+# とどめの前の溜めと、決着の判
+repall("  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; }", r"""  const finIdx=(()=>{ let f=-1; r.log.forEach((l,i)=>{ if(l.side>=0&&!l.kai&&l.d>0) f=i; }); return f; })(); let held=false;
+  const stamp=()=>{ const sb=$('#sb'); if(!sb||sb.querySelector('.kostamp')) return; const s=document.createElement('div'); const up=an.upset||/番狂わせ/.test(an.tlabel||'');
+    s.className='kostamp'+(r.w===null?' draw':up?' up':''); s.textContent=r.w===null?'引き分け':up?'番狂わせ！':'決着！'; sb.append(s); };
+  const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
+    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); if(follow) setTimeout(()=>{ const rs=$('#res'); if(rs) rs.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); },700); return; }   /* 最後まで自動で追っていたら、決着の判を見せてから結果へ送る */""")
+repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult();", "while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); trSync(items.length-1,true); stamp(); showResult();")
+repall(".cutin{position:absolute;", r""".ring{position:relative}
+.intro{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:none;background:#05081a;animation:inOut 1.9s ease both}
+.inwrap{position:absolute;inset:0;animation:inShake .4s .62s ease-out both}
+.inbg{position:absolute;inset:-60%;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.09) 0 3deg,transparent 3deg 11deg);animation:inSpin 5s linear infinite}
+.inA,.inB{position:absolute;left:0;right:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 22px;color:#fff}
+.inA{top:0;height:55%;padding-bottom:9%;background:linear-gradient(135deg,#0a1f7a 0%,#2357ff 70%,#6f9bff 100%);clip-path:polygon(0 0,100% 0,100% 64%,0 100%);animation:inL .5s cubic-bezier(.2,.9,.2,1.15) both}
+.inB{bottom:0;height:55%;padding-top:9%;align-items:flex-end;text-align:right;background:linear-gradient(315deg,#7a0a16 0%,#ff2d47 70%,#ff8a99 100%);clip-path:polygon(0 36%,100% 0,100% 100%,0 100%);animation:inR .5s .12s cubic-bezier(.2,.9,.2,1.15) both}
+.intro .cn{display:inline-block;align-self:flex-start;font-weight:900;font-size:13px;letter-spacing:.25em;padding:3px 12px;background:#fff;color:#0a1f7a;transform:skewX(-14deg)}.inB .cn{align-self:flex-end;color:#7a0a16}
+.intro b{display:block;font-family:var(--f-display);font-weight:400;font-size:clamp(30px,10.5vw,64px);line-height:1.05;word-break:break-all;transform:skewX(-8deg);text-shadow:0 5px 0 rgba(0,0,0,.45),0 0 28px rgba(255,255,255,.55)}
+.intro small{font-size:13px;letter-spacing:.12em;opacity:.9}
+.inslash{position:absolute;left:-20%;right:-20%;top:50%;height:8px;margin-top:-4px;background:#fff;transform:rotate(-17deg) scaleX(0);box-shadow:0 0 18px 6px rgba(255,255,255,.8),0 0 60px 20px rgba(255,220,0,.45);animation:inSlash .25s .45s ease-out forwards}
+.invs{position:absolute;left:50%;top:50%;font-family:var(--f-display);font-size:clamp(90px,34vw,180px);line-height:1;color:var(--hl);-webkit-text-stroke:5px #111;paint-order:stroke fill;text-shadow:0 0 40px rgba(255,212,0,.9),0 8px 0 rgba(0,0,0,.5);transform:translate(-50%,-50%) scale(4) rotate(-14deg);opacity:0;animation:inVS .42s .55s cubic-bezier(.2,1.7,.4,1) forwards}
+.inring{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border:8px solid #fff;border-radius:50%;opacity:0;animation:inRing .7s .62s ease-out forwards}
+.inflash{position:absolute;inset:0;background:#fff;opacity:0;animation:inFlash .35s .6s ease-out forwards}
+@keyframes inL{from{transform:translateX(-110%)}to{transform:none}}@keyframes inR{from{transform:translateX(110%)}to{transform:none}}
+@keyframes inSpin{to{transform:rotate(360deg)}}
+@keyframes inSlash{to{transform:rotate(-17deg) scaleX(1)}}
+@keyframes inVS{0%{transform:translate(-50%,-50%) scale(4) rotate(-14deg);opacity:0}100%{transform:translate(-50%,-50%) scale(1) rotate(-8deg);opacity:1}}
+@keyframes inRing{0%{transform:scale(.5);opacity:1}100%{transform:scale(12);opacity:0}}
+@keyframes inFlash{0%{opacity:.85}100%{opacity:0}}
+@keyframes inShake{0%,100%{transform:none}15%{transform:translate(-10px,6px)}30%{transform:translate(9px,-7px)}45%{transform:translate(-7px,-4px)}60%{transform:translate(6px,5px)}80%{transform:translate(-3px,2px)}}
+@keyframes inOut{0%{opacity:0}5%{opacity:1}88%{opacity:1}100%{opacity:0}}
+.ring.tension #sb .tick{animation:tens .3s ease-in-out infinite alternate;background:var(--b);color:#fff;border-radius:4px}
+@keyframes tens{from{transform:scale(1)}to{transform:scale(1.35)}}
+.kostamp{position:absolute;left:50%;top:100%;margin-top:4px;z-index:8;font-family:var(--f-display);font-size:30px;color:#fff;background:var(--b);padding:4px 16px;border:3px solid #fff;border-radius:6px;box-shadow:0 4px 0 rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;animation:stampIn .45s cubic-bezier(.3,1.6,.5,1) both,stampOut .4s 1.8s ease-in forwards}
+.kostamp.up{background:var(--hl);color:var(--hl-ink)}.kostamp.draw{background:#555}
+@keyframes stampIn{from{transform:translateX(-50%) scale(2.6) rotate(-14deg);opacity:0}to{transform:translateX(-50%) scale(1) rotate(-6deg);opacity:1}}
+@keyframes stampOut{to{opacity:0;transform:translateX(-50%) scale(1.1) rotate(-6deg)}}
+.cutin{position:absolute;""")
+
+# ---- 118. 試合の演出。技ごとの専用演出と、解説の吹き出し
+#   ・召喚：呼ばれた記事の札が上から降ってきて「加勢」の判が付く
+#   ・連撃：受けた側に小さな打撃が続けて入る（数は実況の「N連撃」から）
+#   ・守り：攻めた側に「受け流し」の盾が光る
+#   ・回復：攻めた側に緑の「＋N」が浮かぶ
+#   ・鈍らせる：受けた側に「鈍った…」の札がぐるぐる回る
+#   ・比べ合い：両者の数字を並べ、勝った側の数字を大きく出す
+#   ・解説は、解説者の札から出る吹き出しにする（「解説「…」」の囲みは外す）
+repall("  const step=()=>{ if(k===finIdx", r"""  ring.querySelectorAll('#log li.kai .bub').forEach(b=>{ b.innerHTML=b.innerHTML.replace(/^解説「([\s\S]*)」$/,'$1'); });
+  const fxKind=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai||!l.mv) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
+    const A=sb.querySelector('.sb.'+atk), D=sb.querySelector('.sb.'+def); const kd=l.mv[0], desc=String(l.mv[3]||''), add=(box,cls,html,ms)=>{ if(!box) return; const e=document.createElement('span'); e.className=cls; e.innerHTML=html; box.append(e); setTimeout(()=>e.remove(),ms||1100); };
+    const hl=String(l.s||'').match(/HPを(\d+)回復/); if(hl) add(A,'fxheal','＋'+hl[1]);
+    if(kd==='SUMMON'){ const nm=(Array.isArray(l.mv[7])&&l.mv[7][0]&&l.mv[7][0][0])||String(l.mv[2]||'').split(/[と、,]/)[0].trim(); if(nm) add(A,'fxsum','<b>'+esc(nm)+'</b><i>加勢</i>',1300); }
+    else if(kd==='MULTI'&&!reduce){ const n=Math.min(6,+((String(l.s||'').match(/(\d+)連撃/)||[])[1])||3); for(let j=1;j<n;j++) setTimeout(()=>{ if(D){ D.classList.remove('shake'); void D.offsetWidth; D.classList.add('shake'); } add(D,'fxjab','ドッ',500); },120*j); }
+    else if(kd==='GUARD') add(A,'fxguard','受け流し',1000);
+    else if(kd==='SLOW'||kd==='BIND') add(D,'fxslow','鈍った…',1200);
+    else if(an.type==='kurabe'&&kd==='K'){ const m=desc.match(/：(.+?) 対 (.+)$/); if(m){ const c=document.createElement('div'); c.className='fxcmp '+atk; c.innerHTML='<span class="w">'+esc(m[1])+'</span><span class="v">対</span><span class="l">'+esc(m[2])+'</span>'; sb.querySelectorAll('.fxcmp').forEach(e=>e.remove()); sb.append(c); setTimeout(()=>c.remove(),900); } } };
+  const step=()=>{ if(k===finIdx""")
+repall("setHP(k); fxHit(k);", "setHP(k); trSync(k); fxHit(k); fxKind(k);")
+repall(".cutin{position:absolute;", r""".fxheal{position:absolute;top:-6px;font-family:var(--f-display);font-size:22px;color:#1a9b4b;-webkit-text-stroke:1px #fff;paint-order:stroke fill;pointer-events:none;animation:dfly 1.1s ease-out both}.sb.A .fxheal{left:30%}.sb.B .fxheal{right:30%}
+.fxsum{position:absolute;top:-58px;display:flex;align-items:center;gap:6px;background:var(--card,#fff);border:2px solid #111;border-radius:6px;padding:4px 8px;box-shadow:0 3px 0 rgba(0,0,0,.25);white-space:nowrap;max-width:80vw;pointer-events:none;z-index:7;animation:sumDrop 1.3s cubic-bezier(.3,1.4,.5,1) both}.sb.A .fxsum{left:0}.sb.B .fxsum{right:0}
+.fxsum b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.fxsum i{font-style:normal;font-family:var(--f-display);font-size:13px;color:#fff;background:var(--b);border-radius:3px;padding:1px 6px;transform:rotate(-8deg)}
+@keyframes sumDrop{0%{transform:translateY(-60px);opacity:0}25%{transform:translateY(0);opacity:1}80%{opacity:1}100%{opacity:0}}
+.fxjab{position:absolute;top:2px;font-family:var(--f-display);font-size:16px;color:var(--hl-ink);background:var(--hl);border-radius:3px;padding:0 4px;pointer-events:none;animation:dfly .5s ease-out both}.sb.A .fxjab{left:40%}.sb.B .fxjab{right:40%}
+.fxguard{position:absolute;top:-8px;font-size:13px;font-weight:700;color:#fff;background:#2b6cb0;border:2px solid #fff;border-radius:12px 12px 12px 2px;padding:2px 8px;pointer-events:none;box-shadow:0 0 0 3px rgba(43,108,176,.35);animation:guard 1s ease-out both}.sb.A .fxguard{left:20%}.sb.B .fxguard{right:20%}
+@keyframes guard{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.1);opacity:1;box-shadow:0 0 0 10px rgba(43,108,176,.15)}80%{opacity:1}100%{opacity:0}}
+.fxslow{position:absolute;top:-6px;font-size:13px;font-weight:700;color:#6b4bb0;background:#efe8ff;border-radius:10px;padding:2px 8px;pointer-events:none;animation:slow 1.2s ease-in-out both}.sb.A .fxslow{left:20%}.sb.B .fxslow{right:20%}
+@keyframes slow{0%{transform:rotate(0) scale(.5);opacity:0}20%{opacity:1;transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg)}80%{opacity:1;transform:rotate(-6deg)}100%{opacity:0}}
+.fxcmp{position:absolute;left:0;right:0;top:100%;margin-top:54px;display:flex;justify-content:center;align-items:baseline;gap:10px;pointer-events:none;z-index:6;font-family:var(--f-display);animation:cmp .9s ease-out both}
+.fxcmp .w{font-size:26px;color:var(--hl-ink);background:var(--hl);padding:2px 8px;border-radius:4px}.fxcmp .v{font-size:14px;color:var(--muted)}.fxcmp .l{font-size:15px;color:var(--muted)}.fxcmp.B{flex-direction:row-reverse}
+@keyframes cmp{0%{transform:scale(.6);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
+.log li.kai{display:flex;align-items:flex-start;gap:8px}.log li.kai .t{display:none}.log li.kai::before{content:'解説';flex:none;font-size:11px;font-weight:700;color:#fff;background:#555;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.ring .log li.kai .bub{position:relative;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--ink,#222);font-weight:500;box-shadow:none}.ring .log li.kai .bub::before{content:'';position:absolute;left:-7px;top:12px;border:7px solid transparent;border-right-color:var(--line);border-left:0}
+.cutin{position:absolute;""")
+
+# ---- 119. 解説を「百科審判員」として擬人化する
+#   ・名前に Wikipedia は使わない（公式の人物と誤解されないように。サービス名と同じ考え方）
+#   ・アイコンは手描きのSVG（白黒の審判服・笛・丸めがね）。表情は5つ（ふつう・驚き・したり顔・冷や汗・興奮）で、解説の言葉から選ぶ
+#   ・吹き出しは漫画の吹き出しのように、太い縁取りと、本体からなめらかにつながる尻尾にする
+repall("  const fxKind=idx=>{", r"""  const judgeSvg=f=>{ const eye={calm:'<circle cx="19" cy="25" r="2"/><circle cx="29" cy="25" r="2"/>',shock:'<circle cx="19" cy="25" r="3.6" fill="#fff" stroke="#111" stroke-width="1.6"/><circle cx="29" cy="25" r="3.6" fill="#fff" stroke="#111" stroke-width="1.6"/><circle cx="19" cy="25" r="1.3"/><circle cx="29" cy="25" r="1.3"/>',smug:'<path d="M15.5 25.5q3.5-2.5 7 0M25.5 25.5q3.5-2.5 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/>',sweat:'<circle cx="19" cy="25.5" r="1.7"/><circle cx="29" cy="25.5" r="1.7"/>',hype:'<path d="M16 23l4 2.5-4 2.5M32 23l-4 2.5 4 2.5" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'}[f];
+    const brow={calm:'M15 19.5h7M26 19.5h7',shock:'M15 17q3.5-2.5 7-.5M26 16.5q3.5-2 7 .5',smug:'M15 20.5l7-1.5M26 18.5l7 2',sweat:'M15 18.5l7 1.5M26 20l7-1.5',hype:'M15 18q3.5-2 7 0M26 18q3.5-2 7 0'}[f];
+    const mouth={calm:'<path d="M20 33q4 3 8 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/>',shock:'<ellipse cx="24" cy="34" rx="3" ry="3.6" fill="#7a1f2b"/>',smug:'<path d="M19.5 33.5q5 2.5 9-1.5" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/>',sweat:'<path d="M19 34q1.7-1.6 3.4 0t3.4 0 3.4 0" stroke="#111" stroke-width="1.8" fill="none" stroke-linecap="round"/>',hype:'<path d="M18 31.5h12q0 7-6 7t-6-7z" fill="#7a1f2b" stroke="#111" stroke-width="1.5" stroke-linejoin="round"/>'}[f];
+    const extra={sweat:'<path d="M36 17q2.5 3.5 0 5.5-2.5-2 0-5.5z" fill="#6cc4ff" stroke="#2a7ab8" stroke-width=".8"/>',hype:'<path d="M5 12l1.2 3 3 1.2-3 1.2L5 20.4l-1.2-3-3-1.2 3-1.2zM42 8l.9 2.2 2.2.9-2.2.9-.9 2.2-.9-2.2-2.2-.9 2.2-.9z" fill="#ffd400" stroke="#b38f00" stroke-width=".6"/>',shock:'<path d="M38 12l3-4M41 16l4-1M36 9l0-5" stroke="#111" stroke-width="1.6" stroke-linecap="round"/>'}[f]||'';
+    return `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="38" width="30" height="12" rx="4" fill="#fff" stroke="#111" stroke-width="1.5"/><path d="M14 38v10M19 38v10M24 38v10M29 38v10M34 38v10" stroke="#111" stroke-width="2.4"/><circle cx="24" cy="26" r="13" fill="#ffe0bd" stroke="#111" stroke-width="1.6"/><path d="M11.5 23q1-12 12.5-12.5Q36 11 36.5 23q-3-6-12.5-6.5Q14.5 17 11.5 23z" fill="#2b2b2b"/><circle cx="19" cy="25" r="4.6" fill="none" stroke="#8a6d3b" stroke-width="1.3"/><circle cx="29" cy="25" r="4.6" fill="none" stroke="#8a6d3b" stroke-width="1.3"/><path d="M23.6 25h.8" stroke="#8a6d3b" stroke-width="1.3"/><g fill="#111">${eye}</g><path d="${brow}" stroke="#111" stroke-width="1.8" stroke-linecap="round"/>${mouth}<circle cx="15.5" cy="31" r="2" fill="#ffb3b3" opacity=".7"/><circle cx="32.5" cy="31" r="2" fill="#ffb3b3" opacity=".7"/><path d="M27 42l6 3" stroke="#555" stroke-width="1.2"/><rect x="32" y="43" width="6" height="3.6" rx="1.8" fill="#c8c8c8" stroke="#111" stroke-width="1"/>${extra}</svg>`; };
+  const judgeFace=(t,i)=>/[！!]{1}.*$|^[^。]*！/.test(t)&&/[！!]/.test(t)?'hype':/[？?]/.test(t)?'shock':/…|・・|ません。?$|かも/.test(t)?'sweat':/でしょう|です。?$|ます。?$|私/.test(t)?'smug':['calm','smug','calm','sweat'][i%4];
+  ring.querySelectorAll('#log li.kai').forEach((li,i)=>{ const b=li.querySelector('.bub'); const t=b?b.textContent:''; const f=judgeFace(t,i);
+    const j=document.createElement('span'); j.className='judge f-'+f; j.innerHTML=judgeSvg(f); li.prepend(j);
+    if(b) b.insertAdjacentHTML('afterbegin','<span class="jname">百科審判員</span>'); });
+  const fxKind=idx=>{""")
+repall(".log li.kai{display:flex;align-items:flex-start;gap:8px}.log li.kai .t{display:none}.log li.kai::before{content:'解説';flex:none;font-size:11px;font-weight:700;color:#fff;background:#555;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}", r""".log li.kai{display:flex;align-items:flex-start;gap:12px;padding-left:2px}.log li.kai .t{display:none}
+.judge{flex:none;width:52px;height:52px;border-radius:50%;background:#fff6d6;border:2px solid #111;box-shadow:0 3px 0 rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;overflow:hidden}.judge svg{width:48px;height:48px;display:block;margin-top:4px}
+.log li.kai.pop .judge{animation:jpop .4s cubic-bezier(.3,1.6,.5,1)}.log li.kai.pop .judge.f-shock,.log li.kai.pop .judge.f-hype{animation:jjump .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes jpop{from{transform:scale(.4) rotate(-20deg)}to{transform:none}}@keyframes jjump{0%{transform:translateY(10px) scale(.6)}50%{transform:translateY(-8px) scale(1.12)}100%{transform:none}}
+.jname{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;color:#8a6d3b;margin-bottom:2px}""")
+repall(".ring .log li.kai .bub{position:relative;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--ink,#222);font-weight:500;box-shadow:none}.ring .log li.kai .bub::before{content:'';position:absolute;left:-7px;top:12px;border:7px solid transparent;border-right-color:var(--line);border-left:0}", r""".ring .log li.kai .bub{position:relative;flex:1;min-width:0;background:#fff;border:2.5px solid #111;border-radius:22px;padding:10px 16px 12px;color:#111;font-weight:700;font-size:15px;line-height:1.6;box-shadow:3px 4px 0 rgba(0,0,0,.18)}
+.ring .log li.kai .bub::before{content:'';position:absolute;left:-11px;top:16px;width:18px;height:18px;background:#fff;border-left:2.5px solid #111;border-bottom:2.5px solid #111;border-radius:0 0 0 14px;transform:skewY(-28deg) rotate(10deg)}
+.ring .log li.kai .bub::after{content:'';position:absolute;left:2px;top:14px;width:14px;height:24px;background:#fff}""")
+
+# ---- 120. 実況の左のカウントの数字を出さない（ラウンドと誤解されやすく、今のカウントは点数板の真ん中に出ているため）
+repall(".morebox{margin-top:8px}", ".ring .log li:not(.kai){grid-template-columns:1fr}.ring .log li:not(.kai) .t{display:none}\n.morebox{margin-top:8px}")
+
+# ---- 121. 職業・分類ごとの技の名前（「本業」「正体開示」を、職業・分類に合った名前で出す。強さは変えない）
+#   例：野球選手→フルスイング、歌手→熱唱、ゴルファー→ドライバーショット、活火山→噴火、日本の城→籠城、テレビ番組シリーズ→最終回
+#   名前は技の9番目（m[8]）に入れ、実況の【】とカットインに使う。技の見分け（m[1]）はそのままなので、解説・脚注・選び方は変わらない
+#   宗教・病気・政党・戦争・成人向けなど、茶化すと差し障りのある職業・分類には付けない
+repall("POOL[i]=makePool(i);", r"""POOL[i]=mvName(makePool(i));""")
+repall("function pickMoves(i,j){", r"""const MVN={"job":{"サッカー選手":"ボレーシュート","政治家":"所信表明演説","野球選手":"フルスイング","プロ野球選手":"フルスイング","俳優":"迫真の演技","舞台俳優":"迫真の演技","実業家":"敵対的買収","武将":"鬨の声","アナウンサー":"滑舌アタック","軍人":"突撃命令","ラグビーユニオン選手":"タックル","日本の漫画家":"集中線","日本の声優":"イケボ","バスケットボール選手":"ダンクシュート","画家":"一筆入魂","歌手":"熱唱","小説家":"伏線回収","ボクサー":"右ストレート","歴史家":"史料批判","バレーボール選手":"スパイク","フィギュアスケート選手":"4回転ジャンプ","プロレスラー":"ラリアット","柔道家":"一本背負い","教員":"チョーク投げ","作曲家":"転調","経済学者":"見えざる手","貴種":"家柄マウント","力士":"突っ張り","ジャーナリスト":"スクープ","陸上競技選手":"スタートダッシュ","短距離走選手":"スタートダッシュ","外交官":"遺憾の意","武士":"居合斬り","侍":"抜刀","著作家":"書き下ろし","作家":"書き下ろし","官僚":"前例主義","統治者":"勅令","国王":"勅令","君主":"御前会議","建築家":"構造計算","自転車競技選手":"ペダリング","お笑いタレント":"ツッコミ","落語家":"オチ","シンガーソングライター":"弾き語り","経営者":"経営判断","音楽家":"フォルテッシモ","アメリカンフットボール選手":"ブリッツ","詩人":"韻律","騎手":"ムチ一閃","総合格闘家":"パウンド","格闘家":"必殺の拳","イラストレーター":"線画","医師":"診断","テニス選手":"サービスエース","哲学者":"問い直し","写真家":"シャッターチャンス","タレント":"営業スマイル","研究者":"査読","翻訳家":"超訳","アイドル":"ファンサ","映画監督":"カット！","子役":"天才子役の涙","弁護士":"異議あり","顧問弁護士":"契約条項","政治学者":"世論調査","脚本家":"どんでん返し","ファッションモデル":"ランウェイ","モデル":"決めポーズ","グラビアアイドル":"表紙飾り","言語学者":"品詞分解","競泳選手":"バタフライ","エンジニア":"デバッグ","士官":"号令","社会学者":"フィールドワーク","心理学者":"心理分析","教育者":"説教","ハンドボール選手":"ジャンプシュート","ゴルファー":"ドライバーショット","プロゴルファー":"ドライバーショット","物理学者":"相対性理論","化学者":"化学反応","競艇選手":"ターン","芸術家":"アート爆発","軍事指導者":"作戦指揮","テレビプロデューサー":"視聴率","俳人":"五七五","ラジオパーソナリティ":"深夜トーク","科学者":"仮説検証","彫刻家":"削り出し","カーレーサー":"ドリフト","レーシングドライバー":"オーバーテイク","数学者":"証明終わり","オートバイレーサー":"ウィリー","ピアニスト":"超絶技巧","歌人":"三十一文字","評論家":"辛口批評","文芸評論家":"辛口批評","音楽評論家":"辛口批評","指揮者":"タクト","競輪選手":"まくり","卓球選手":"スマッシュ","バドミントン選手":"スマッシュ","棋士":"王手","プロ囲碁棋士":"神の一手","囲碁棋士":"神の一手","天文学者":"天体観測","キックボクサー":"ハイキック","裁判官":"判決","映画プロデューサー":"製作総指揮","書家":"一筆","法学者":"条文解釈","アイスホッケー選手":"スラップショット","オペラ歌手":"アリア","アマチュアレスラー":"タックル","ギタリスト":"速弾き","スキージャンプ選手":"K点越え","銀行家":"貸し剥がし","公卿":"和歌","ヴァイオリニスト":"ビブラート","空手家":"正拳突き","歌舞伎役者":"見得を切る","飛行士":"急上昇","ドラマー":"ドラムロール","起業家":"ピボット","音楽プロデューサー":"ミリオンヒット","作詞家":"サビ","編集者":"赤入れ","ゲームデザイナー":"難易度調整","ダンサー":"ターン","随筆家":"つれづれ","アニメーター":"作画","デザイナー":"レイアウト","グラフィックデザイナー":"レイアウト","陶芸家":"ろくろ","演出家":"ダメ出し","器械体操選手":"月面宙返り","放送作家":"ネタ出し","スピードスケート選手":"インコース","ラッパー":"韻","浮世絵師":"大首絵","探検家":"未踏到達","調教師":"仕上げ","手品師":"種明かし","行司":"軍配","天気キャスター":"晴れ予報","ディスクジョッキー":"スクラッチ","考古学者":"発掘","植物学者":"新種記載","生物学者":"観察記録","医学者":"臨床試験","サッカー指導者":"戦術ボード","コーチ":"檄","撮影監督":"長回し","計算機科学者":"アルゴリズム","機械工学者":"歯車","土木技師":"護岸工事","歯科医師":"抜歯","レースクイーン":"パラソル","公務員":"窓口対応","地方公務員":"窓口対応","ファッションデザイナー":"コレクション","ノンフィクション作家":"取材","ライトノベル作家":"長いタイトル","映像作家":"長回し","地理学者":"地図","農学者":"品種改良","経営理論家":"フレームワーク","大学教員":"休講","編集技師":"カット割り"},"cls":{"企業":"株式公開","シングル":"サビの連打","アルバム":"全曲再生","映画":"クライマックス","テレビ番組":"視聴率","タクソン":"学名詠唱","道路":"渋滞","日本の廃止市区町村":"合併","鉄道駅":"駆け込み乗車","コンピュータゲーム":"コンティニュー","日本の連載漫画":"次号予告","日本の小学校":"チャイム","音楽グループ":"ユニゾン","ラジオ番組":"はがき職人","文学作品":"名文","町丁":"回覧板","仏教寺院":"鐘の音","テレビ番組シリーズ":"最終回","スポーツシーズン":"優勝争い","化学的実体の種類":"化学反応","音楽作品/楽曲":"サビ","歌":"大合唱","日本の中学校":"校内放送","神社":"柏手","ウマ":"末脚","日本の高等学校":"甲子園","集落":"寄り合い","地下鉄・都市高速鉄道の駅":"ラッシュアワー","絵画作品":"額縁","川":"氾濫","山":"落石","活火山":"噴火","火山":"噴火","成層火山":"噴火","サッカークラブ":"サポーターの声援","組織":"根回し","鉄道車両の形式":"警笛","小惑星":"衝突","大字":"境界線","車種":"アクセル全開","オリンピック選手団":"入場行進","インターチェンジ":"合流","架空の人":"設定盛り","雑誌":"袋とじ","ビデオアルバム":"特典映像","化石タクソン":"発掘","島":"孤島の守り","郵便局":"速達","病院":"ナースコール","都市":"再開発","鉄道路線":"ダイヤ改正","日本の城":"籠城","城":"籠城","公園":"噴水","お笑いコンビ":"漫才","温泉":"湯けむり","大学":"単位認定","橋":"渡り切り","テレビアニメシリーズ":"変身シーン","アニメーションテレビシリーズ":"変身シーン","法律":"条文","ショッピングセンター":"タイムセール","会社":"定時退社","定期スポーツイベント":"開会宣言","中継局":"電波","アメリカ合衆国の市":"ダウンタウン","古墳":"前方後円","かつての鉄道駅":"廃線の記憶","野球チームのシーズン":"マジック点灯","競馬 (広義)":"叩き合い","道の駅":"ご当地ソフト","ライトノベルシリーズ":"長いタイトル","ウェブサイト":"アクセス集中","遺跡":"発掘","航空会社":"機内アナウンス","スポーツ競技大会":"決勝戦","航空機ファミリー":"離陸","航空機の型式":"離陸","町":"町内会","日本の町":"町内会","正の整数":"素因数分解","美術館":"特別展","博物館":"特別展","賞":"受賞スピーチ","空港":"ターミナル","国際空港":"ターミナル","ホテル":"モーニングコール","野球チーム":"応援歌","都市の地区":"路地裏","元号":"改元","超高層建築物":"展望台","機関車の型式":"汽笛","音楽劇":"カーテンコール","舞台作品":"カーテンコール","スタジアム":"満員の歓声","サッカースタジアム":"満員の歓声","野球場施設":"満員の歓声","街路":"並木道","言語":"文法攻撃","自然言語":"文法攻撃","恒星":"超新星爆発","ブランド":"ロゴマーク","携帯電話の機種":"着信音","スマートフォンの機種":"着信音","定理":"証明","路面電車停留場":"チンチン","コンピュータゲームシリーズ":"シリーズ最新作","アニメーション映画":"エンドロール","アニメ映画":"エンドロール","テレビ映画":"エンドロール","日本の市":"ご当地キャラ","犬種":"お手","峠":"つづら折り","ロック・バンド":"ギターソロ","マスコット・キャラクター":"ゆるキャラ突進","フィギュアスケート競技会":"採点","図書館":"返却期限","大型船舶":"接岸","劇団":"旗揚げ公演","ダム":"放流","湖":"湖畔の霧","劇場":"開演ブザー","新聞":"号外","遺伝子":"突然変異","藩":"参勤交代","パチンコ":"確変","鉱物種":"結晶","山脈":"連峰","女性アイドルグループ":"センター争い","潜水艦":"急速潜航","ソフトウェア":"アップデート","自由ソフトウェア":"アップデート","レコードレーベル":"新譜","音楽のジャンル":"ジャンル分け","建築物":"定礎","都市公園":"噴水","商品の型式":"新製品発表","専門学校":"実技試験","短期大学":"単位認定","特別支援学校":"チャイム","日本の中高一貫校":"校内放送","叢書":"全巻揃い","コミュニティバス":"ワンマン運転","テレビ放送枠":"視聴率","総合格闘技大会":"ゴング","表彰式":"受賞スピーチ","レーシングカーの型式":"ピットイン","コンパクト盤":"A面B面"}};
+function mvName(p){ for(const m of p){ const n=m[1]==='本業'?MVN.job[m[2]]:m[1]==='正体開示'?MVN.cls[m[2]]:null; if(n) m[8]=n; } return p; }
+function pickMoves(i,j){""")
+repall(".replace(/\\{N\\}/g,mv?mv[1]:'')", ".replace(/\\{N\\}/g,mv?(mv[8]||mv[1]):'')")
+repall("return [e.mv[1],e.mv[0]];", "return [e.mv[8]||e.mv[1],e.mv[0]];")
+repall("const mv=l.mv&&l.mv[1];", "const mv=l.mv&&(l.mv[8]||l.mv[1]);")
+
+# ---- 122. 技の選び方：記事固有の技を優先する（2026-11-22。過去の王座戦の記録とずれてよいと決めた）
+#   ・ページの数字の技（閲覧数・リンク数・文字数・画像数・カテゴリ数・見出し数・外部リンクなど）は、まず1人1つまで。記事固有の技で4つ埋まらないときだけ足す
+#   ・職業・分類の名前が付いた技（フルスイング・噴火など）は、汎用の技として下げずに少し上げる
+repall("    const isG=GENN.has(m[1]); if(isG) s-=m[1]==='外部リンク渡り'?1.5:0.6;\n    cand.push({m,s,meta:m[7]==='meta',wp:m[7]==='wp',gen:isG}); }", "    const isG=GENN.has(m[1])&&!m[8]; if(isG) s-=m[1]==='外部リンク渡り'?1.5:0.6; if(m[8]) s+=1;\n    cand.push({m,s,meta:m[7]==='meta',wp:m[7]==='wp',gen:isG}); }")
+repall("  for(const c of cand){ const g=c.meta?'meta':c.wp?'wp':c.gen?'gen':c.m[0]; if(cap[g]!==undefined){ if((used[g]||0)>=cap[g]) continue; used[g]=(used[g]||0)+1; } out.push(c.m); if(out.length>=4) break; }", r"""  const isPage=c=>c.meta||c.wp||c.m[1]==='外部リンク渡り'; let pg=0; const rest=[];
+  const take=c=>{ const g=c.meta?'meta':c.wp?'wp':c.gen?'gen':c.m[0]; if(cap[g]!==undefined){ if((used[g]||0)>=cap[g]) return false; used[g]=(used[g]||0)+1; } out.push(c.m); return true; };
+  for(const c of cand){ if(out.length>=4) break; if(isPage(c)&&pg>=1){ rest.push(c); continue; } if(take(c)&&isPage(c)) pg++; }
+  for(const c of rest){ if(out.length>=4) break; take(c); }""")
+
+# ---- 123. 試合前の技の一覧・技の候補にも、職業・分類の技の名前を出す
+repall("pickMoves(ai,bi).map(m=>`<span>${esc(m[1])", "pickMoves(ai,bi).map(m=>`<span>${esc(m[8]||m[1])")
+repall("pickMoves(bi,ai).map(m=>`<span>${esc(m[1])", "pickMoves(bi,ai).map(m=>`<span>${esc(m[8]||m[1])")
+repall("POOL[i].map(m=>`<li><span class=\"mn\">${esc(m[1])", "POOL[i].map(m=>`<li><span class=\"mn\">${esc(m[8]||m[1])")
+repall("POOL[i].slice(0,3).map(m=>m[1])", "POOL[i].slice(0,3).map(m=>m[8]||m[1])")
+
+# ---- 124. 技図鑑。試合で見た技が図鑑に載っていく
+#   ・目録は data/movedex.json（[技名, 種類, 出やすさ 0ふつう・1めずらしい・2激レア]。記事14万件の見本から作った381種類）
+#   ・見た技はこの端末に記録する（サーバーには送らない）。初めて見た技は、カットインと実況に「はじめて！」を出す
+#   ・自分の記録の下に「技図鑑を見る」と集まり具合。図鑑は種類ごとに並べ、まだ見ていない技は「？？？」（出やすさで枠の色を変える）
+repall("const fxHit=idx=>{", r"""const dexRec=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai||!l.mv) return false; if(an.type==='kurabe'&&l.mv[0]==='K') return false; return dexSee(l.mv[8]||l.mv[1]); };
+  const fxHit=(idx,isNew)=>{""")
+repall("setHP(k); trSync(k); fxHit(k); fxKind(k);", "setHP(k); trSync(k); { const nw=dexRec(k); if(nw){ const b=items[k].querySelector('.bub'); if(b) b.insertAdjacentHTML('afterbegin','<span class=\"dexnewl\">はじめて見た技</span>'); } fxHit(k,nw); } fxKind(k);")
+repall("c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！'", "c.innerHTML='<span>'+(isNew?'<i class=\"dexnew\">はじめて！</i>':'')+(big?'<small>必殺</small>':'')+esc(mv)+'！'")
+repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); trSync(items.length-1,true);", "while(k<items.length){ items[k].classList.remove('hide'); dexRec(k); k++; } setHP(items.length-1); trSync(items.length-1,true);")
+repall("<span class=\"st\"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>`; }", r"""<span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div><div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div>`; dexBind(); }
+const DEX_KEY='hk-mvdex';
+function dexGet(){ try{ const d=JSON.parse(localStorage.getItem(DEX_KEY)||'{}'); return d&&typeof d==='object'?d:{}; }catch(_){ return {}; } }
+function dexSee(nm){ if(!nm) return false; const d=dexGet(); const nw=!d[nm]; d[nm]=(d[nm]||0)+1; try{ localStorage.setItem(DEX_KEY,JSON.stringify(d)); }catch(_){} if(nw) setTimeout(dexBind,0); return nw; }
+let DEXCAT=null; const dexCat=()=>DEXCAT||(DEXCAT=fetch('data/movedex.json?v=1').then(r=>r.ok?r.json():[]).catch(()=>[]));
+function dexBind(){ const b=$('#dexbtn'); if(!b) return; b.onclick=dexOpen; dexCat().then(c=>{ const d=dexGet(), n=c.filter(x=>d[x[0]]).length, p=$('#dexp'); if(p) p.textContent=n+'／'+c.length+'種類'; }); }
+function dexOpen(){ dexCat().then(c=>{ const d=dexGet(); let dl=$('#dexdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='dexdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','技図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
+    const K=[['STRIKE','打撃'],['SUMMON','召喚'],['MULTI','連撃'],['GUARD','守り'],['HEAL','回復'],['BIND','縛る'],['SLOW','鈍らせる'],['HASTE','速さ'],['*','そのほか']], T=['ふつう','めずらしい','激レア'];
+    const kOf=x=>K.some(y=>y[0]===x[1])?x[1]:'*';
+    let F={k:'',s:'got'}; try{ F={...F,...JSON.parse(localStorage.getItem('hk-dexf')||'{}')}; }catch(_){}   /* 絞り込み（この端末で覚える）。最初は「見た技」だけ */
+    const got=c.filter(x=>d[x[0]]).length, rare=c.filter(x=>x[2]===2&&d[x[0]]).length, rareAll=c.filter(x=>x[2]===2).length;
+    const chip=(grp,v,lab,n)=>`<button type="button" class="btn small dexf${F[grp]===v?' on':''}" data-g="${grp}" data-v="${v}" aria-pressed="${F[grp]===v}">${lab}${n!==undefined?`<small>${n}</small>`:''}</button>`;
+    const pass=x=>(!F.k||kOf(x)===F.k)&&(F.s==='all'||(F.s==='got'&&d[x[0]])||(F.s==='not'&&!d[x[0]])||(F.s==='rare'&&x[2]===2));
+    const L=c.filter(pass).sort((a,b)=>(d[b[0]]?1:0)-(d[a[0]]?1:0));
+    const item=x=>d[x[0]]?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0])}</b><small>${d[x[0]]}回・${T[x[2]]}</small></li>`:`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${(K.find(y=>y[0]===kOf(x))||[])[1]||''}・${T[x[2]]}</small></li>`;
+    const body=!L.length?`<p class="fsub">${F.s==='got'?'まだ見た技がありません。試合を観戦すると、ここに載っていきます':'該当する技はありません'}</p>`
+      :F.k?`<ul>${L.map(item).join('')}</ul>`:K.map(([k,lab])=>{ const M=L.filter(x=>kOf(x)===k); return M.length?`<h3>${lab}<small>${M.length}</small></h3><ul>${M.map(item).join('')}</ul>`:''; }).join('');
+    dl.innerHTML=`<div class="dexh"><h2>技図鑑</h2><button type="button" class="btn small" id="dexclose">閉じる</button></div>
+      <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>
+      <div class="dexfl">${chip('s','got','見た技',got)}${chip('s','not','まだ',c.length-got)}${chip('s','rare','激レア',rareAll)}${chip('s','all','すべて',c.length)}</div>
+      <div class="dexfl dexk">${chip('k','','全系統')}${K.map(([k,lab])=>{ const A=c.filter(x=>kOf(x)===k); return chip('k',k,lab,A.filter(x=>d[x[0]]).length+'／'+A.length); }).join('')}</div>
+      <div class="dexlist">${body}</div>`;
+    dl.querySelectorAll('.dexf').forEach(b=>b.onclick=()=>{ F[b.dataset.g]=b.dataset.v; try{ localStorage.setItem('hk-dexf',JSON.stringify(F)); }catch(_){} dexOpen(); });
+    $('#dexclose').onclick=()=>dl.close(); if(!dl.open){ dl.showModal(); dl.scrollTop=0; } }); }""")
+repall(".morebox{margin-top:8px}", r""".dexrow{display:flex;align-items:center;gap:10px;margin-top:10px}.dexp{font-size:13px;color:var(--muted)}
+.dexdlg{width:min(560px,calc(100% - 24px));max-height:86vh;border:none;border-radius:12px;padding:16px;background:var(--bg);color:inherit}.dexdlg::backdrop{background:rgba(0,0,0,.55)}
+.dexh{display:flex;align-items:center;justify-content:space-between;gap:10px}.dexh h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:24px}
+.dexsum{margin-top:8px;font-size:14px}.dexsum b{font-family:var(--f-display);font-size:26px;font-weight:400}.dexsum span{margin-left:12px;color:#b38f00;font-weight:700}
+.dexbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 4px}.dexbar i{display:block;height:100%;background:var(--hl)}
+.dexfl{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.dexfl.dexk{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}.dexfl .btn{flex:none;opacity:.6}.dexfl .btn.on{opacity:1;background:#111;color:#fff}.dexfl .btn small{margin-left:5px;font-size:11px;opacity:.8}
+.dexlist{margin-top:4px}
+.dexdlg h3{display:flex;align-items:baseline;gap:8px;margin:16px 0 6px;font-size:15px}.dexdlg h3 small{color:var(--muted);font-weight:400}
+.dexdlg ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.dexdlg li{border:2px dashed var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:1px;min-height:44px;justify-content:center}
+.dexdlg li b{font-size:13px;line-height:1.3}.dexdlg li small{font-size:11px;color:var(--muted)}
+.dexdlg li.got{border-style:solid;border-color:#111;background:#fff;box-shadow:2px 2px 0 rgba(0,0,0,.15)}.dexdlg li.t1{border-color:#7b9be0}.dexdlg li.t1.got{border-color:#2357ff}.dexdlg li.t2{border-color:#e0c25a}.dexdlg li.t2.got{border-color:#b38f00;background:linear-gradient(135deg,#fff8d6,#fff)}
+.dexnew{display:block;font-style:normal;font-family:var(--f-display);font-size:12px;color:#111;background:#7dff7a;border:2px solid #111;border-radius:3px;padding:0 6px;margin:0 0 4px;-webkit-text-stroke:0;text-shadow:none;width:max-content}
+.dexnewl{display:inline-block;font-size:11px;font-weight:700;color:#0a5c0a;background:#d9ffd6;border:1px solid #0a5c0a;border-radius:3px;padding:0 5px;margin-bottom:4px}
+.morebox{margin-top:8px}""")
+
+# ---- 125. 称号。遊んだ記録から称号がもらえる（25種類。この端末に記録し、サーバーには送らない）
+#   ・観戦数・番狂わせ・連勝・技図鑑・今日の一戦の的中・必殺技・引き分け・深夜の観戦など
+#   ・試合が終わるたびに調べ、新しく取ったら画面の下に「称号ゲット！」を出す。開いたときに条件を満たしていたものは、黙って付ける
+#   ・自分の記録の下に「称号を見る」と取った数。一覧では、取っていない称号も名前と条件を出す（目標が見えるように）
+repall("<div class=\"dexrow\"><button type=\"button\" class=\"btn small\" id=\"dexbtn\">技図鑑を見る</button><span class=\"dexp\" id=\"dexp\"></span></div>`; dexBind(); }", r"""<div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div><div class="dexrow"><button type="button" class="btn small" id="achbtn">称号を見る</button><span class="dexp" id="achp"></span></div>`; dexBind(); achBind(); }
+const ACH_KEY='hk-ach';
+function achGet(){ try{ const a=JSON.parse(localStorage.getItem(ACH_KEY)||'{}'); return {got:{},fl:{},...(a&&typeof a==='object'?a:{})}; }catch(_){ return {got:{},fl:{}}; } }
+function achPut(a){ try{ localStorage.setItem(ACH_KEY,JSON.stringify(a)); }catch(_){} }
+function achFlag(k){ const a=achGet(); if(!a.fl[k]){ a.fl[k]=1; achPut(a); } }
+const ACHS=[
+ ['b1','初観戦','試合を1つ観戦した',s=>s.b>=1],['b10','常連客','試合を10観戦した',s=>s.b>=10],['b50','かぶりつき','試合を50観戦した',s=>s.b>=50],['b100','百科の虫','試合を100観戦した',s=>s.b>=100],['b500','生き字引','試合を500観戦した',s=>s.b>=500],
+ ['u1','波乱の目撃者','番狂わせを1回見た',s=>s.u>=1],['u10','荒れる会場','番狂わせを10回見た',s=>s.u>=10],['u50','下馬評クラッシャー','番狂わせを50回見た',s=>s.u>=50],
+ ['s5','連勝街道','5連勝を見た',s=>s.best>=5],['s10','無敵の目撃者','10連勝を見た',s=>s.best>=10],
+ ['d10','技マニア見習い','技図鑑を10種類集めた',s=>s.dex>=10],['d50','技マニア','技図鑑を50種類集めた',s=>s.dex>=50],['d100','技博士','技図鑑を100種類集めた',s=>s.dex>=100],['d200','技の生き字引','技図鑑を200種類集めた',s=>s.dex>=200],
+ ['r1','激レアハンター','激レアの技を1つ見た',s=>s.rare>=1],['r10','激レア収集家','激レアの技を10種類見た',s=>s.rare>=10],['r30','激レア王','激レアの技を30種類見た',s=>s.rare>=30],
+ ['kd','全系統制覇','打撃・召喚・連撃・守り・回復・縛る・鈍らせる・速さの技を、それぞれ1つ以上見た',s=>s.kinds>=8],
+ ['big','ド派手好き','とどめの必殺技を見た',s=>s.fl.big],['draw','痛み分け','引き分けを見た',s=>s.fl.draw],['night','深夜の観戦者','夜中の0時から4時に観戦した',s=>s.fl.night],
+ ['t1','予想屋デビュー','今日の一戦の予想を1回当てた',s=>s.th>=1],['t10','予想屋','今日の一戦の予想を10回当てた',s=>s.th>=10],['ts3','三連単','今日の一戦の予想を3日続けて当てた',s=>s.ts>=3],['ts7','千里眼','今日の一戦の予想を7日続けて当てた',s=>s.ts>=7]];
+async function achState(){ const c=await dexCat(), d=dexGet(), a=achGet(); const seen=c.filter(x=>d[x[0]]);
+  let th=0, ts=0; try{ const o=JSON.parse(localStorage.getItem('hk_today')||'{}')||{}; const days=Object.keys(o).filter(k=>o[k]&&o[k].hit).sort(); th=days.length; let run=0, prev=null; for(const k of days){ const t=Date.parse(k); run=prev!==null&&t-prev===864e5?run+1:1; prev=t; ts=Math.max(ts,run); } }catch(_){}
+  return {b:rec.battles,u:rec.upsets,best:rec.best,dex:seen.length,rare:seen.filter(x=>x[2]===2).length,kinds:new Set(seen.map(x=>x[1]).filter(k=>['STRIKE','SUMMON','MULTI','GUARD','HEAL','BIND','SLOW','HASTE'].includes(k))).size,fl:a.fl,th,ts}; }
+async function achCheck(loud){ const st=await achState(), a=achGet(), now=new Date().toISOString().slice(0,10), nw=[];
+  for(const [id,nm,,t] of ACHS) if(!a.got[id]&&t(st)){ a.got[id]=now; nw.push(nm); }
+  if(nw.length){ achPut(a); if(loud) achToast(nw); } achBind(); }
+function achToast(L){ const t=document.createElement('div'); t.className='achtoast'; t.innerHTML='<small>称号ゲット！</small>'+L.map(n=>'<b>「'+esc(n)+'」</b>').join(''); document.body.append(t); setTimeout(()=>t.remove(),3800); }
+function achBind(){ const b=$('#achbtn'); if(!b) return; b.onclick=achOpen; const a=achGet(), p=$('#achp'); if(p) p.textContent=Object.keys(a.got).filter(k=>ACHS.some(x=>x[0]===k)).length+'／'+ACHS.length; }
+function achOpen(){ const a=achGet(); let dl=$('#achdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='achdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','称号'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
+  const got=ACHS.filter(x=>a.got[x[0]]).length;
+  dl.innerHTML=`<div class="dexh"><h2>称号</h2><button type="button" class="btn small" id="achclose">閉じる</button></div><div class="dexsum"><b>${got}</b>／${ACHS.length}</div><div class="dexbar"><i style="width:${(got/ACHS.length*100).toFixed(1)}%"></i></div>
+    <ul class="achl">${ACHS.map(([id,nm,cd])=>`<li class="${a.got[id]?'got':''}"><b>${esc(nm)}</b><small>${esc(cd)}${a.got[id]?'（'+esc(a.got[id].slice(5).replace('-','/'))+'）':''}</small></li>`).join('')}</ul>`;
+  $('#achclose').onclick=()=>dl.close(); if(!dl.open) dl.showModal(); dl.scrollTop=0; }
+setTimeout(()=>achCheck(false),1500);""")
+repall("function showResult(){", r"""function showResult(){ try{ const h=new Date().getHours(); if(h<4) achFlag('night'); if(current&&current.an&&current.an.r&&current.an.r.w===null) achFlag('draw'); setTimeout(()=>achCheck(true),1800); }catch(_){}""")
+repall("if(big&&!reduce){ ring.classList.remove('flash');", "if(big&&tgtHp<=0) achFlag('big'); if(big&&!reduce){ ring.classList.remove('flash');")
+repall(".morebox{margin-top:8px}", r""".achl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}.achl li{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:2px dashed var(--line);border-radius:8px;opacity:.75}.achl li b{font-size:14px}.achl li small{font-size:12px;color:var(--muted)}
+.achl li.got{opacity:1;border-style:solid;border-color:#111;background:linear-gradient(135deg,#fff8d6,#fff);box-shadow:2px 2px 0 rgba(0,0,0,.15)}.achl li.got b::before{content:'★ ';color:#b38f00}
+.achtoast{position:fixed;left:50%;bottom:22px;z-index:70;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 20px;background:var(--hl);color:#111;border:3px solid #111;border-radius:10px;box-shadow:4px 4px 0 #111;font-family:var(--f-display);pointer-events:none;animation:achIn 3.8s cubic-bezier(.3,1.5,.5,1) both;max-width:calc(100% - 32px);text-align:center}
+.achtoast small{font-size:12px;letter-spacing:.1em}.achtoast b{font-weight:400;font-size:18px}
+@keyframes achIn{0%{transform:translate(-50%,30px) scale(.6);opacity:0}8%{transform:translate(-50%,0) scale(1.08);opacity:1}14%{transform:translate(-50%,0) scale(1)}88%{opacity:1}100%{opacity:0;transform:translate(-50%,10px)}}
+.morebox{margin-top:8px}""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
