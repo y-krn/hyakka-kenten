@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -37,3 +37,14 @@ jobs:
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%Y-%W', datetime(at, '+9 hours')) AS wk, SUM(n) AS n, SUM(kt) AS t, SUM(km) AS m, SUM(kf) AS f, SUM(kd) AS d, COUNT(DISTINCT COALESCE(client, iphash)) AS u FROM plays WHERE at >= '2026-10-20' GROUP BY wk ORDER BY wk"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%Y-%W', datetime(at, '+9 hours')) AS wk, COUNT(*) AS ch, COUNT(DISTINCT COALESCE(client, iphash)) AS u FROM challenges WHERE result <> 'late' AND at >= '2026-10-20' GROUP BY wk ORDER BY wk"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%Y-%W', datetime(at, '+9 hours')) AS wk, COUNT(DISTINCT client) AS v, COUNT(DISTINCT CASE WHEN fresh = 1 THEN client END) AS nw FROM visits GROUP BY wk ORDER BY wk"
+      - name: アクセス解析（日ごとの来訪・来た元・遊んだ割合・再訪・時間帯・遊んだ数の分布）
+        if: inputs.what == 'アクセス解析'
+        run: |
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT day, COUNT(*) AS v, SUM(fresh) AS nw, SUM(mob) AS mob, SUM(CASE WHEN ref IS NOT NULL THEN 1 ELSE 0 END) AS rf FROM visits GROUP BY day ORDER BY day"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT COALESCE(ref, '(なし)') AS ref, COUNT(*) AS v, SUM(fresh) AS nw FROM visits GROUP BY ref ORDER BY v DESC LIMIT 25"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT v.day, COUNT(*) AS v, SUM(CASE WHEN EXISTS (SELECT 1 FROM plays p WHERE p.client = v.client AND date(datetime(p.at, '+9 hours')) = v.day) THEN 1 ELSE 0 END) AS played, SUM(CASE WHEN v.fresh = 1 AND EXISTS (SELECT 1 FROM plays p WHERE p.client = v.client AND date(datetime(p.at, '+9 hours')) = v.day) THEN 1 ELSE 0 END) AS nw_played FROM visits v GROUP BY v.day ORDER BY v.day"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT COALESCE(v.ref, '(なし)') AS ref, v.mob, COUNT(*) AS v, SUM(CASE WHEN EXISTS (SELECT 1 FROM plays p WHERE p.client = v.client AND date(datetime(p.at, '+9 hours')) = v.day) THEN 1 ELSE 0 END) AS played FROM visits v GROUP BY ref, v.mob ORDER BY v DESC LIMIT 20"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT days, COUNT(*) AS clients FROM (SELECT client, COUNT(*) AS days FROM visits GROUP BY client) GROUP BY days ORDER BY days"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT strftime('%H', datetime(at, '+9 hours')) AS h, COUNT(*) AS v FROM visits GROUP BY h ORDER BY h"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT date(datetime(at, '+9 hours')) AS day, COUNT(*) AS sends, SUM(n) AS n, COUNT(DISTINCT client) AS c FROM plays WHERE at >= '2026-11-10' GROUP BY day ORDER BY day"
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT x.n AS battles, COUNT(*) AS clients FROM (SELECT client, SUM(n) AS n FROM plays WHERE client IS NOT NULL AND at >= '2026-11-15' GROUP BY client) x GROUP BY x.n ORDER BY x.n LIMIT 30"
