@@ -1117,7 +1117,7 @@ function dexBind(){ const b=$('#dexbtn'); if(!b) return; b.onclick=dexOpen; dexC
 function dexOpen(){ dexCat().then(c=>{ const d=dexGet(); let dl=$('#dexdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='dexdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','技図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
     const K=[['STRIKE','打撃'],['SUMMON','召喚'],['MULTI','連撃'],['GUARD','守り'],['HEAL','回復'],['BIND','縛る'],['SLOW','鈍らせる'],['HASTE','速さ'],['*','そのほか']], T=['ふつう','めずらしい','激レア'];
     const got=c.filter(x=>d[x[0]]).length, rare=c.filter(x=>x[2]===2&&d[x[0]]).length, rareAll=c.filter(x=>x[2]===2).length;
-    const sec=K.map(([k,lab])=>{ const L=c.filter(x=>k==='*'?!K.some(y=>y[0]===x[1]):x[1]===k); if(!L.length) return ''; const g=L.filter(x=>d[x[0]]).length;
+    const sec=K.map(([k,lab])=>{ const L=c.filter(x=>k==='*'?!K.some(y=>y[0]===x[1]):x[1]===k).sort((a,b)=>(d[b[0]]?1:0)-(d[a[0]]?1:0)); if(!L.length) return '';   /* 見た技を先に */ const g=L.filter(x=>d[x[0]]).length;
       return `<h3>${lab}<small>${g}／${L.length}</small></h3><ul>${L.map(x=>d[x[0]]?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0])}</b><small>${d[x[0]]}回</small></li>`:`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${T[x[2]]}</small></li>`).join('')}</ul>`; }).join('');
     dl.innerHTML=`<div class="dexh"><h2>技図鑑</h2><button type="button" class="btn small" id="dexclose">閉じる</button></div>
       <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>${sec}`;
