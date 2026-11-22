@@ -2381,7 +2381,7 @@ repall(".cutin{position:absolute;", r""".fxheal{position:absolute;top:-6px;font-
 .fxcmp .w{font-size:26px;color:var(--hl-ink);background:var(--hl);padding:2px 8px;border-radius:4px}.fxcmp .v{font-size:14px;color:var(--muted)}.fxcmp .l{font-size:15px;color:var(--muted)}.fxcmp.B{flex-direction:row-reverse}
 @keyframes cmp{0%{transform:scale(.6);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
 .log li.kai{display:flex;align-items:flex-start;gap:8px}.log li.kai .t{display:none}.log li.kai::before{content:'解説';flex:none;font-size:11px;font-weight:700;color:#fff;background:#555;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
-.log li.kai .bub{position:relative;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--ink,#222);font-weight:500;box-shadow:none}.log li.kai .bub::before{content:'';position:absolute;left:-7px;top:12px;border:7px solid transparent;border-right-color:var(--line);border-left:0}
+.ring .log li.kai .bub{position:relative;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--ink,#222);font-weight:500;box-shadow:none}.ring .log li.kai .bub::before{content:'';position:absolute;left:-7px;top:12px;border:7px solid transparent;border-right-color:var(--line);border-left:0}
 .cutin{position:absolute;""")
 
 # 確認画面の枠と、使わなくなった表示を消す
