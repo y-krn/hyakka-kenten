@@ -180,12 +180,12 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 @keyframes slowIn{0%{transform:translateY(-40px) scale(1.4) rotate(-6deg);opacity:0}18%{transform:translateY(4px) scale(1,.85) rotate(-3deg);opacity:1}30%{transform:translateY(0) scale(1) rotate(-3deg)}80%{transform:translateY(10px) rotate(-3deg);opacity:1}100%{transform:translateY(18px) rotate(-3deg);opacity:0}}
 .fxslow.bind{animation-name:bindIn}
 @keyframes bindIn{0%{transform:scale(1.6);opacity:0}15%{transform:scale(.92,1.08);opacity:1}22%{transform:scale(1.04,.96) rotate(2deg)}28%,34%{transform:scale(1) rotate(-2deg)}31%,37%{transform:scale(1) rotate(2deg)}42%,80%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(.96);opacity:0}}
-.sb.fxslowed,.sb.fxbound{animation:sbDim 1.5s ease both}.sb.fxslowed::after,.sb.fxbound::after{content:'';position:absolute;inset:-4px -6px;border-radius:8px;pointer-events:none;z-index:5;animation:sbVeil 1.5s ease both}
+.sb.fxslowed>:not(.fxslow),.sb.fxbound>:not(.fxslow){animation:sbDim 1.5s ease both}.sb.fxslowed::after,.sb.fxbound::after{content:'';position:absolute;inset:-4px -6px;border-radius:8px;pointer-events:none;z-index:5;animation:sbVeil 1.5s ease both}
 .sb.fxslowed::after{background:radial-gradient(ellipse at 50% 60%,rgba(91,58,168,.45),rgba(91,58,168,.12) 70%,transparent)}
-.sb.fxbound::after{background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(40,40,52,.75) 9px 12px),repeating-linear-gradient(-45deg,transparent 0 9px,rgba(40,40,52,.75) 9px 12px)}
+.sb.fxbound::after{background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(40,40,52,.55) 12px 14px),repeating-linear-gradient(-45deg,transparent 0 12px,rgba(40,40,52,.55) 12px 14px)}
 @keyframes sbDim{0%,100%{filter:none}15%,75%{filter:grayscale(.7) brightness(.92)}}
 @keyframes sbVeil{0%{opacity:0;transform:scale(1.15)}15%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
-@media (prefers-reduced-motion: reduce){.fxslow,.fxslow.bind,.sb.fxslowed,.sb.fxbound,.sb.fxslowed::after,.sb.fxbound::after{animation:none}}
+@media (prefers-reduced-motion: reduce){.fxslow,.fxslow.bind,.sb.fxslowed>:not(.fxslow),.sb.fxbound>:not(.fxslow),.sb.fxslowed::after,.sb.fxbound::after{animation:none}}
 .fxcmp{position:absolute;left:0;right:0;top:100%;margin-top:54px;display:flex;justify-content:center;align-items:baseline;gap:10px;pointer-events:none;z-index:6;font-family:var(--f-display);animation:cmp .9s ease-out both}
 .fxcmp .w{font-size:26px;color:var(--hl-ink);background:var(--hl);padding:2px 8px;border-radius:4px}.fxcmp .v{font-size:14px;color:var(--muted)}.fxcmp .l{font-size:15px;color:var(--muted)}.fxcmp.B{flex-direction:row-reverse}
 @keyframes cmp{0%{transform:scale(.6);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
