@@ -1286,7 +1286,7 @@ function showResult(){
   if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
   if($('#tofree')&&!M) $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
-  if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };
+  if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; const t=c||$('#today'); t.scrollIntoView({block:'start'}); settleTo(t); };
   { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }
   if($('#again')) $('#again').onclick=async()=>{ streak={idx:null,n:0}; sel[0]=await rnd([]); sel[1]=await rnd([sel[0]]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
   if($('#back')) $('#back').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };

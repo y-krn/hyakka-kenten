@@ -2079,6 +2079,9 @@ repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ const e=document.getElem
 const NOSTAT=(()=>{""")
 repall(".eyebrow{", ".nostat #eyebrow::after{content:'・計測なし'}\n.eyebrow{")
 
+# ---- 115. 「今日の一戦の戦績表へ」を押しても戦績表が見えないことがある（なめらかなスクロールが途中で止まる）。戦績表そのものへ、すぐに移る
+repall("if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };", "if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; const t=c||$('#today'); t.scrollIntoView({block:'start'}); settleTo(t); };")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
