@@ -2427,6 +2427,9 @@ repall(".ring .log li.kai .bub{position:relative;background:var(--card,#fff);bor
 .ring .log li.kai .bub::before{content:'';position:absolute;left:-11px;top:16px;width:18px;height:18px;background:#fff;border-left:2.5px solid #111;border-bottom:2.5px solid #111;border-radius:0 0 0 14px;transform:skewY(-28deg) rotate(10deg)}
 .ring .log li.kai .bub::after{content:'';position:absolute;left:2px;top:14px;width:14px;height:24px;background:#fff}""")
 
+# ---- 120. 実況の左のカウントの数字を出さない（ラウンドと誤解されやすく、今のカウントは点数板の真ん中に出ているため）
+repall(".morebox{margin-top:8px}", ".ring .log li:not(.kai){grid-template-columns:1fr}.ring .log li:not(.kai) .t{display:none}\n.morebox{margin-top:8px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
