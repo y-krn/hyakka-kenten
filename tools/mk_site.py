@@ -2284,13 +2284,14 @@ repall("if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); 
 #   ・方針は「真面目にバカに派手に」：大きな一撃には、受けた側に擬音（ドゴォ！など）を大きく出し、帯に「必殺」の札を付ける
 #   ・端末で「視差効果を減らす」を選んでいる人には、揺れ・光・帯の動きを出さない（帯は動かさずに短く出す）
 repall("  const items=[...ring.querySelectorAll('#log li')]; let k=0;", r"""  const items=[...ring.querySelectorAll('#log li')]; let k=0;
+  const trSync=(idx,now)=>{ const l=r.log[idx]; if(!l||!r.max) return; ['A','B'].forEach((s,j)=>{ const tr=$('#hptr'+s); if(!tr) return; const w=(l.hp[j]/r.max[j]*100)+'%';   // 白い残りは、減ったときは少し遅れて、増えたとき・飛ばしたときはすぐに追いつく
+      if(now||parseFloat(tr.style.width)<=l.hp[j]/r.max[j]*100){ tr.style.transition='none'; tr.style.width=w; void tr.offsetWidth; tr.style.transition=''; } else setTimeout(()=>{ tr.style.width=w; },450); }); };
   ['A','B'].forEach(s=>{ const h=$('#hp'+s); if(h&&h.parentElement){ h.parentElement.classList.add('fxbar'); const t=document.createElement('b'); t.className='hptr'; t.id='hptr'+s; t.style.width='100%'; h.parentElement.prepend(t); } });
   const fxHit=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
     const mv=l.mv&&l.mv[1]; const tgtHp=l.side===0?l.hp[1]:l.hp[0]; const big=l.d>0&&r.max&&(tgtHp<=0||l.d>=r.max[l.side===0?1:0]*0.45);   // 大きな一撃：とどめか、相手の最大HPの45%以上
     if(mv){ sb.querySelectorAll('.cutin').forEach(e=>e.remove()); const c=document.createElement('div'); c.className='cutin '+atk+(big?' big':'')+(reduce?' still':''); c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！</span>'; sb.append(c); setTimeout(()=>c.remove(),big?1100:850); }
     if(l.d>0){ const box=sb.querySelector('.sb.'+def); if(box){ if(!reduce){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
         const n=document.createElement('span'); n.className='dmgfly'+(big?' big':''); n.textContent='−'+l.d; box.append(n); setTimeout(()=>n.remove(),900); }
-      const tr=$('#hptr'+def); if(tr&&r.max){ const hp=def==='A'?l.hp[0]:l.hp[1], mx=def==='A'?r.max[0]:r.max[1]; setTimeout(()=>{ tr.style.width=(hp/mx*100)+'%'; },450); }
       if(big&&!reduce){ ring.classList.remove('flash'); void ring.offsetWidth; ring.classList.add('flash');
         const box2=sb.querySelector('.sb.'+def); if(box2){ const o=document.createElement('span'); o.className='onom'; o.textContent=['ドゴォ！','バキィ！','ズドン！','ドーン！','メキィ！','グシャァ！'][(idx*7+l.d)%6]; box2.append(o); setTimeout(()=>o.remove(),1000); } } } };""")
 repall("items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k);", "items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); fxHit(k);")
@@ -2331,7 +2332,7 @@ repall("  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult
     s.className='kostamp'+(r.w===null?' draw':up?' up':''); s.textContent=r.w===null?'引き分け':up?'番狂わせ！':'決着！'; sb.append(s); };
   const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
     if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; }""")
-repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult();", "while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); stamp(); showResult();")
+repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult();", "while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); trSync(items.length-1,true); stamp(); showResult();")
 repall(".cutin{position:absolute;", r""".ring{position:relative}
 .intro{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:none;background:#05081a;animation:inOut 1.9s ease both}
 .inwrap{position:absolute;inset:0;animation:inShake .4s .62s ease-out both}
@@ -2380,7 +2381,7 @@ repall("  const step=()=>{ if(k===finIdx", r"""  ring.querySelectorAll('#log li.
     else if(kd==='SLOW'||kd==='BIND') add(D,'fxslow','鈍った…',1200);
     else if(an.type==='kurabe'&&kd==='K'){ const m=desc.match(/：(.+?) 対 (.+)$/); if(m){ const c=document.createElement('div'); c.className='fxcmp '+atk; c.innerHTML='<span class="w">'+esc(m[1])+'</span><span class="v">対</span><span class="l">'+esc(m[2])+'</span>'; sb.querySelectorAll('.fxcmp').forEach(e=>e.remove()); sb.append(c); setTimeout(()=>c.remove(),900); } } };
   const step=()=>{ if(k===finIdx""")
-repall("setHP(k); fxHit(k);", "setHP(k); fxHit(k); fxKind(k);")
+repall("setHP(k); fxHit(k);", "setHP(k); trSync(k); fxHit(k); fxKind(k);")
 repall(".cutin{position:absolute;", r""".fxheal{position:absolute;top:-6px;font-family:var(--f-display);font-size:22px;color:#1a9b4b;-webkit-text-stroke:1px #fff;paint-order:stroke fill;pointer-events:none;animation:dfly 1.1s ease-out both}.sb.A .fxheal{left:30%}.sb.B .fxheal{right:30%}
 .fxsum{position:absolute;top:-58px;display:flex;align-items:center;gap:6px;background:var(--card,#fff);border:2px solid #111;border-radius:6px;padding:4px 8px;box-shadow:0 3px 0 rgba(0,0,0,.25);white-space:nowrap;max-width:80vw;pointer-events:none;z-index:7;animation:sumDrop 1.3s cubic-bezier(.3,1.4,.5,1) both}.sb.A .fxsum{left:0}.sb.B .fxsum{right:0}
 .fxsum b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.fxsum i{font-style:normal;font-family:var(--f-display);font-size:13px;color:#fff;background:var(--b);border-radius:3px;padding:1px 6px;transform:rotate(-8deg)}

@@ -1292,13 +1292,14 @@ function startBattle(pair){
   <div id="res"></div>${FN.length?`<div class="fnl" id="fnl" hidden><h3>脚注</h3><ol>${FN.map((x,n)=>`<li id="fn${n+1}"><a class="fnb" href="#fnr${n+1}" aria-label="本文に戻る">^</a> <span class="fnc">${x.nt?`<span class="fnn">${esc(x.t)}。${esc(x.nt)}</span> `:''}“<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[x.who][1])}" target="_blank" rel="noopener">${esc(F[x.who][0])}</a>”. ${x.nt?'':esc(x.t)+'. '}${/^記事には/.test(x.nt||'')?'日本語版Wikipedia（CC BY-SA 4.0）':fnSrc(x.t)==='Wikidata'&&F[x.who][2]?`<a href="https://www.wikidata.org/wiki/${esc(F[x.who][2])}" target="_blank" rel="noopener">Wikidata ${esc(F[x.who][2])}</a>`:fnSrc(x.t)}${fnAsof?' ('+fnAsof[1]+'時点)':''}.</span></li>`).join('')}</ol></div>`:''}`;
   ring.scrollIntoView({behavior:'smooth',block:'start'}); settleTo(ring);
   const items=[...ring.querySelectorAll('#log li')]; let k=0;
+  const trSync=(idx,now)=>{ const l=r.log[idx]; if(!l||!r.max) return; ['A','B'].forEach((s,j)=>{ const tr=$('#hptr'+s); if(!tr) return; const w=(l.hp[j]/r.max[j]*100)+'%';   // 白い残りは、減ったときは少し遅れて、増えたとき・飛ばしたときはすぐに追いつく
+      if(now||parseFloat(tr.style.width)<=l.hp[j]/r.max[j]*100){ tr.style.transition='none'; tr.style.width=w; void tr.offsetWidth; tr.style.transition=''; } else setTimeout(()=>{ tr.style.width=w; },450); }); };
   ['A','B'].forEach(s=>{ const h=$('#hp'+s); if(h&&h.parentElement){ h.parentElement.classList.add('fxbar'); const t=document.createElement('b'); t.className='hptr'; t.id='hptr'+s; t.style.width='100%'; h.parentElement.prepend(t); } });
   const fxHit=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
     const mv=l.mv&&l.mv[1]; const tgtHp=l.side===0?l.hp[1]:l.hp[0]; const big=l.d>0&&r.max&&(tgtHp<=0||l.d>=r.max[l.side===0?1:0]*0.45);   // 大きな一撃：とどめか、相手の最大HPの45%以上
     if(mv){ sb.querySelectorAll('.cutin').forEach(e=>e.remove()); const c=document.createElement('div'); c.className='cutin '+atk+(big?' big':'')+(reduce?' still':''); c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！</span>'; sb.append(c); setTimeout(()=>c.remove(),big?1100:850); }
     if(l.d>0){ const box=sb.querySelector('.sb.'+def); if(box){ if(!reduce){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
         const n=document.createElement('span'); n.className='dmgfly'+(big?' big':''); n.textContent='−'+l.d; box.append(n); setTimeout(()=>n.remove(),900); }
-      const tr=$('#hptr'+def); if(tr&&r.max){ const hp=def==='A'?l.hp[0]:l.hp[1], mx=def==='A'?r.max[0]:r.max[1]; setTimeout(()=>{ tr.style.width=(hp/mx*100)+'%'; },450); }
       if(big&&!reduce){ ring.classList.remove('flash'); void ring.offsetWidth; ring.classList.add('flash');
         const box2=sb.querySelector('.sb.'+def); if(box2){ const o=document.createElement('span'); o.className='onom'; o.textContent=['ドゴォ！','バキィ！','ズドン！','ドーン！','メキィ！','グシャァ！'][(idx*7+l.d)%6]; box2.append(o); setTimeout(()=>o.remove(),1000); } } } };
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
@@ -1327,7 +1328,7 @@ function startBattle(pair){
     else if(kd==='SLOW'||kd==='BIND') add(D,'fxslow','鈍った…',1200);
     else if(an.type==='kurabe'&&kd==='K'){ const m=desc.match(/：(.+?) 対 (.+)$/); if(m){ const c=document.createElement('div'); c.className='fxcmp '+atk; c.innerHTML='<span class="w">'+esc(m[1])+'</span><span class="v">対</span><span class="l">'+esc(m[2])+'</span>'; sb.querySelectorAll('.fxcmp').forEach(e=>e.remove()); sb.append(c); setTimeout(()=>c.remove(),900); } } };
   const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
-    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); fxHit(k); fxKind(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
+    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); trSync(k); fxHit(k); fxKind(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));
   const noIntro=reduce||(current.orig&&current.orig.k==='dg');
@@ -1337,7 +1338,7 @@ function startBattle(pair){
   else { const o=document.createElement('div'); o.className='intro';
     o.innerHTML=`<div class="inwrap"><div class="inbg"></div><div class="inA"><span class="cn">青コーナー</span><b>${esc(F[ai][0])}</b>${subOf(ai)?`<small>${esc(subOf(ai))}</small>`:''}</div><div class="inB"><span class="cn">赤コーナー</span><b>${esc(F[bi][0])}</b>${subOf(bi)?`<small>${esc(subOf(bi))}</small>`:''}</div><div class="inslash"></div><div class="inring"></div><div class="invs">VS</div><div class="inflash"></div></div>`;
     document.body.append(o); introT=setTimeout(begin,1900); }
-  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); } clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); stamp(); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
+  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); } clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); trSync(items.length-1,true); stamp(); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
 }
 function showResult(){
   if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   /* 脚注は決着のあとに出す（同じ行に続きがあるので // は使わない） */ if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
