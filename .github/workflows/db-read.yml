@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -53,3 +53,8 @@ jobs:
         run: |
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT datetime(at, '+9 hours') AS jst, mob, fresh, ref, land FROM visits WHERE day = date('now', '+9 hours') ORDER BY at"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT datetime(at, '+9 hours') AS jst, n, kt, kd, kf, km FROM plays WHERE at >= datetime(date('now', '+9 hours'), '-9 hours') ORDER BY at"
+      - name: 王座戦の記録（挑戦者・王者・結果。名前などは出さない）
+        if: inputs.what == '王座戦の記録'
+        run: |
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT c.id, c.title AS ch, r.title AS champ, c.result FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.result <> 'late' ORDER BY c.id" > /tmp/ch.json
+          node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/ch.json','utf8'));console.log('CHJSON'+JSON.stringify(j[0].results))"
