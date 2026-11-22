@@ -1,0 +1,39 @@
+# 今日の一戦の共有画像を作って、サーバーに預ける
+#  - 毎日 0時5分ごろ（日本時間）。GitHub の定期実行は遅れることがあるので、3時5分ごろにもう一度作り直す
+#  - 手動でも実行でき、プレビュー版で試すこともできる
+#  必要な設定: Secrets の ADMIN_TOKEN（デプロイで使っているものと同じ）
+name: 今日の一戦の共有画像
+on:
+  schedule:
+    - cron: '5 15 * * *'   # 15:05（UTC）＝ 日本時間 0:05
+    - cron: '5 18 * * *'   # 18:05（UTC）＝ 日本時間 3:05（取りこぼし用）
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 開くページ（試すときはプレビュー版のURL）
+        default: https://hyakkakenten.com
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/og
+            icon-512.png
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/og/package-lock.json
+      - run: npm ci
+        working-directory: tools/og
+      - name: 画像を作って預ける
+        working-directory: tools/og
+        env:
+          SITE: ${{ inputs.site || 'https://hyakkakenten.com' }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          TZ: Asia/Tokyo
+        run: node render_today.mjs
