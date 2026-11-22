@@ -486,6 +486,8 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
 <script>
 { const siv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ const d=this.closest&&this.closest('details.more'); if(d&&!d.open) d.open=true; return siv.apply(this,a); }; }
 setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
+setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const base=e.textContent; const show=()=>{ e.textContent=base+(localStorage.getItem('hk-nostat')==='1'?'・計測なし':''); }; show();
+  let n=0, t=0; e.addEventListener('click',()=>{ const now=Date.now(); n=now-t<800?n+1:1; t=now; if(n>=5){ n=0; if(localStorage.getItem('hk-nostat')==='1') localStorage.removeItem('hk-nostat'); else localStorage.setItem('hk-nostat','1'); show(); } }); }catch(_){} },0);
 const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
