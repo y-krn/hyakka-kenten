@@ -2314,17 +2314,17 @@ repall(".scoreboard.done{position:relative}", r""".scoreboard.done{position:rela
 @keyframes flash{0%{opacity:.7}100%{opacity:0}}""")
 
 # ---- 117. 試作：試合の演出（プレビューだけ）。選手入場とVS、決着の溜め
-#   ・始まりに、青コーナー・赤コーナーの札が左右から入り、真ん中に「VS」が落ちてくる（約1.6秒。ダンジョンと「視差効果を減らす」では出さない）
+#   ・始まりに、画面いっぱいの入場：青と赤の斜めの幕が左右から入り、稲妻の線が走って、巨大な「VS」が衝撃波と閃光・画面の揺れと共に落ちてくる（約1.9秒。ダンジョンと「視差効果を減らす」では出さない）
 #   ・とどめの一撃の前に一拍置いて（約0.9秒）、点数板を赤く脈打たせる
 #   ・決着したら「決着！」（番狂わせなら「番狂わせ！」、引き分けなら「引き分け」）の判を押す
 repall("  step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv);", r"""  const noIntro=reduce||(current.orig&&current.orig.k==='dg');
   const subOf=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; };
-  let introT=null; const begin=()=>{ introT=null; const o=ring.querySelector('.intro'); if(o) o.remove(); step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv); };
+  let introT=null; const begin=()=>{ introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv); };
   if(noIntro) begin();
   else { const o=document.createElement('div'); o.className='intro';
-    o.innerHTML=`<div class="inA"><small>青コーナー${subOf(ai)?'　'+esc(subOf(ai)):''}</small><b>${esc(F[ai][0])}</b></div><div class="invs">VS</div><div class="inB"><small>赤コーナー${subOf(bi)?'　'+esc(subOf(bi)):''}</small><b>${esc(F[bi][0])}</b></div>`;
-    ring.prepend(o); introT=setTimeout(begin,1600); }""")
-repall("  $('#skip').onclick=()=>{ clearInterval(timer);", "  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; const o=ring.querySelector('.intro'); if(o) o.remove(); } clearInterval(timer);")
+    o.innerHTML=`<div class="inwrap"><div class="inbg"></div><div class="inA"><span class="cn">青コーナー</span><b>${esc(F[ai][0])}</b>${subOf(ai)?`<small>${esc(subOf(ai))}</small>`:''}</div><div class="inB"><span class="cn">赤コーナー</span><b>${esc(F[bi][0])}</b>${subOf(bi)?`<small>${esc(subOf(bi))}</small>`:''}</div><div class="inslash"></div><div class="inring"></div><div class="invs">VS</div><div class="inflash"></div></div>`;
+    document.body.append(o); introT=setTimeout(begin,1900); }""")
+repall("  $('#skip').onclick=()=>{ clearInterval(timer);", "  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); } clearInterval(timer);")
 # とどめの前の溜めと、決着の判
 repall("  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; }", r"""  const finIdx=(()=>{ let f=-1; r.log.forEach((l,i)=>{ if(l.side>=0&&!l.kai&&l.d>0) f=i; }); return f; })(); let held=false;
   const stamp=()=>{ const sb=$('#sb'); if(!sb||sb.querySelector('.kostamp')) return; const s=document.createElement('div'); const up=an.upset||/番狂わせ/.test(an.tlabel||'');
@@ -2333,14 +2333,27 @@ repall("  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult
     if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; }""")
 repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult();", "while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); stamp(); showResult();")
 repall(".cutin{position:absolute;", r""".ring{position:relative}
-.intro{position:absolute;left:-16px;right:-16px;top:0;height:260px;z-index:9;display:grid;grid-template-columns:1fr;align-content:center;gap:4px;padding:0 16px;background:linear-gradient(180deg,#0b1640,#1a2a6c 50%,#3a0d16);color:#fff;overflow:hidden;animation:inOut 1.6s ease both;pointer-events:none}
-.intro small{display:block;font-size:12px;letter-spacing:.12em;opacity:.8}.intro b{display:block;font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.15;word-break:break-all}
-.inA{animation:inL .45s cubic-bezier(.2,.9,.2,1.2) both}.inB{text-align:right;animation:inR .45s .25s cubic-bezier(.2,.9,.2,1.2) both}
-.inA b{color:#9fc0ff}.inB b{color:#ff9fa8}
-.invs{justify-self:center;font-family:var(--f-display);font-size:54px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke fill;animation:inVS .5s .55s cubic-bezier(.3,1.6,.5,1) both}
-@keyframes inL{from{transform:translateX(-120%)}to{transform:none}}@keyframes inR{from{transform:translateX(120%)}to{transform:none}}
-@keyframes inVS{from{transform:scale(3) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(-6deg);opacity:1}}
-@keyframes inOut{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
+.intro{position:fixed;inset:0;z-index:60;overflow:hidden;pointer-events:none;background:#05081a;animation:inOut 1.9s ease both}
+.inwrap{position:absolute;inset:0;animation:inShake .4s .62s ease-out both}
+.inbg{position:absolute;inset:-60%;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.09) 0 3deg,transparent 3deg 11deg);animation:inSpin 5s linear infinite}
+.inA,.inB{position:absolute;left:0;right:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 22px;color:#fff}
+.inA{top:0;height:55%;padding-bottom:9%;background:linear-gradient(135deg,#0a1f7a 0%,#2357ff 70%,#6f9bff 100%);clip-path:polygon(0 0,100% 0,100% 64%,0 100%);animation:inL .5s cubic-bezier(.2,.9,.2,1.15) both}
+.inB{bottom:0;height:55%;padding-top:9%;align-items:flex-end;text-align:right;background:linear-gradient(315deg,#7a0a16 0%,#ff2d47 70%,#ff8a99 100%);clip-path:polygon(0 36%,100% 0,100% 100%,0 100%);animation:inR .5s .12s cubic-bezier(.2,.9,.2,1.15) both}
+.intro .cn{display:inline-block;align-self:flex-start;font-weight:900;font-size:13px;letter-spacing:.25em;padding:3px 12px;background:#fff;color:#0a1f7a;transform:skewX(-14deg)}.inB .cn{align-self:flex-end;color:#7a0a16}
+.intro b{display:block;font-family:var(--f-display);font-weight:400;font-size:clamp(30px,10.5vw,64px);line-height:1.05;word-break:break-all;transform:skewX(-8deg);text-shadow:0 5px 0 rgba(0,0,0,.45),0 0 28px rgba(255,255,255,.55)}
+.intro small{font-size:13px;letter-spacing:.12em;opacity:.9}
+.inslash{position:absolute;left:-20%;right:-20%;top:50%;height:8px;margin-top:-4px;background:#fff;transform:rotate(-17deg) scaleX(0);box-shadow:0 0 18px 6px rgba(255,255,255,.8),0 0 60px 20px rgba(255,220,0,.45);animation:inSlash .25s .45s ease-out forwards}
+.invs{position:absolute;left:50%;top:50%;font-family:var(--f-display);font-size:clamp(90px,34vw,180px);line-height:1;color:var(--hl);-webkit-text-stroke:5px #111;paint-order:stroke fill;text-shadow:0 0 40px rgba(255,212,0,.9),0 8px 0 rgba(0,0,0,.5);transform:translate(-50%,-50%) scale(4) rotate(-14deg);opacity:0;animation:inVS .42s .55s cubic-bezier(.2,1.7,.4,1) forwards}
+.inring{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border:8px solid #fff;border-radius:50%;opacity:0;animation:inRing .7s .62s ease-out forwards}
+.inflash{position:absolute;inset:0;background:#fff;opacity:0;animation:inFlash .35s .6s ease-out forwards}
+@keyframes inL{from{transform:translateX(-110%)}to{transform:none}}@keyframes inR{from{transform:translateX(110%)}to{transform:none}}
+@keyframes inSpin{to{transform:rotate(360deg)}}
+@keyframes inSlash{to{transform:rotate(-17deg) scaleX(1)}}
+@keyframes inVS{0%{transform:translate(-50%,-50%) scale(4) rotate(-14deg);opacity:0}100%{transform:translate(-50%,-50%) scale(1) rotate(-8deg);opacity:1}}
+@keyframes inRing{0%{transform:scale(.5);opacity:1}100%{transform:scale(12);opacity:0}}
+@keyframes inFlash{0%{opacity:.85}100%{opacity:0}}
+@keyframes inShake{0%,100%{transform:none}15%{transform:translate(-10px,6px)}30%{transform:translate(9px,-7px)}45%{transform:translate(-7px,-4px)}60%{transform:translate(6px,5px)}80%{transform:translate(-3px,2px)}}
+@keyframes inOut{0%{opacity:0}5%{opacity:1}88%{opacity:1}100%{opacity:0}}
 .ring.tension #sb .tick{animation:tens .3s ease-in-out infinite alternate;background:var(--b);color:#fff;border-radius:4px}
 @keyframes tens{from{transform:scale(1)}to{transform:scale(1.35)}}
 .kostamp{position:absolute;left:50%;top:100%;margin-top:4px;z-index:8;font-family:var(--f-display);font-size:30px;color:#fff;background:var(--b);padding:4px 16px;border:3px solid #fff;border-radius:6px;box-shadow:0 4px 0 rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;animation:stampIn .45s cubic-bezier(.3,1.6,.5,1) both,stampOut .4s 1.8s ease-in forwards}
