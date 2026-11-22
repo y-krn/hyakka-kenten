@@ -248,6 +248,8 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .dexh{display:flex;align-items:center;justify-content:space-between;gap:10px}.dexh h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:24px}
 .dexsum{margin-top:8px;font-size:14px}.dexsum b{font-family:var(--f-display);font-size:26px;font-weight:400}.dexsum span{margin-left:12px;color:#b38f00;font-weight:700}
 .dexbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 4px}.dexbar i{display:block;height:100%;background:var(--hl)}
+.dexfl{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.dexfl.dexk{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}.dexfl .btn{flex:none;opacity:.6}.dexfl .btn.on{opacity:1;background:#111;color:#fff}.dexfl .btn small{margin-left:5px;font-size:11px;opacity:.8}
+.dexlist{margin-top:4px}
 .dexdlg h3{display:flex;align-items:baseline;gap:8px;margin:16px 0 6px;font-size:15px}.dexdlg h3 small{color:var(--muted);font-weight:400}
 .dexdlg ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
 .dexdlg li{border:2px dashed var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:1px;min-height:44px;justify-content:center}
@@ -1149,12 +1151,22 @@ let DEXCAT=null; const dexCat=()=>DEXCAT||(DEXCAT=fetch('data/movedex.json?v=1')
 function dexBind(){ const b=$('#dexbtn'); if(!b) return; b.onclick=dexOpen; dexCat().then(c=>{ const d=dexGet(), n=c.filter(x=>d[x[0]]).length, p=$('#dexp'); if(p) p.textContent=n+'／'+c.length+'種類'; }); }
 function dexOpen(){ dexCat().then(c=>{ const d=dexGet(); let dl=$('#dexdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='dexdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','技図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
     const K=[['STRIKE','打撃'],['SUMMON','召喚'],['MULTI','連撃'],['GUARD','守り'],['HEAL','回復'],['BIND','縛る'],['SLOW','鈍らせる'],['HASTE','速さ'],['*','そのほか']], T=['ふつう','めずらしい','激レア'];
+    const kOf=x=>K.some(y=>y[0]===x[1])?x[1]:'*';
+    let F={k:'',s:'got'}; try{ F={...F,...JSON.parse(localStorage.getItem('hk-dexf')||'{}')}; }catch(_){}   /* 絞り込み（この端末で覚える）。最初は「見た技」だけ */
     const got=c.filter(x=>d[x[0]]).length, rare=c.filter(x=>x[2]===2&&d[x[0]]).length, rareAll=c.filter(x=>x[2]===2).length;
-    const sec=K.map(([k,lab])=>{ const L=c.filter(x=>k==='*'?!K.some(y=>y[0]===x[1]):x[1]===k).sort((a,b)=>(d[b[0]]?1:0)-(d[a[0]]?1:0)); if(!L.length) return '';   /* 見た技を先に */ const g=L.filter(x=>d[x[0]]).length;
-      return `<h3>${lab}<small>${g}／${L.length}</small></h3><ul>${L.map(x=>d[x[0]]?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0])}</b><small>${d[x[0]]}回</small></li>`:`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${T[x[2]]}</small></li>`).join('')}</ul>`; }).join('');
+    const chip=(grp,v,lab,n)=>`<button type="button" class="btn small dexf${F[grp]===v?' on':''}" data-g="${grp}" data-v="${v}" aria-pressed="${F[grp]===v}">${lab}${n!==undefined?`<small>${n}</small>`:''}</button>`;
+    const pass=x=>(!F.k||kOf(x)===F.k)&&(F.s==='all'||(F.s==='got'&&d[x[0]])||(F.s==='not'&&!d[x[0]])||(F.s==='rare'&&x[2]===2));
+    const L=c.filter(pass).sort((a,b)=>(d[b[0]]?1:0)-(d[a[0]]?1:0));
+    const item=x=>d[x[0]]?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0])}</b><small>${d[x[0]]}回・${T[x[2]]}</small></li>`:`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${(K.find(y=>y[0]===kOf(x))||[])[1]||''}・${T[x[2]]}</small></li>`;
+    const body=!L.length?`<p class="fsub">${F.s==='got'?'まだ見た技がありません。試合を観戦すると、ここに載っていきます':'該当する技はありません'}</p>`
+      :F.k?`<ul>${L.map(item).join('')}</ul>`:K.map(([k,lab])=>{ const M=L.filter(x=>kOf(x)===k); return M.length?`<h3>${lab}<small>${M.length}</small></h3><ul>${M.map(item).join('')}</ul>`:''; }).join('');
     dl.innerHTML=`<div class="dexh"><h2>技図鑑</h2><button type="button" class="btn small" id="dexclose">閉じる</button></div>
-      <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>${sec}`;
-    $('#dexclose').onclick=()=>dl.close(); if(!dl.open) dl.showModal(); dl.scrollTop=0; }); }
+      <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>
+      <div class="dexfl">${chip('s','got','見た技',got)}${chip('s','not','まだ',c.length-got)}${chip('s','rare','激レア',rareAll)}${chip('s','all','すべて',c.length)}</div>
+      <div class="dexfl dexk">${chip('k','','全系統')}${K.map(([k,lab])=>{ const A=c.filter(x=>kOf(x)===k); return chip('k',k,lab,A.filter(x=>d[x[0]]).length+'／'+A.length); }).join('')}</div>
+      <div class="dexlist">${body}</div>`;
+    dl.querySelectorAll('.dexf').forEach(b=>b.onclick=()=>{ F[b.dataset.g]=b.dataset.v; try{ localStorage.setItem('hk-dexf',JSON.stringify(F)); }catch(_){} dexOpen(); });
+    $('#dexclose').onclick=()=>dl.close(); if(!dl.open){ dl.showModal(); dl.scrollTop=0; } }); }
 
 /* ---------- 保留・通報・確認（判定できない記事の扱い） ---------- */
 const HOLD={};            // 事件の疑いがあり、確認するまで対戦させない記事 {index: 理由}
