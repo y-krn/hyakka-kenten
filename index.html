@@ -1381,7 +1381,7 @@ function showResult(){
   if($('#tofree')&&!M) $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
   if($('#tothr')) $('#tothr').onclick=()=>goThrone(F[w][1]);
   if($('#topref')) $('#topref').onclick=()=>{ const p=$('#pref'); if(p) p.scrollIntoView({behavior:'smooth',block:'start'}); };
-  if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; $('#today').scrollIntoView({behavior:'smooth',block:'start'}); };
+  if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); if(c) c.open=true; const t=c||$('#today'); t.scrollIntoView({block:'start'}); settleTo(t); };
   { const o=current.orig; if($('#toorig')&&o) $('#toorig').onclick=()=>o.k==='fam'?openFam(o.key):openMine(); }
   if(current.orig&&current.orig.k==='pref'){ const O=current.orig;
     if($('#pwin')) $('#pwin').onclick=()=>prefBattle({a:ai,c:O.c,n:O.n+1});
