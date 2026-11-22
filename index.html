@@ -260,6 +260,7 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .dexbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 4px}.dexbar i{display:block;height:100%;background:var(--hl)}
 .dexfl{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.dexfl.dexk{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}.dexfl .btn{flex:none;opacity:.6}.dexfl .btn.on{opacity:1;background:#111;color:#fff}.dexfl .btn small{margin-left:5px;font-size:11px;opacity:.8}
 .dexlist{margin-top:4px}
+.dexdlg h4.dext{display:flex;align-items:baseline;gap:6px;margin:10px 0 5px;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted)}.dexdlg h4.dext small{font-weight:400}.dexdlg h4.dext.t1{color:#2357ff}.dexdlg h4.dext.t2{color:#b38f00}
 .dexdlg h3{display:flex;align-items:baseline;gap:8px;margin:16px 0 6px;font-size:15px}.dexdlg h3 small{color:var(--muted);font-weight:400}
 .dexdlg ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
 .dexdlg li{border:2px dashed var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:1px;min-height:44px;justify-content:center}
@@ -1172,8 +1173,9 @@ function dexOpen(){ dexCat().then(c=>{ const d=dexGet(); let dl=$('#dexdlg'); if
     const pass=x=>(!F.k||kOf(x)===F.k)&&(F.s==='all'||(F.s==='got'&&d[x[0]])||(F.s==='not'&&!d[x[0]])||(F.s==='rare'&&x[2]===2));
     const L=c.filter(pass).sort((a,b)=>(d[b[0]]?1:0)-(d[a[0]]?1:0));
     const item=x=>d[x[0]]?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0])}</b><small>${d[x[0]]}回・${T[x[2]]}</small></li>`:`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${(K.find(y=>y[0]===kOf(x))||[])[1]||''}・${T[x[2]]}</small></li>`;
+    const byTier=M=>[0,1,2].map(t=>{ const Q=M.filter(x=>x[2]===t); return Q.length?`<h4 class="dext t${t}">${T[t]}<small>${Q.length}</small></h4><ul>${Q.map(item).join('')}</ul>`:''; }).join('');
     const body=!L.length?`<p class="fsub">${F.s==='got'?'まだ見た技がありません。試合を観戦すると、ここに載っていきます':'該当する技はありません'}</p>`
-      :F.k?`<ul>${L.map(item).join('')}</ul>`:K.map(([k,lab])=>{ const M=L.filter(x=>kOf(x)===k); return M.length?`<h3>${lab}<small>${M.length}</small></h3><ul>${M.map(item).join('')}</ul>`:''; }).join('');
+      :F.k?byTier(L):K.map(([k,lab])=>{ const M=L.filter(x=>kOf(x)===k); return M.length?`<h3>${lab}<small>${M.length}</small></h3>${byTier(M)}`:''; }).join('');
     dl.innerHTML=`<div class="dexh"><h2>技図鑑</h2><button type="button" class="btn small" id="dexclose">閉じる</button></div>
       <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>
       <div class="dexfl">${chip('s','got','見た技',got)}${chip('s','not','まだ',c.length-got)}${chip('s','rare','激レア',rareAll)}${chip('s','all','すべて',c.length)}</div>

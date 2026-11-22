@@ -2593,6 +2593,15 @@ const MVKB={MULTI:2,GUARD:3,HEAL:5,BIND:8,SLOW:6,HASTE:1};   /* 打撃より1回
 function mvName(p){ for(const m of p){ const n=m[1]==='本業'?MVN.job[m[2]]:m[1]==='正体開示'?MVN.cls[m[2]]:null; if(n){ m[8]=n; const k=MVK[n]; if(k){ m[0]=k; m[6]=MVKL[k]; m[4]=+(m[4]+(MVKB[k]||0)).toFixed(2); } } } return p; }""")
 repall("fetch('data/movedex.json?v=1')", "fetch('data/movedex.json?v=2')")
 
+# ---- 128. 技図鑑の並びを「ふつう → めずらしい → 激レア」にそろえ、区分ごとに小見出しを付ける（2026-11-22）
+#   それまでは「出せる記事が多い順」で、見本に一度も出なかった激レアと比べ合いの技が最後にまとまり、並びが崩れて見えた
+#   区分の中は、見た技を先に、そのあとは出せる記事が多い順
+repall("""      :F.k?`<ul>${L.map(item).join('')}</ul>`:K.map(([k,lab])=>{ const M=L.filter(x=>kOf(x)===k); return M.length?`<h3>${lab}<small>${M.length}</small></h3><ul>${M.map(item).join('')}</ul>`:''; }).join('');""",
+"""      :F.k?byTier(L):K.map(([k,lab])=>{ const M=L.filter(x=>kOf(x)===k); return M.length?`<h3>${lab}<small>${M.length}</small></h3>${byTier(M)}`:''; }).join('');""")
+repall("""    const body=!L.length?""", """    const byTier=M=>[0,1,2].map(t=>{ const Q=M.filter(x=>x[2]===t); return Q.length?`<h4 class="dext t${t}">${T[t]}<small>${Q.length}</small></h4><ul>${Q.map(item).join('')}</ul>`:''; }).join('');
+    const body=!L.length?""")
+repall(".dexlist{margin-top:4px}", ".dexlist{margin-top:4px}\n.dexdlg h4.dext{display:flex;align-items:baseline;gap:6px;margin:10px 0 5px;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted)}.dexdlg h4.dext small{font-weight:400}.dexdlg h4.dext.t1{color:#2357ff}.dexdlg h4.dext.t2{color:#b38f00}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
