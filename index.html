@@ -255,6 +255,11 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 .dexdlg li.got{border-style:solid;border-color:#111;background:#fff;box-shadow:2px 2px 0 rgba(0,0,0,.15)}.dexdlg li.t1{border-color:#7b9be0}.dexdlg li.t1.got{border-color:#2357ff}.dexdlg li.t2{border-color:#e0c25a}.dexdlg li.t2.got{border-color:#b38f00;background:linear-gradient(135deg,#fff8d6,#fff)}
 .dexnew{display:block;font-style:normal;font-family:var(--f-display);font-size:12px;color:#111;background:#7dff7a;border:2px solid #111;border-radius:3px;padding:0 6px;margin:0 0 4px;-webkit-text-stroke:0;text-shadow:none;width:max-content}
 .dexnewl{display:inline-block;font-size:11px;font-weight:700;color:#0a5c0a;background:#d9ffd6;border:1px solid #0a5c0a;border-radius:3px;padding:0 5px;margin-bottom:4px}
+.achl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}.achl li{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:2px dashed var(--line);border-radius:8px;opacity:.75}.achl li b{font-size:14px}.achl li small{font-size:12px;color:var(--muted)}
+.achl li.got{opacity:1;border-style:solid;border-color:#111;background:linear-gradient(135deg,#fff8d6,#fff);box-shadow:2px 2px 0 rgba(0,0,0,.15)}.achl li.got b::before{content:'★ ';color:#b38f00}
+.achtoast{position:fixed;left:50%;bottom:22px;z-index:70;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 20px;background:var(--hl);color:#111;border:3px solid #111;border-radius:10px;box-shadow:4px 4px 0 #111;font-family:var(--f-display);pointer-events:none;animation:achIn 3.8s cubic-bezier(.3,1.5,.5,1) both;max-width:calc(100% - 32px);text-align:center}
+.achtoast small{font-size:12px;letter-spacing:.1em}.achtoast b{font-weight:400;font-size:18px}
+@keyframes achIn{0%{transform:translate(-50%,30px) scale(.6);opacity:0}8%{transform:translate(-50%,0) scale(1.08);opacity:1}14%{transform:translate(-50%,0) scale(1)}88%{opacity:1}100%{opacity:0;transform:translate(-50%,10px)}}
 .morebox{margin-top:8px}.morebox .moreh{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 6px}
 details.more{border-top:1px solid var(--line)}details.more:last-child{border-bottom:1px solid var(--line)}
 details.more>summary{list-style:none;cursor:pointer;padding:12px 2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
@@ -1108,7 +1113,35 @@ let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
 const saveRec=()=>{ try{ localStorage.setItem(REC_KEY,JSON.stringify(rec)); }catch(_){} };
 function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合</div>`:'';
-  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span class="st"><b>${rec.battles}</b><small>観戦した試合</small></span><span class="st"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div><div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div>`; dexBind(); }
+  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span class="st"><b>${rec.battles}</b><small>観戦した試合</small></span><span class="st"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div><div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div><div class="dexrow"><button type="button" class="btn small" id="achbtn">称号を見る</button><span class="dexp" id="achp"></span></div>`; dexBind(); achBind(); }
+const ACH_KEY='hk-ach';
+function achGet(){ try{ const a=JSON.parse(localStorage.getItem(ACH_KEY)||'{}'); return {got:{},fl:{},...(a&&typeof a==='object'?a:{})}; }catch(_){ return {got:{},fl:{}}; } }
+function achPut(a){ try{ localStorage.setItem(ACH_KEY,JSON.stringify(a)); }catch(_){} }
+function achFlag(k){ const a=achGet(); if(!a.fl[k]){ a.fl[k]=1; achPut(a); } }
+const ACHS=[
+ ['b1','初観戦','試合を1つ観戦した',s=>s.b>=1],['b10','常連客','試合を10観戦した',s=>s.b>=10],['b50','かぶりつき','試合を50観戦した',s=>s.b>=50],['b100','百科の虫','試合を100観戦した',s=>s.b>=100],['b500','生き字引','試合を500観戦した',s=>s.b>=500],
+ ['u1','波乱の目撃者','番狂わせを1回見た',s=>s.u>=1],['u10','荒れる会場','番狂わせを10回見た',s=>s.u>=10],['u50','下馬評クラッシャー','番狂わせを50回見た',s=>s.u>=50],
+ ['s5','連勝街道','5連勝を見た',s=>s.best>=5],['s10','無敵の目撃者','10連勝を見た',s=>s.best>=10],
+ ['d10','技マニア見習い','技図鑑を10種類集めた',s=>s.dex>=10],['d50','技マニア','技図鑑を50種類集めた',s=>s.dex>=50],['d100','技博士','技図鑑を100種類集めた',s=>s.dex>=100],['d200','技の生き字引','技図鑑を200種類集めた',s=>s.dex>=200],
+ ['r1','激レアハンター','激レアの技を1つ見た',s=>s.rare>=1],['r10','激レア収集家','激レアの技を10種類見た',s=>s.rare>=10],['r30','激レア王','激レアの技を30種類見た',s=>s.rare>=30],
+ ['kd','全系統制覇','打撃・召喚・連撃・守り・回復・縛る・鈍らせる・速さの技を、それぞれ1つ以上見た',s=>s.kinds>=8],
+ ['big','ド派手好き','とどめの必殺技を見た',s=>s.fl.big],['draw','痛み分け','引き分けを見た',s=>s.fl.draw],['night','深夜の観戦者','夜中の0時から4時に観戦した',s=>s.fl.night],
+ ['t1','予想屋デビュー','今日の一戦の予想を1回当てた',s=>s.th>=1],['t10','予想屋','今日の一戦の予想を10回当てた',s=>s.th>=10],['ts3','三連単','今日の一戦の予想を3日続けて当てた',s=>s.ts>=3],['ts7','千里眼','今日の一戦の予想を7日続けて当てた',s=>s.ts>=7],
+ ['p1','応援団入団','県の応援試合を1回した',s=>s.pt>=1],['p10','応援団長','県の応援試合を10回した',s=>s.pt>=10],['p50','名誉県民','県の応援試合を50回した',s=>s.pt>=50],['pk5','全国行脚','5つの都道府県を応援した',s=>s.pn>=5],['pk47','47都道府県制覇','47都道府県すべてを応援した',s=>s.pn>=47]];
+async function achState(){ const c=await dexCat(), d=dexGet(), a=achGet(); const seen=c.filter(x=>d[x[0]]);
+  let th=0, ts=0; try{ const o=JSON.parse(localStorage.getItem('hk_today')||'{}')||{}; const days=Object.keys(o).filter(k=>o[k]&&o[k].hit).sort(); th=days.length; let run=0, prev=null; for(const k of days){ const t=Date.parse(k); run=prev!==null&&t-prev===864e5?run+1:1; prev=t; ts=Math.max(ts,run); } }catch(_){}
+  const pc=(prefGet().c)||{}; return {b:rec.battles,u:rec.upsets,best:rec.best,dex:seen.length,rare:seen.filter(x=>x[2]===2).length,kinds:new Set(seen.map(x=>x[1]).filter(k=>['STRIKE','SUMMON','MULTI','GUARD','HEAL','BIND','SLOW','HASTE'].includes(k))).size,fl:a.fl,th,ts,pt:Object.values(pc).reduce((x,y)=>x+(+y||0),0),pn:Object.keys(pc).filter(k=>pc[k]>0).length}; }
+async function achCheck(loud){ const st=await achState(), a=achGet(), now=new Date().toISOString().slice(0,10), nw=[];
+  for(const [id,nm,,t] of ACHS) if(!a.got[id]&&t(st)){ a.got[id]=now; nw.push(nm); }
+  if(nw.length){ achPut(a); if(loud) achToast(nw); } achBind(); }
+function achToast(L){ const t=document.createElement('div'); t.className='achtoast'; t.innerHTML='<small>称号ゲット！</small>'+L.map(n=>'<b>「'+esc(n)+'」</b>').join(''); document.body.append(t); setTimeout(()=>t.remove(),3800); }
+function achBind(){ const b=$('#achbtn'); if(!b) return; b.onclick=achOpen; const a=achGet(), p=$('#achp'); if(p) p.textContent=Object.keys(a.got).filter(k=>ACHS.some(x=>x[0]===k)).length+'／'+ACHS.length; }
+function achOpen(){ const a=achGet(); let dl=$('#achdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='achdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','称号'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
+  const got=ACHS.filter(x=>a.got[x[0]]).length;
+  dl.innerHTML=`<div class="dexh"><h2>称号</h2><button type="button" class="btn small" id="achclose">閉じる</button></div><div class="dexsum"><b>${got}</b>／${ACHS.length}</div><div class="dexbar"><i style="width:${(got/ACHS.length*100).toFixed(1)}%"></i></div>
+    <ul class="achl">${ACHS.map(([id,nm,cd])=>`<li class="${a.got[id]?'got':''}"><b>${esc(nm)}</b><small>${esc(cd)}${a.got[id]?'（'+esc(a.got[id].slice(5).replace('-','/'))+'）':''}</small></li>`).join('')}</ul>`;
+  $('#achclose').onclick=()=>dl.close(); if(!dl.open) dl.showModal(); dl.scrollTop=0; }
+setTimeout(()=>achCheck(false),1500);
 const DEX_KEY='hk-mvdex';
 function dexGet(){ try{ const d=JSON.parse(localStorage.getItem(DEX_KEY)||'{}'); return d&&typeof d==='object'?d:{}; }catch(_){ return {}; } }
 function dexSee(nm){ if(!nm) return false; const d=dexGet(); const nw=!d[nm]; d[nm]=(d[nm]||0)+1; try{ localStorage.setItem(DEX_KEY,JSON.stringify(d)); }catch(_){} if(nw) setTimeout(dexBind,0); return nw; }
@@ -1339,7 +1372,7 @@ function startBattle(pair){
     if(mv){ sb.querySelectorAll('.cutin').forEach(e=>e.remove()); const c=document.createElement('div'); c.className='cutin '+atk+' k-'+String(l.mv[0]||'STRIKE')+(big?' big':'')+(big&&mv.length>=11?' xlong':big&&mv.length>=8?' long':'')+(reduce?' still':'');   /* 大技は真ん中に出し、長い技名は文字を小さくして見切れないように */ const fact=String(l.mv[2]||'').trim(); c.innerHTML='<span>'+(isNew?'<i class="dexnew">はじめて！</i>':'')+(big?'<small>必殺</small>':'')+esc(mv)+'！'+(fact&&fact!==mv&&fact.length<=24?'<em>'+esc(fact)+'</em>':'')+'</span>';   /* 技の元になった事実を添える（作品ラッシュ！ 登録作品45件 など） */ sb.append(c); setTimeout(()=>c.remove(),big?1100:850); }
     if(l.d>0){ const box=sb.querySelector('.sb.'+def); if(box){ if(!reduce){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
         const n=document.createElement('span'); n.className='dmgfly'+(big?' big':''); n.textContent='−'+l.d; box.append(n); setTimeout(()=>n.remove(),900); }
-      if(big&&!reduce){ ring.classList.remove('flash'); void ring.offsetWidth; ring.classList.add('flash');
+      if(big&&tgtHp<=0) achFlag('big'); if(big&&!reduce){ ring.classList.remove('flash'); void ring.offsetWidth; ring.classList.add('flash');
         const box2=sb.querySelector('.sb.'+def); if(box2){ const o=document.createElement('span'); o.className='onom'; o.textContent=['ドゴォ！','バキィ！','ズドン！','ドーン！','メキィ！','グシャァ！'][(idx*7+l.d)%6]; box2.append(o); setTimeout(()=>o.remove(),1000); } } } };
   const setHP=idx=>{ const l=r.log[idx]; if(!l) return;
     if(an.type==='kurabe'){ const w=[0,0]; for(let k=0;k<=idx;k++){ const x=r.log[k]; if(x&&x.side>=0&&!x.kai) w[x.side]++; }
@@ -1379,7 +1412,7 @@ function startBattle(pair){
     document.body.append(o); introT=setTimeout(begin,1900); }
   $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; document.querySelectorAll('.intro').forEach(o=>o.remove()); } clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); dexRec(k); k++; } setHP(items.length-1); trSync(items.length-1,true); stamp(); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
 }
-function showResult(){
+function showResult(){ try{ const h=new Date().getHours(); if(h<4) achFlag('night'); if(current&&current.an&&current.an.r&&current.an.r.w===null) achFlag('draw'); setTimeout(()=>achCheck(true),1800); }catch(_){}
   if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   /* 脚注は決着のあとに出す（同じ行に続きがあるので // は使わない） */ if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }

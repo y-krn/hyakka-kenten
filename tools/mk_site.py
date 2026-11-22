@@ -2497,6 +2497,48 @@ repall(".morebox{margin-top:8px}", r""".dexrow{display:flex;align-items:center;g
 .dexnewl{display:inline-block;font-size:11px;font-weight:700;color:#0a5c0a;background:#d9ffd6;border:1px solid #0a5c0a;border-radius:3px;padding:0 5px;margin-bottom:4px}
 .morebox{margin-top:8px}""")
 
+# ---- 125. 試作：称号（プレビューだけ）。遊んだ記録から称号がもらえる（30種類。この端末に記録し、サーバーには送らない）
+#   ・観戦数・番狂わせ・連勝・技図鑑・今日の一戦の的中・県の応援・必殺技・引き分け・深夜の観戦など
+#   ・試合が終わるたびに調べ、新しく取ったら画面の下に「称号ゲット！」を出す。開いたときに条件を満たしていたものは、黙って付ける
+#   ・自分の記録の下に「称号を見る」と取った数。一覧では、取っていない称号も名前と条件を出す（目標が見えるように）
+repall("<div class=\"dexrow\"><button type=\"button\" class=\"btn small\" id=\"dexbtn\">技図鑑を見る</button><span class=\"dexp\" id=\"dexp\"></span></div>`; dexBind(); }", r"""<div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div><div class="dexrow"><button type="button" class="btn small" id="achbtn">称号を見る</button><span class="dexp" id="achp"></span></div>`; dexBind(); achBind(); }
+const ACH_KEY='hk-ach';
+function achGet(){ try{ const a=JSON.parse(localStorage.getItem(ACH_KEY)||'{}'); return {got:{},fl:{},...(a&&typeof a==='object'?a:{})}; }catch(_){ return {got:{},fl:{}}; } }
+function achPut(a){ try{ localStorage.setItem(ACH_KEY,JSON.stringify(a)); }catch(_){} }
+function achFlag(k){ const a=achGet(); if(!a.fl[k]){ a.fl[k]=1; achPut(a); } }
+const ACHS=[
+ ['b1','初観戦','試合を1つ観戦した',s=>s.b>=1],['b10','常連客','試合を10観戦した',s=>s.b>=10],['b50','かぶりつき','試合を50観戦した',s=>s.b>=50],['b100','百科の虫','試合を100観戦した',s=>s.b>=100],['b500','生き字引','試合を500観戦した',s=>s.b>=500],
+ ['u1','波乱の目撃者','番狂わせを1回見た',s=>s.u>=1],['u10','荒れる会場','番狂わせを10回見た',s=>s.u>=10],['u50','下馬評クラッシャー','番狂わせを50回見た',s=>s.u>=50],
+ ['s5','連勝街道','5連勝を見た',s=>s.best>=5],['s10','無敵の目撃者','10連勝を見た',s=>s.best>=10],
+ ['d10','技マニア見習い','技図鑑を10種類集めた',s=>s.dex>=10],['d50','技マニア','技図鑑を50種類集めた',s=>s.dex>=50],['d100','技博士','技図鑑を100種類集めた',s=>s.dex>=100],['d200','技の生き字引','技図鑑を200種類集めた',s=>s.dex>=200],
+ ['r1','激レアハンター','激レアの技を1つ見た',s=>s.rare>=1],['r10','激レア収集家','激レアの技を10種類見た',s=>s.rare>=10],['r30','激レア王','激レアの技を30種類見た',s=>s.rare>=30],
+ ['kd','全系統制覇','打撃・召喚・連撃・守り・回復・縛る・鈍らせる・速さの技を、それぞれ1つ以上見た',s=>s.kinds>=8],
+ ['big','ド派手好き','とどめの必殺技を見た',s=>s.fl.big],['draw','痛み分け','引き分けを見た',s=>s.fl.draw],['night','深夜の観戦者','夜中の0時から4時に観戦した',s=>s.fl.night],
+ ['t1','予想屋デビュー','今日の一戦の予想を1回当てた',s=>s.th>=1],['t10','予想屋','今日の一戦の予想を10回当てた',s=>s.th>=10],['ts3','三連単','今日の一戦の予想を3日続けて当てた',s=>s.ts>=3],['ts7','千里眼','今日の一戦の予想を7日続けて当てた',s=>s.ts>=7],
+ ['p1','応援団入団','県の応援試合を1回した',s=>s.pt>=1],['p10','応援団長','県の応援試合を10回した',s=>s.pt>=10],['p50','名誉県民','県の応援試合を50回した',s=>s.pt>=50],['pk5','全国行脚','5つの都道府県を応援した',s=>s.pn>=5],['pk47','47都道府県制覇','47都道府県すべてを応援した',s=>s.pn>=47]];
+async function achState(){ const c=await dexCat(), d=dexGet(), a=achGet(); const seen=c.filter(x=>d[x[0]]);
+  let th=0, ts=0; try{ const o=JSON.parse(localStorage.getItem('hk_today')||'{}')||{}; const days=Object.keys(o).filter(k=>o[k]&&o[k].hit).sort(); th=days.length; let run=0, prev=null; for(const k of days){ const t=Date.parse(k); run=prev!==null&&t-prev===864e5?run+1:1; prev=t; ts=Math.max(ts,run); } }catch(_){}
+  const pc=(prefGet().c)||{}; return {b:rec.battles,u:rec.upsets,best:rec.best,dex:seen.length,rare:seen.filter(x=>x[2]===2).length,kinds:new Set(seen.map(x=>x[1]).filter(k=>['STRIKE','SUMMON','MULTI','GUARD','HEAL','BIND','SLOW','HASTE'].includes(k))).size,fl:a.fl,th,ts,pt:Object.values(pc).reduce((x,y)=>x+(+y||0),0),pn:Object.keys(pc).filter(k=>pc[k]>0).length}; }
+async function achCheck(loud){ const st=await achState(), a=achGet(), now=new Date().toISOString().slice(0,10), nw=[];
+  for(const [id,nm,,t] of ACHS) if(!a.got[id]&&t(st)){ a.got[id]=now; nw.push(nm); }
+  if(nw.length){ achPut(a); if(loud) achToast(nw); } achBind(); }
+function achToast(L){ const t=document.createElement('div'); t.className='achtoast'; t.innerHTML='<small>称号ゲット！</small>'+L.map(n=>'<b>「'+esc(n)+'」</b>').join(''); document.body.append(t); setTimeout(()=>t.remove(),3800); }
+function achBind(){ const b=$('#achbtn'); if(!b) return; b.onclick=achOpen; const a=achGet(), p=$('#achp'); if(p) p.textContent=Object.keys(a.got).filter(k=>ACHS.some(x=>x[0]===k)).length+'／'+ACHS.length; }
+function achOpen(){ const a=achGet(); let dl=$('#achdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='achdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','称号'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
+  const got=ACHS.filter(x=>a.got[x[0]]).length;
+  dl.innerHTML=`<div class="dexh"><h2>称号</h2><button type="button" class="btn small" id="achclose">閉じる</button></div><div class="dexsum"><b>${got}</b>／${ACHS.length}</div><div class="dexbar"><i style="width:${(got/ACHS.length*100).toFixed(1)}%"></i></div>
+    <ul class="achl">${ACHS.map(([id,nm,cd])=>`<li class="${a.got[id]?'got':''}"><b>${esc(nm)}</b><small>${esc(cd)}${a.got[id]?'（'+esc(a.got[id].slice(5).replace('-','/'))+'）':''}</small></li>`).join('')}</ul>`;
+  $('#achclose').onclick=()=>dl.close(); if(!dl.open) dl.showModal(); dl.scrollTop=0; }
+setTimeout(()=>achCheck(false),1500);""")
+repall("function showResult(){", r"""function showResult(){ try{ const h=new Date().getHours(); if(h<4) achFlag('night'); if(current&&current.an&&current.an.r&&current.an.r.w===null) achFlag('draw'); setTimeout(()=>achCheck(true),1800); }catch(_){}""")
+repall("if(big&&!reduce){ ring.classList.remove('flash');", "if(big&&tgtHp<=0) achFlag('big'); if(big&&!reduce){ ring.classList.remove('flash');")
+repall(".morebox{margin-top:8px}", r""".achl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}.achl li{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:2px dashed var(--line);border-radius:8px;opacity:.75}.achl li b{font-size:14px}.achl li small{font-size:12px;color:var(--muted)}
+.achl li.got{opacity:1;border-style:solid;border-color:#111;background:linear-gradient(135deg,#fff8d6,#fff);box-shadow:2px 2px 0 rgba(0,0,0,.15)}.achl li.got b::before{content:'★ ';color:#b38f00}
+.achtoast{position:fixed;left:50%;bottom:22px;z-index:70;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 20px;background:var(--hl);color:#111;border:3px solid #111;border-radius:10px;box-shadow:4px 4px 0 #111;font-family:var(--f-display);pointer-events:none;animation:achIn 3.8s cubic-bezier(.3,1.5,.5,1) both;max-width:calc(100% - 32px);text-align:center}
+.achtoast small{font-size:12px;letter-spacing:.1em}.achtoast b{font-weight:400;font-size:18px}
+@keyframes achIn{0%{transform:translate(-50%,30px) scale(.6);opacity:0}8%{transform:translate(-50%,0) scale(1.08);opacity:1}14%{transform:translate(-50%,0) scale(1)}88%{opacity:1}100%{opacity:0;transform:translate(-50%,10px)}}
+.morebox{margin-top:8px}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
