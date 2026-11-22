@@ -2302,8 +2302,8 @@ repall(".scoreboard.done{position:relative}", r""".scoreboard.done{position:rela
 .cutin.A span{background:var(--a);animation:cutL .85s cubic-bezier(.2,.8,.2,1) both}.cutin.B{justify-content:flex-end}.cutin.B span{background:var(--b);animation:cutR .85s cubic-bezier(.2,.8,.2,1) both}
 .cutin.big span{font-size:26px;padding:10px 20px;animation-duration:1.1s}
 .cutin.still span{animation:none}.cutin small{font-size:.55em;background:#fff;color:#111;border-radius:3px;padding:1px 5px;margin-right:8px;vertical-align:middle;letter-spacing:.1em}
-.onom{position:absolute;top:-8px;left:50%;font-family:var(--f-display);font-size:34px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke;white-space:nowrap;pointer-events:none;z-index:7;animation:onom 1s ease-out both}
-@keyframes onom{0%{transform:translateX(-50%) rotate(-14deg) scale(.3);opacity:0}15%{transform:translateX(-50%) rotate(-8deg) scale(1.35);opacity:1}30%{transform:translateX(-50%) rotate(-10deg) scale(1)}80%{opacity:1}100%{transform:translateX(-50%) translateY(-14px) rotate(-10deg) scale(1.05);opacity:0}}
+.onom{position:absolute;top:14px;font-family:var(--f-display);font-size:34px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke fill;white-space:nowrap;pointer-events:none;z-index:7;animation:onom 1s ease-out both}.sb.A .onom{left:4px}.sb.B .onom{right:4px}
+@keyframes onom{0%{transform:rotate(-14deg) scale(.3);opacity:0}15%{transform:rotate(-8deg) scale(1.35);opacity:1}30%{transform:rotate(-10deg) scale(1)}80%{opacity:1}100%{transform:translateY(-14px) rotate(-10deg) scale(1.05);opacity:0}}
 @keyframes cutL{0%{transform:translateX(-110%) skewX(-12deg)}18%{transform:translateX(0) skewX(-12deg)}80%{transform:translateX(0) skewX(-12deg);opacity:1}100%{transform:translateX(30%) skewX(-12deg);opacity:0}}
 @keyframes cutR{0%{transform:translateX(110%) skewX(12deg)}18%{transform:translateX(0) skewX(12deg)}80%{transform:translateX(0) skewX(12deg);opacity:1}100%{transform:translateX(-30%) skewX(12deg);opacity:0}}
 .sb.shake{animation:shake .35s ease-out}
