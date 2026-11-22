@@ -2569,6 +2569,30 @@ r""".fxslow{position:absolute;top:-26px;z-index:8;display:flex;flex-direction:co
 @keyframes sbVeil{0%{opacity:0;transform:scale(1.15)}15%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){.fxslow,.fxslow.bind,.sb.fxslowed>:not(.fxslow),.sb.fxbound>:not(.fxslow),.sb.fxslowed::after,.sb.fxbound::after{animation:none}}""")
 
+# ---- 127. 職業・分類の技に、名前に合った種類を付ける（2026-11-22。技図鑑の381種類のうち303種類が打撃で、どれも同じ動きだったため）
+#   ・121 で名前だけ付けた技（もとは「本業」「正体開示」の打撃）のうち、約4割を連撃・守り・回復・縛る・鈍らせる・速さに振り分ける
+#     例：籠城→守り、診断→回復、契約条項→縛る、渋滞→鈍らせる、スタートダッシュ→速さ、速弾き→連撃
+#   ・打撃より1回の痛手が小さいぶん、効き目の元（m[4]）を種類ごとに足す（手元で2500試合を回し、振り分けた技を持つ側の勝率が大きく下がらない量にした）
+#   ・技の見分け（m[1]）は変えないので、解説・脚注・選び方の仕組みは同じ
+_MVK = {
+ 'MULTI': '突っ張り パウンド 速弾き ドラムロール 超絶技巧 サビの連打 全曲再生 スクラッチ ユニゾン 大合唱 満員の歓声 サポーターの声援 応援歌 漫才 ツッコミ 韻 五七五 三十一文字 韻律 叩き合い ギターソロ 全巻揃い 特典映像 A面B面 アクセス集中 連峰 落石 ファンサ センター争い 号外 ラリアット',
+ 'GUARD': '籠城 孤島の守り 前例主義 遺憾の意 護岸工事 定礎 異議あり 前方後円 結晶 営業スマイル 柏手 査読 休講 構造計算 急速潜航 パラソル 鐘の音 歯車 展望台 家柄マウント',
+ 'HEAL': '診断 臨床試験 ナースコール 湯けむり ピットイン コンティニュー 品種改良 ご当地ソフト 再開発 アップデート デバッグ 赤入れ 寄り合い 噴水 定時退社 抜歯',
+ 'BIND': '契約条項 条文 条文解釈 根回し 判決 説教 返却期限 王手 号令 勅令 境界線 学名詠唱 品詞分解 ジャンル分け 機内アナウンス チャイム 町内会 回覧板 一本背負い',
+ 'SLOW': '渋滞 長回し 深夜トーク つれづれ 湖畔の霧 窓口対応 御前会議 参勤交代 つづら折り 路地裏 ダイヤ改正 ワンマン運転 合流 心理分析 史料批判 問い直し ラッシュアワー 世論調査 並木道',
+ 'HASTE': 'スタートダッシュ ペダリング まくり ドリフト オーバーテイク アクセル全開 急上昇 離陸 速達 インコース 末脚 バタフライ ターン 確変 駆け込み乗車 タイムセール ピボット ブリッツ 抜刀 スマッシュ'}
+import json
+_MVKJ = {n: k for k, v in _MVK.items() for n in v.split()}
+_mvn_names = set(json.loads(re.search(r'const MVN=(\{"job".*?\}\})', s, re.S).group(1))['job'].values()) | set(json.loads(re.search(r'const MVN=(\{"job".*?\}\})', s, re.S).group(1))['cls'].values())
+assert set(_MVKJ) <= _mvn_names, set(_MVKJ) - _mvn_names
+repall("function mvName(p){ for(const m of p){ const n=m[1]==='本業'?MVN.job[m[2]]:m[1]==='正体開示'?MVN.cls[m[2]]:null; if(n) m[8]=n; } return p; }",
+  "const MVK=" + json.dumps(_MVKJ, ensure_ascii=False, separators=(',', ':')) + r""";
+const MVKL={MULTI:'{A}の【{N}】！ {F}の本領で畳みかけ、{B}に{H}連撃。',GUARD:'{A}は【{N}】。{F}の本領で身を固め、次の攻撃を{P}%軽減しつつ{B}に軽く一撃。',HEAL:'{A}の【{N}】。{F}の本領でHPを{R}回復し、ついでに{B}を小突く。',
+  BIND:'{A}の【{N}】！ {F}の本領で{B}を締め上げる。{B}の動きが鈍った。',SLOW:'{A}の【{N}】。{F}の本領に{B}が振り回され、行動が遅れる。そこへ一撃。',HASTE:'{A}、【{N}】！ {F}の本領で駆け抜けながら{B}に一撃。勢いで次の行動が早まる。'};
+const MVKB={MULTI:2,GUARD:3,HEAL:5,BIND:8,SLOW:6,HASTE:1};   /* 打撃より1回の痛手が小さいぶん、効き目の元を足す */
+function mvName(p){ for(const m of p){ const n=m[1]==='本業'?MVN.job[m[2]]:m[1]==='正体開示'?MVN.cls[m[2]]:null; if(n){ m[8]=n; const k=MVK[n]; if(k){ m[0]=k; m[6]=MVKL[k]; m[4]=+(m[4]+(MVKB[k]||0)).toFixed(2); } } } return p; }""")
+repall("fetch('data/movedex.json?v=1')", "fetch('data/movedex.json?v=2')")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
