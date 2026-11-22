@@ -2349,6 +2349,41 @@ repall(".cutin{position:absolute;", r""".ring{position:relative}
 @keyframes stampOut{to{opacity:0;transform:translateX(-50%) scale(1.1) rotate(-6deg)}}
 .cutin{position:absolute;""")
 
+# ---- 118. 試作：試合の演出（プレビューだけ）。技ごとの専用演出と、解説の吹き出し
+#   ・召喚：呼ばれた記事の札が上から降ってきて「加勢」の判が付く
+#   ・連撃：受けた側に小さな打撃が続けて入る（数は実況の「N連撃」から）
+#   ・守り：攻めた側に「受け流し」の盾が光る
+#   ・回復：攻めた側に緑の「＋N」が浮かぶ
+#   ・鈍らせる：受けた側に「鈍った…」の札がぐるぐる回る
+#   ・比べ合い：両者の数字を並べ、勝った側の数字を大きく出す
+#   ・解説は、解説者の札から出る吹き出しにする（「解説「…」」の囲みは外す）
+repall("  const step=()=>{ if(k===finIdx", r"""  ring.querySelectorAll('#log li.kai .bub').forEach(b=>{ b.innerHTML=b.innerHTML.replace(/^解説「([\s\S]*)」$/,'$1'); });
+  const fxKind=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai||!l.mv) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
+    const A=sb.querySelector('.sb.'+atk), D=sb.querySelector('.sb.'+def); const kd=l.mv[0], desc=String(l.mv[3]||''), add=(box,cls,html,ms)=>{ if(!box) return; const e=document.createElement('span'); e.className=cls; e.innerHTML=html; box.append(e); setTimeout(()=>e.remove(),ms||1100); };
+    const hl=String(l.s||'').match(/HPを(\d+)回復/); if(hl) add(A,'fxheal','＋'+hl[1]);
+    if(kd==='S'){ const nm=(desc.split('：')[1]||'').split(/[、,]/)[0].replace(/\s*など.*$/,'').trim(); if(nm) add(A,'fxsum','<b>'+esc(nm)+'</b><i>加勢</i>',1300); }
+    else if(kd==='C'&&!reduce){ const n=Math.min(6,+((String(l.s||'').match(/(\d+)連撃/)||[])[1])||3); for(let j=1;j<n;j++) setTimeout(()=>{ if(D){ D.classList.remove('shake'); void D.offsetWidth; D.classList.add('shake'); } add(D,'fxjab','ドッ',500); },120*j); }
+    else if(kd==='G') add(A,'fxguard','受け流し',1000);
+    else if(kd==='L') add(D,'fxslow','鈍った…',1200);
+    else if(an.type==='kurabe'&&kd==='K'){ const m=desc.match(/：(.+?) 対 (.+)$/); if(m){ const c=document.createElement('div'); c.className='fxcmp '+atk; c.innerHTML='<span class="w">'+esc(m[1])+'</span><span class="v">対</span><span class="l">'+esc(m[2])+'</span>'; sb.querySelectorAll('.fxcmp').forEach(e=>e.remove()); sb.append(c); setTimeout(()=>c.remove(),900); } } };
+  const step=()=>{ if(k===finIdx""")
+repall("setHP(k); fxHit(k);", "setHP(k); fxHit(k); fxKind(k);")
+repall(".cutin{position:absolute;", r""".fxheal{position:absolute;top:-6px;font-family:var(--f-display);font-size:22px;color:#1a9b4b;-webkit-text-stroke:1px #fff;paint-order:stroke fill;pointer-events:none;animation:dfly 1.1s ease-out both}.sb.A .fxheal{left:30%}.sb.B .fxheal{right:30%}
+.fxsum{position:absolute;top:-58px;display:flex;align-items:center;gap:6px;background:var(--card,#fff);border:2px solid #111;border-radius:6px;padding:4px 8px;box-shadow:0 3px 0 rgba(0,0,0,.25);white-space:nowrap;max-width:80vw;pointer-events:none;z-index:7;animation:sumDrop 1.3s cubic-bezier(.3,1.4,.5,1) both}.sb.A .fxsum{left:0}.sb.B .fxsum{right:0}
+.fxsum b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.fxsum i{font-style:normal;font-family:var(--f-display);font-size:13px;color:#fff;background:var(--b);border-radius:3px;padding:1px 6px;transform:rotate(-8deg)}
+@keyframes sumDrop{0%{transform:translateY(-60px);opacity:0}25%{transform:translateY(0);opacity:1}80%{opacity:1}100%{opacity:0}}
+.fxjab{position:absolute;top:2px;font-family:var(--f-display);font-size:16px;color:var(--hl-ink);background:var(--hl);border-radius:3px;padding:0 4px;pointer-events:none;animation:dfly .5s ease-out both}.sb.A .fxjab{left:40%}.sb.B .fxjab{right:40%}
+.fxguard{position:absolute;top:-8px;font-size:13px;font-weight:700;color:#fff;background:#2b6cb0;border:2px solid #fff;border-radius:12px 12px 12px 2px;padding:2px 8px;pointer-events:none;box-shadow:0 0 0 3px rgba(43,108,176,.35);animation:guard 1s ease-out both}.sb.A .fxguard{left:20%}.sb.B .fxguard{right:20%}
+@keyframes guard{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.1);opacity:1;box-shadow:0 0 0 10px rgba(43,108,176,.15)}80%{opacity:1}100%{opacity:0}}
+.fxslow{position:absolute;top:-6px;font-size:13px;font-weight:700;color:#6b4bb0;background:#efe8ff;border-radius:10px;padding:2px 8px;pointer-events:none;animation:slow 1.2s ease-in-out both}.sb.A .fxslow{left:20%}.sb.B .fxslow{right:20%}
+@keyframes slow{0%{transform:rotate(0) scale(.5);opacity:0}20%{opacity:1;transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg)}80%{opacity:1;transform:rotate(-6deg)}100%{opacity:0}}
+.fxcmp{position:absolute;left:0;right:0;top:100%;margin-top:6px;display:flex;justify-content:center;align-items:baseline;gap:10px;pointer-events:none;z-index:6;font-family:var(--f-display);animation:cmp .9s ease-out both}
+.fxcmp .w{font-size:26px;color:var(--hl-ink);background:var(--hl);padding:2px 8px;border-radius:4px}.fxcmp .v{font-size:14px;color:var(--muted)}.fxcmp .l{font-size:15px;color:var(--muted)}.fxcmp.B{flex-direction:row-reverse}
+@keyframes cmp{0%{transform:scale(.6);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
+.log li.kai{display:flex;align-items:flex-start;gap:8px}.log li.kai .t{display:none}.log li.kai::before{content:'解説';flex:none;font-size:11px;font-weight:700;color:#fff;background:#555;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.log li.kai .bub{position:relative;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--ink,#222);font-weight:500;box-shadow:none}.log li.kai .bub::before{content:'';position:absolute;left:-7px;top:12px;border:7px solid transparent;border-right-color:var(--line);border-left:0}
+.cutin{position:absolute;""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
