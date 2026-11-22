@@ -2262,6 +2262,12 @@ repall("body:JSON.stringify({client:clientId(),ref,mob,fresh})", "body:JSON.stri
 repall("function sendVisit(){", r"""const LAND=(()=>{ try{ const q=new URLSearchParams(location.search); return q.has('pref')?'pref':q.has('today')?'today':q.has('c')?'c':q.has('hall')?'hall':(q.has('a')&&q.has('b'))?'battle':[...q.keys()].filter(k=>!['nostat','v'].includes(k)).length?'other':'top'; }catch(_){ return 'other'; } })();   // 入ってきたときのURLで決める（あとで書き換わる前）
 function sendVisit(){""")
 
+# ---- 113. 数えない印（nostat）のブラウザでホーム画面に追加したときも、Webアプリが ?nostat=1 で開くようにする
+#   iPhone のホーム画面のWebアプリは Safari と別の保存場所を持ち、manifest の start_url（./）で開くため、Safari の印が引き継がれない
+#   印のあるブラウザでは、manifest を start_url が ./?nostat=1 のもの（manifest-nostat.webmanifest）に差し替える
+repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
+const NOSTAT=(()=>{""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

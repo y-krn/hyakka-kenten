@@ -30,7 +30,7 @@ jobs:
       - name: 配るファイルを public/ に集める
         run: |
           mkdir -p public
-          cp ../index.html ../manifest.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
+          cp ../index.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
           cp -r ../data public/data
       - name: プレビュー用URLに上げる（本番には出さない）
         run: npx wrangler versions upload --preview-alias preview
