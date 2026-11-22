@@ -1506,7 +1506,7 @@ function showResult(){ try{ const h=new Date().getHours(); if(h<4) achFlag('nigh
       :`【百科拳典 都道府県を応援】${PRF.p}代表・${me}は、${PRF.q}代表・${op}に敗れた…。仇を討つ代表は次の試合で`;
     share+=`\nあなたの県も応援しよう #${PRF.p}を応援`; }
   share=fitPost(share)+'\n'+DISC;
-  const SHAREURL=TDY?location.origin+'/?today=1':PRF?location.origin+'/?pref='+encodeURIComponent(PRF.p):battleURL();
+  const SHAREURL=TDY?location.origin+'/?today=1'+(TD&&TD.day?'&d='+TD.day:''):PRF?location.origin+'/?pref='+encodeURIComponent(PRF.p):battleURL();
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));
   const gloss=[...seen.values()];
   const wHP=w===null?'':(w===ai?r.hp[0]:r.hp[1]);
@@ -1874,7 +1874,7 @@ function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,
   if($('#tdgo')) $('#tdgo').onclick=go;
   if($('#tdre')) $('#tdre').onclick=go;
   if($('#tdsh')){ const st=tdStreak(o); const t=fitPost(`【百科拳典 今日の一戦 ${mdJ(day)}】${nm(a)} vs ${nm(b)}`+(me.p!==null&&me.p!==undefined?`\n予想は${me.hit?'当たり！'+(st>1?`（${tdTitle(st)?tdTitle(st)+'・':''}${st}日連続）`:''):'外れ…'}`:'')+'\nあなたはどっちが勝つと思う？')+'\n'+DISC;
-    $('#tdsh').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?today=1'); } }
+    $('#tdsh').href='https://x.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(location.origin+'/?today=1'+(TD&&TD.day?'&d='+TD.day:'')); } }
 function todayDone(cur){ if(!TD||!cur.today||cur.today.day!==TD.day) return; const o=tdLoad(), me=o[TD.day]||{p:null}; const w=cur.an.r.w;
   const wi=w===null?null:(w===TD.a?0:1); if(!me.done){ me.done=1; me.w=wi; me.hit=me.p!==null&&me.p!==undefined&&me.p===wi; o[TD.day]=me; tdSave(o); }
   todayDraw();

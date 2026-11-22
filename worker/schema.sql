@@ -53,3 +53,5 @@ CREATE INDEX IF NOT EXISTS visits_at ON visits(at);
 CREATE TABLE IF NOT EXISTS pref_month (month TEXT NOT NULL, pref TEXT NOT NULL, w INTEGER NOT NULL DEFAULT 0, l INTEGER NOT NULL DEFAULT 0, c INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (month, pref));
 -- 都道府県の応援：効果を測る（day は日本時間の YYYY-MM-DD。k = in：?pref=県名 のURLから来た、sh：応援試合の結果を共有した、pb：応援試合）
 CREATE TABLE IF NOT EXISTS pref_ev (day TEXT NOT NULL, pref TEXT NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, pref, k));
+-- 今日の一戦の共有画像（日付ごとに1枚。GitHub Actions が毎日0時すぎに作って預ける）
+CREATE TABLE IF NOT EXISTS today_og (day TEXT PRIMARY KEY, a TEXT NOT NULL, b TEXT NOT NULL, img BLOB NOT NULL, at TEXT NOT NULL);

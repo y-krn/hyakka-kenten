@@ -9,6 +9,8 @@
 //   GET  /og/c/番号.jpg          … 王座戦の試合ごとの共有画像
 //   GET  /api/og/pending        … 画像がまだない挑戦の一覧（管理用。GitHub Actions が使う）
 //   PUT  /api/og/番号            … 作った画像を預ける（管理用）
+//   GET  /og/t/日付.jpg          … 今日の一戦の共有画像（毎日0時すぎに GitHub Actions が作る）
+//   PUT  /api/og/today/日付?a=&b= … 今日の一戦の共有画像を預ける（管理用）
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
 //   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
 //   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
@@ -302,6 +304,25 @@ async function ogPut(env, req, id) {
   await env.DB.prepare('INSERT INTO ogimg (id, img, at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET img = excluded.img, at = excluded.at').bind(id, b, now()).run();
   return json(env, req, { ok: true, bytes: b.length });
 }
+// 今日の一戦の共有画像（表 today_og。日付ごとに1枚。結果は載せない）
+async function todayOgPut(env, req, day) {
+  if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
+  const q = new URL(req.url).searchParams, a = (q.get('a') || '').slice(0, 200), b = (q.get('b') || '').slice(0, 200);
+  const img = new Uint8Array(await req.arrayBuffer());
+  if (!a || !b || img.length < 1000 || img.length > 1500000 || img[0] !== 0xff || img[1] !== 0xd8) return json(env, req, { error: 'a・b と JPEG（1.5MBまで）を送ってください' }, 400);
+  await env.DB.prepare('INSERT INTO today_og (day, a, b, img, at) VALUES (?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET a = excluded.a, b = excluded.b, img = excluded.img, at = excluded.at').bind(day, a, b, img, now()).run();
+  return json(env, req, { ok: true, bytes: img.length });
+}
+async function todayOgGet(req, env, ctx, day) {
+  const v = new URL(req.url).searchParams.get('v') || '';
+  const cache = caches.default, key = new Request(SITE + '/og/t/' + day + '.jpg?v=' + encodeURIComponent(v));
+  const hit = await cache.match(key); if (hit) return hit;
+  let x = null; try { x = await env.DB.prepare('SELECT img FROM today_og WHERE day = ?').bind(day).first(); } catch (_) {}
+  if (!x) return Response.redirect(SITE + '/og.png', 302);
+  const res = new Response(new Uint8Array(x.img), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' } });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
 async function ogGet(req, env, ctx, id) {
   const v = new URL(req.url).searchParams.get('v') || '';
   const cache = caches.default, key = new Request(SITE + '/og/c/' + id + '.jpg?v=' + encodeURIComponent(v));
@@ -359,6 +380,13 @@ async function cardFor(env, u) {
   if (c && /^\d{1,9}$/.test(c)) {
     const x = await env.DB.prepare('SELECT c.display, c.result, c.how, r.display AS cdisplay, (SELECT o.at FROM ogimg o WHERE o.id = c.id) AS img FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(+c).first();
     if (x) return { image: x.img ? SITE + '/og/c/' + c + '.jpg?v=' + Date.parse(x.img) : null, title: `${clip(x.display, 40)} vs ${clip(x.cdisplay, 40)} ― 百科拳典 王座戦`, desc: (RESULT_TXT[x.result] || (() => ''))(x) + (x.how ? `（${x.how}）` : '') + ' 試合の一部始終はこちら。', url: SITE + '/?c=' + c };
+  }
+  if (q.has('today')) {   // 今日の一戦（?today=1&d=日付。d がなければ今日）
+    const jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), d0 = q.get('d'), day = /^\d{4}-\d\d-\d\d$/.test(d0 || '') ? d0 : jst;
+    let x = null; try { x = await env.DB.prepare('SELECT a, b, at FROM today_og WHERE day = ?').bind(day).first(); } catch (_) {}
+    const md = (+day.slice(5, 7)) + '月' + (+day.slice(8, 10)) + '日';
+    if (x) return { title: `今日の一戦 ${md}：${clip(x.a, 30)} vs ${clip(x.b, 30)} ― 百科拳典`, url: SITE + '/?today=1&d=' + day, image: SITE + '/og/t/' + day + '.jpg?v=' + Date.parse(x.at),
+      desc: '人気の記事に、ランダムに選ばれた記事が挑む。どっちが勝つ？ 予想してから観戦しよう。' };
   }
   const fk = q.get('fam');
   if (fk && /^[pcosw]Q\d{1,12}$/.test(fk)) {   // 仲間図鑑の一門
@@ -486,6 +514,7 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(env, req) });
     if (env.ASSETS && (u.pathname === '/' || u.pathname === '/index.html') && (req.method === 'GET' || req.method === 'HEAD')) return page(req, env, u);
     const og = u.pathname.match(/^\/og\/c\/(\d{1,9})\.jpg$/); if (og && req.method === 'GET') return ogGet(req, env, ctx, +og[1]);
+    const ot = u.pathname.match(/^\/og\/t\/(\d{4}-\d\d-\d\d)\.jpg$/); if (ot && req.method === 'GET') return todayOgGet(req, env, ctx, ot[1]);
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req, ctx);
@@ -494,6 +523,7 @@ export default {
       if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
+      const tp = u.pathname.match(/^\/api\/og\/today\/(\d{4}-\d\d-\d\d)$/); if (tp && req.method === 'PUT') return await todayOgPut(env, req, tp[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
       if (u.pathname === '/api/pref/ev' && req.method === 'POST') return await prefEvApi(env, req);
       if (u.pathname === '/api/pref' && req.method === 'GET') return await prefBoardApi(env, req);
