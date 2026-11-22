@@ -558,10 +558,6 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
 </div>
 
 <script>
-{ const siv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ const d=this.closest&&this.closest('details.more'); if(d&&!d.open) d.open=true; return siv.apply(this,a); }; }
-setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
-setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const show=()=>document.documentElement.classList.toggle('nostat',localStorage.getItem('hk-nostat')==='1'); show();
-  let n=0, t=0; e.addEventListener('click',()=>{ const now=Date.now(); n=now-t<800?n+1:1; t=now; if(n>=5){ n=0; if(localStorage.getItem('hk-nostat')==='1') localStorage.removeItem('hk-nostat'); else localStorage.setItem('hk-nostat','1'); show(); } }); }catch(_){} },0);
 const NOSTAT=(()=>{ try{ const q=new URLSearchParams(location.search).get('nostat'); if(q==='1') localStorage.setItem('hk-nostat','1'); if(q==='0') localStorage.removeItem('hk-nostat'); return localStorage.getItem('hk-nostat')==='1'; }catch(_){ return false; } })();   // 動作確認に使うブラウザは数えない
 /* ---------- 記事データ：必要になった記事だけを読み込む ---------- */
 const F=[], RV={}; let VER='', N=0, NB=4096, POPULAR=[], EXCL=new Set();
@@ -772,6 +768,8 @@ const ratioTxt=r=>r<100?r.toFixed(1)+'倍':r<1e4?fmt(Math.round(r))+'倍':jn(r)+
 const countTxt=r=>r<1e4?fmt(Math.round(r)):jn(r);
 /* 相手 j に対して記事 i が使う3つの技を選ぶ（同じ組み合わせなら必ず同じ） */
 const PICK={};
+const MVN={"job":{"サッカー選手":"ボレーシュート","政治家":"所信表明演説","野球選手":"フルスイング","プロ野球選手":"フルスイング","俳優":"迫真の演技","舞台俳優":"迫真の演技","実業家":"敵対的買収","武将":"鬨の声","アナウンサー":"滑舌アタック","軍人":"突撃命令","ラグビーユニオン選手":"タックル","日本の漫画家":"集中線","日本の声優":"イケボ","バスケットボール選手":"ダンクシュート","画家":"一筆入魂","歌手":"熱唱","小説家":"伏線回収","ボクサー":"右ストレート","歴史家":"史料批判","バレーボール選手":"スパイク","フィギュアスケート選手":"4回転ジャンプ","プロレスラー":"ラリアット","柔道家":"一本背負い","教員":"チョーク投げ","作曲家":"転調","経済学者":"見えざる手","貴種":"家柄マウント","力士":"突っ張り","ジャーナリスト":"スクープ","陸上競技選手":"スタートダッシュ","短距離走選手":"スタートダッシュ","外交官":"遺憾の意","武士":"居合斬り","侍":"抜刀","著作家":"書き下ろし","作家":"書き下ろし","官僚":"前例主義","統治者":"勅令","国王":"勅令","君主":"御前会議","建築家":"構造計算","自転車競技選手":"ペダリング","お笑いタレント":"ツッコミ","落語家":"オチ","シンガーソングライター":"弾き語り","経営者":"経営判断","音楽家":"フォルテッシモ","アメリカンフットボール選手":"ブリッツ","詩人":"韻律","騎手":"ムチ一閃","総合格闘家":"パウンド","格闘家":"必殺の拳","イラストレーター":"線画","医師":"診断","テニス選手":"サービスエース","哲学者":"問い直し","写真家":"シャッターチャンス","タレント":"営業スマイル","研究者":"査読","翻訳家":"超訳","アイドル":"ファンサ","映画監督":"カット！","子役":"天才子役の涙","弁護士":"異議あり","顧問弁護士":"契約条項","政治学者":"世論調査","脚本家":"どんでん返し","ファッションモデル":"ランウェイ","モデル":"決めポーズ","グラビアアイドル":"表紙飾り","言語学者":"品詞分解","競泳選手":"バタフライ","エンジニア":"デバッグ","士官":"号令","社会学者":"フィールドワーク","心理学者":"心理分析","教育者":"説教","ハンドボール選手":"ジャンプシュート","ゴルファー":"ドライバーショット","プロゴルファー":"ドライバーショット","物理学者":"相対性理論","化学者":"化学反応","競艇選手":"ターン","芸術家":"アート爆発","軍事指導者":"作戦指揮","テレビプロデューサー":"視聴率","俳人":"五七五","ラジオパーソナリティ":"深夜トーク","科学者":"仮説検証","彫刻家":"削り出し","カーレーサー":"ドリフト","レーシングドライバー":"オーバーテイク","数学者":"証明終わり","オートバイレーサー":"ウィリー","ピアニスト":"超絶技巧","歌人":"三十一文字","評論家":"辛口批評","文芸評論家":"辛口批評","音楽評論家":"辛口批評","指揮者":"タクト","競輪選手":"まくり","卓球選手":"スマッシュ","バドミントン選手":"スマッシュ","棋士":"王手","プロ囲碁棋士":"神の一手","囲碁棋士":"神の一手","天文学者":"天体観測","キックボクサー":"ハイキック","裁判官":"判決","映画プロデューサー":"製作総指揮","書家":"一筆","法学者":"条文解釈","アイスホッケー選手":"スラップショット","オペラ歌手":"アリア","アマチュアレスラー":"タックル","ギタリスト":"速弾き","スキージャンプ選手":"K点越え","銀行家":"貸し剥がし","公卿":"和歌","ヴァイオリニスト":"ビブラート","空手家":"正拳突き","歌舞伎役者":"見得を切る","飛行士":"急上昇","ドラマー":"ドラムロール","起業家":"ピボット","音楽プロデューサー":"ミリオンヒット","作詞家":"サビ","編集者":"赤入れ","ゲームデザイナー":"難易度調整","ダンサー":"ターン","随筆家":"つれづれ","アニメーター":"作画","デザイナー":"レイアウト","グラフィックデザイナー":"レイアウト","陶芸家":"ろくろ","演出家":"ダメ出し","器械体操選手":"月面宙返り","放送作家":"ネタ出し","スピードスケート選手":"インコース","ラッパー":"韻","浮世絵師":"大首絵","探検家":"未踏到達","調教師":"仕上げ","手品師":"種明かし","行司":"軍配","天気キャスター":"晴れ予報","ディスクジョッキー":"スクラッチ","考古学者":"発掘","植物学者":"新種記載","生物学者":"観察記録","医学者":"臨床試験","サッカー指導者":"戦術ボード","コーチ":"檄","撮影監督":"長回し","計算機科学者":"アルゴリズム","機械工学者":"歯車","土木技師":"護岸工事","歯科医師":"抜歯","レースクイーン":"パラソル","公務員":"窓口対応","地方公務員":"窓口対応","ファッションデザイナー":"コレクション","ノンフィクション作家":"取材","ライトノベル作家":"長いタイトル","映像作家":"長回し","地理学者":"地図","農学者":"品種改良","経営理論家":"フレームワーク","大学教員":"休講","編集技師":"カット割り"},"cls":{"企業":"株式公開","シングル":"サビの連打","アルバム":"全曲再生","映画":"クライマックス","テレビ番組":"視聴率","タクソン":"学名詠唱","道路":"渋滞","日本の廃止市区町村":"合併","鉄道駅":"駆け込み乗車","コンピュータゲーム":"コンティニュー","日本の連載漫画":"次号予告","日本の小学校":"チャイム","音楽グループ":"ユニゾン","ラジオ番組":"はがき職人","文学作品":"名文","町丁":"回覧板","仏教寺院":"鐘の音","テレビ番組シリーズ":"最終回","スポーツシーズン":"優勝争い","化学的実体の種類":"化学反応","音楽作品/楽曲":"サビ","歌":"大合唱","日本の中学校":"校内放送","神社":"柏手","ウマ":"末脚","日本の高等学校":"甲子園","集落":"寄り合い","地下鉄・都市高速鉄道の駅":"ラッシュアワー","絵画作品":"額縁","川":"氾濫","山":"落石","活火山":"噴火","火山":"噴火","成層火山":"噴火","サッカークラブ":"サポーターの声援","組織":"根回し","鉄道車両の形式":"警笛","小惑星":"衝突","大字":"境界線","車種":"アクセル全開","オリンピック選手団":"入場行進","インターチェンジ":"合流","架空の人":"設定盛り","雑誌":"袋とじ","ビデオアルバム":"特典映像","化石タクソン":"発掘","島":"孤島の守り","郵便局":"速達","病院":"ナースコール","都市":"再開発","鉄道路線":"ダイヤ改正","日本の城":"籠城","城":"籠城","公園":"噴水","お笑いコンビ":"漫才","温泉":"湯けむり","大学":"単位認定","橋":"渡り切り","テレビアニメシリーズ":"変身シーン","アニメーションテレビシリーズ":"変身シーン","法律":"条文","ショッピングセンター":"タイムセール","会社":"定時退社","定期スポーツイベント":"開会宣言","中継局":"電波","アメリカ合衆国の市":"ダウンタウン","古墳":"前方後円","かつての鉄道駅":"廃線の記憶","野球チームのシーズン":"マジック点灯","競馬 (広義)":"叩き合い","道の駅":"ご当地ソフト","ライトノベルシリーズ":"長いタイトル","ウェブサイト":"アクセス集中","遺跡":"発掘","航空会社":"機内アナウンス","スポーツ競技大会":"決勝戦","航空機ファミリー":"離陸","航空機の型式":"離陸","町":"町内会","日本の町":"町内会","正の整数":"素因数分解","美術館":"特別展","博物館":"特別展","賞":"受賞スピーチ","空港":"ターミナル","国際空港":"ターミナル","ホテル":"モーニングコール","野球チーム":"応援歌","都市の地区":"路地裏","元号":"改元","超高層建築物":"展望台","機関車の型式":"汽笛","音楽劇":"カーテンコール","舞台作品":"カーテンコール","スタジアム":"満員の歓声","サッカースタジアム":"満員の歓声","野球場施設":"満員の歓声","街路":"並木道","言語":"文法攻撃","自然言語":"文法攻撃","恒星":"超新星爆発","ブランド":"ロゴマーク","携帯電話の機種":"着信音","スマートフォンの機種":"着信音","定理":"証明","路面電車停留場":"チンチン","コンピュータゲームシリーズ":"シリーズ最新作","アニメーション映画":"エンドロール","アニメ映画":"エンドロール","テレビ映画":"エンドロール","日本の市":"ご当地キャラ","犬種":"お手","峠":"つづら折り","ロック・バンド":"ギターソロ","マスコット・キャラクター":"ゆるキャラ突進","フィギュアスケート競技会":"採点","図書館":"返却期限","大型船舶":"接岸","劇団":"旗揚げ公演","ダム":"放流","湖":"湖畔の霧","劇場":"開演ブザー","新聞":"号外","遺伝子":"突然変異","藩":"参勤交代","パチンコ":"確変","鉱物種":"結晶","山脈":"連峰","女性アイドルグループ":"センター争い","潜水艦":"急速潜航","ソフトウェア":"アップデート","自由ソフトウェア":"アップデート","レコードレーベル":"新譜","音楽のジャンル":"ジャンル分け","建築物":"定礎","都市公園":"噴水","商品の型式":"新製品発表","専門学校":"実技試験","短期大学":"単位認定","特別支援学校":"チャイム","日本の中高一貫校":"校内放送","叢書":"全巻揃い","コミュニティバス":"ワンマン運転","テレビ放送枠":"視聴率","総合格闘技大会":"ゴング","表彰式":"受賞スピーチ","レーシングカーの型式":"ピットイン","コンパクト盤":"A面B面"}};
+function mvName(p){ for(const m of p){ const n=m[1]==='本業'?MVN.job[m[2]]:m[1]==='正体開示'?MVN.cls[m[2]]:null; if(n) m[8]=n; } return p; }
 function pickMoves(i,j){
   const key=i+'>'+j; if(PICK[key]) return PICK[key];
   const cand=[]; const lose=new Set(), cmpd=new Set();
@@ -800,14 +798,17 @@ function pickMoves(i,j){
     if(m[0]==='HEAL'||m[0]==='GUARD') s=Math.max(s,2.2);
     if(m[7]==='meta') s-=m[1]==='リンク網'?2.2:1.4;
     if(m[7]==='wp') s-=m[1]==='リンク乱打'?1.8:0.9;
-    const isG=GENN.has(m[1]); if(isG) s-=m[1]==='外部リンク渡り'?1.5:0.6;
+    const isG=GENN.has(m[1])&&!m[8]; if(isG) s-=m[1]==='外部リンク渡り'?1.5:0.6; if(m[8]) s+=1;
     cand.push({m,s,meta:m[7]==='meta',wp:m[7]==='wp',gen:isG}); }
   /* 同じ組み合わせなら必ず同じになる「ゆらぎ」を足して、相手ごとに顔ぶれを変える */
   cand.forEach(c=>{ c.s+=(hash(QK(i,j)+'/'+F[i][2]+c.m[1])%1000)/1000*1.6; });
   cand.sort((a,b)=>b.s-a.s);
   /* 同じ系統の技ばかりにならないよう、召喚は2つまで */
   const cap={SUMMON:2,GUARD:1,HEAL:1,meta:1,wp:2,gen:2}, used={}; const out=[];
-  for(const c of cand){ const g=c.meta?'meta':c.wp?'wp':c.gen?'gen':c.m[0]; if(cap[g]!==undefined){ if((used[g]||0)>=cap[g]) continue; used[g]=(used[g]||0)+1; } out.push(c.m); if(out.length>=4) break; }
+  const isPage=c=>c.meta||c.wp||c.m[1]==='外部リンク渡り'; let pg=0; const rest=[];
+  const take=c=>{ const g=c.meta?'meta':c.wp?'wp':c.gen?'gen':c.m[0]; if(cap[g]!==undefined){ if((used[g]||0)>=cap[g]) return false; used[g]=(used[g]||0)+1; } out.push(c.m); return true; };
+  for(const c of cand){ if(out.length>=4) break; if(isPage(c)&&pg>=1){ rest.push(c); continue; } if(take(c)&&isPage(c)) pg++; }
+  for(const c of rest){ if(out.length>=4) break; take(c); }
   /* 実質的な技（記事データ系以外）が少ない記事は、選んだ技を少し強くして差を縮める */
   const real=POOL[i].filter(m=>m[7]!=='meta'&&m[7]!=='wp'&&!GENN.has(m[1])).length; const bonus=Math.max(0,4-real)*0.4;
   return PICK[key]=bonus?out.map(m=>{ const c=[...m]; c[4]=Math.min(5,+(m[4]+bonus).toFixed(2)); return c; }):out;
@@ -861,7 +862,7 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
     if(x.first&&riv&&d>0){ d=Math.round(d*1.5); line+='（因縁で1.5倍）'; }
     if(d>0) x.first=false;
     if(y.guard&&d>0){ const red=Math.round(d*y.guard); d-=red; line+=' {B}の構えで'+red+'軽減。'; y.guard=0; }
-    line=line.replace(/\{A\}/g,x.name).replace(/\{B\}/g,y.name).replace(/\{N\}/g,mv?mv[1]:'').replace(/\{F\}/g,mv?mv[2]:'').replace(/\{H\}/g,H);
+    line=line.replace(/\{A\}/g,x.name).replace(/\{B\}/g,y.name).replace(/\{N\}/g,mv?(mv[8]||mv[1]):'').replace(/\{F\}/g,mv?mv[2]:'').replace(/\{H\}/g,H);
     return {d,line,mv}; };
   let tick; const used={[ai]:[],[bi]:[]};
   for(tick=1;tick<=15;tick++){ const bA=A.g,bB=B.g; A.g+=A.rate; B.g+=B.rate; const actors=[A,B].filter(x=>x.g>=100); if(!actors.length) continue;
@@ -884,7 +885,7 @@ function analyze(ai,bi,lite){ if(lt(ai,bi)) return analyze0(ai,bi,lite);
   return {...an, r:{...r, log:r.log.map(l=>({...l,side:l.side<0?-1:1-l.side,hp:l.hp?[l.hp[1],l.hp[0]]:l.hp})), hp:[r.hp[1],r.hp[0]], max:[r.max[1],r.max[0]]}}; }
 // 技を1つ外してやり直した試合で、その技の代わりに最初に出した技（[技名, 種類]）
 function repMove(r,c,sd,m){ let k=0; while(k<r.log.length&&k<c.log.length&&r.log[k].s===c.log[k].s) k++;
-  for(let j=k;j<c.log.length;j++){ const e=c.log[j]; if(e.side===sd&&e.mv&&e.mv[1]!==m) return [e.mv[1],e.mv[0]]; } return null; }
+  for(let j=k;j<c.log.length;j++){ const e=c.log[j]; if(e.side===sd&&e.mv&&e.mv[1]!==m) return [e.mv[8]||e.mv[1],e.mv[0]]; } return null; }
 function analyze0(ai,bi,lite){   // lite：勝敗だけ分かればよいとき（サーバー）。決め手・番狂わせの計算をしない
   const r=simC(ai,bi); const base=lite?{w:null}:simC(ai,bi,{noMoves:true,noRiv:true});
   const dec=[]; if(!lite){
@@ -1086,6 +1087,10 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
   return an; }
 
 /* ---------- 記録（この端末だけ） ---------- */
+setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const show=()=>document.documentElement.classList.toggle('nostat',localStorage.getItem('hk-nostat')==='1'); show();
+  let n=0, t=0; e.addEventListener('click',()=>{ const now=Date.now(); n=now-t<800?n+1:1; t=now; if(n>=5){ n=0; if(localStorage.getItem('hk-nostat')==='1') localStorage.removeItem('hk-nostat'); else localStorage.setItem('hk-nostat','1'); show(); } }); }catch(_){} },0);
+setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
+{ const siv=Element.prototype.scrollIntoView; Element.prototype.scrollIntoView=function(...a){ const d=this.closest&&this.closest('details.more'); if(d&&!d.open) d.open=true; return siv.apply(this,a); }; }
 const REC_KEY='wb-record-v1';
 let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
@@ -1110,7 +1115,7 @@ function register(rec){ const t=rec.f[1]; { const fc=FIX&&FIX[t]&&FIX[t]['記事
     for(const [k,v] of Object.entries(fx)){ const q=FIXK[k]; if(!q) continue; if(typeof v==='number'&&v>0) rec.qt[q]=v; else if(v===null||typeof v==='number'){ delete rec.qt[q]; rec.f=rec.f.slice(); rec.f[7]=(rec.f[7]||[]).filter(m=>m[1]!==PN[q]); } } } } /* 振り分けは正式な記事名で（表示名は同名の別記事と重なることがある） */ if(TIX[t]!==undefined) return TIX[t]; const i=F.length;
   F.push(rec.f); TIX[t]=i; QIX[rec.f[2]]=i; EXT[i]=(rec.ext||[]).map(e=>e[0]!=='_m'&&Array.isArray(e[2])&&e[2].length>2?[e[0],e[1],e[2].slice(0,2),e[2].slice(2)]:e); if(rec.qt) QT[i]=rec.qt; if(rec.wp) WP[i]=rec.wp; if(rec.sn) SN[i]=rec.sn; if(rec.gen){ const g={...rec.gen}; if(Array.isArray(g.r)&&g.r.length>3){ g.ra=g.r.slice(3); g.r=g.r.slice(0,3); } GEN[i]=g; }   /* 一覧の事実・別名は先頭2件を本文に使い、残り（e[3]・ra）は脚注で見せる */ if(rec.hold) HOLD[i]=rec.hold;
   for(const [q,txt] of Object.entries(rec.rv||{})){ const j=QIX[q]; if(j!==undefined&&j!==i) RV[Math.min(i,j)+','+Math.max(i,j)]=txt; }
-  CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=makePool(i); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
+  CL[i]=rec.p?['Q5','ヒト']:(rec.gen&&rec.gen.c?[rec.gen.c,rec.gen.c]:undefined); prepMeta(i); POOL[i]=mvName(makePool(i)); if(rec.hold||EXCL.has(t)) BLOCK.add(i); return i; }
 const BLOCK=new Set();
 function setCount(){ try{ document.getElementById('eyebrow').textContent='ひゃっかけんてん ／ '+N.toLocaleString('ja-JP')+'記事収録'; }catch(_){} }
 
@@ -1304,7 +1309,7 @@ function startBattle(pair){
       if(now||parseFloat(tr.style.width)<=l.hp[j]/r.max[j]*100){ tr.style.transition='none'; tr.style.width=w; void tr.offsetWidth; tr.style.transition=''; } else setTimeout(()=>{ tr.style.width=w; },450); }); };
   ['A','B'].forEach(s=>{ const h=$('#hp'+s); if(h&&h.parentElement){ h.parentElement.classList.add('fxbar'); const t=document.createElement('b'); t.className='hptr'; t.id='hptr'+s; t.style.width='100%'; h.parentElement.prepend(t); } });
   const fxHit=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
-    const mv=l.mv&&l.mv[1]; const tgtHp=l.side===0?l.hp[1]:l.hp[0]; const big=l.d>0&&r.max&&(tgtHp<=0||l.d>=r.max[l.side===0?1:0]*0.45);   // 大きな一撃：とどめか、相手の最大HPの45%以上
+    const mv=l.mv&&(l.mv[8]||l.mv[1]); const tgtHp=l.side===0?l.hp[1]:l.hp[0]; const big=l.d>0&&r.max&&(tgtHp<=0||l.d>=r.max[l.side===0?1:0]*0.45);   // 大きな一撃：とどめか、相手の最大HPの45%以上
     if(mv){ sb.querySelectorAll('.cutin').forEach(e=>e.remove()); const c=document.createElement('div'); c.className='cutin '+atk+' k-'+String(l.mv[0]||'STRIKE')+(big?' big':'')+(big&&mv.length>=11?' xlong':big&&mv.length>=8?' long':'')+(reduce?' still':'');   /* 大技は真ん中に出し、長い技名は文字を小さくして見切れないように */ const fact=String(l.mv[2]||'').trim(); c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！'+(fact&&fact!==mv&&fact.length<=24?'<em>'+esc(fact)+'</em>':'')+'</span>';   /* 技の元になった事実を添える（作品ラッシュ！ 登録作品45件 など） */ sb.append(c); setTimeout(()=>c.remove(),big?1100:850); }
     if(l.d>0){ const box=sb.querySelector('.sb.'+def); if(box){ if(!reduce){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
         const n=document.createElement('span'); n.className='dmgfly'+(big?' big':''); n.textContent='−'+l.d; box.append(n); setTimeout(()=>n.remove(),900); }
