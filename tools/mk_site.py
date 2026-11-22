@@ -2460,6 +2460,43 @@ repall("pickMoves(bi,ai).map(m=>`<span>${esc(m[1])", "pickMoves(bi,ai).map(m=>`<
 repall("POOL[i].map(m=>`<li><span class=\"mn\">${esc(m[1])", "POOL[i].map(m=>`<li><span class=\"mn\">${esc(m[8]||m[1])")
 repall("POOL[i].slice(0,3).map(m=>m[1])", "POOL[i].slice(0,3).map(m=>m[8]||m[1])")
 
+# ---- 124. 試作：技図鑑（プレビューだけ）。試合で見た技が図鑑に載っていく
+#   ・目録は data/movedex.json（[技名, 種類, 出やすさ 0ふつう・1めずらしい・2激レア]。記事14万件の見本から作った381種類）
+#   ・見た技はこの端末に記録する（サーバーには送らない）。初めて見た技は、カットインと実況に「はじめて！」を出す
+#   ・自分の記録の下に「技図鑑を見る」と集まり具合。図鑑は種類ごとに並べ、まだ見ていない技は「？？？」（出やすさで枠の色を変える）
+repall("const fxHit=idx=>{", r"""const dexRec=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai||!l.mv) return false; if(an.type==='kurabe'&&l.mv[0]==='K') return false; return dexSee(l.mv[8]||l.mv[1]); };
+  const fxHit=(idx,isNew)=>{""")
+repall("setHP(k); trSync(k); fxHit(k); fxKind(k);", "setHP(k); trSync(k); { const nw=dexRec(k); if(nw){ const b=items[k].querySelector('.bub'); if(b) b.insertAdjacentHTML('afterbegin','<span class=\"dexnewl\">はじめて見た技</span>'); } fxHit(k,nw); } fxKind(k);")
+repall("c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！'", "c.innerHTML='<span>'+(isNew?'<i class=\"dexnew\">はじめて！</i>':'')+(big?'<small>必殺</small>':'')+esc(mv)+'！'")
+repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); trSync(items.length-1,true);", "while(k<items.length){ items[k].classList.remove('hide'); dexRec(k); k++; } setHP(items.length-1); trSync(items.length-1,true);")
+repall("<span class=\"st\"><b>${rec.best}</b><small>見た最長の連勝</small></span></div>`; }", r"""<span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div><div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div>`; dexBind(); }
+const DEX_KEY='hk-mvdex';
+function dexGet(){ try{ const d=JSON.parse(localStorage.getItem(DEX_KEY)||'{}'); return d&&typeof d==='object'?d:{}; }catch(_){ return {}; } }
+function dexSee(nm){ if(!nm) return false; const d=dexGet(); const nw=!d[nm]; d[nm]=(d[nm]||0)+1; try{ localStorage.setItem(DEX_KEY,JSON.stringify(d)); }catch(_){} if(nw) setTimeout(dexBind,0); return nw; }
+let DEXCAT=null; const dexCat=()=>DEXCAT||(DEXCAT=fetch('data/movedex.json?v=1').then(r=>r.ok?r.json():[]).catch(()=>[]));
+function dexBind(){ const b=$('#dexbtn'); if(!b) return; b.onclick=dexOpen; dexCat().then(c=>{ const d=dexGet(), n=c.filter(x=>d[x[0]]).length, p=$('#dexp'); if(p) p.textContent=n+'／'+c.length+'種類'; }); }
+function dexOpen(){ dexCat().then(c=>{ const d=dexGet(); let dl=$('#dexdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='dexdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','技図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
+    const K=[['STRIKE','打撃'],['SUMMON','召喚'],['MULTI','連撃'],['GUARD','守り'],['HEAL','回復'],['BIND','縛る'],['SLOW','鈍らせる'],['HASTE','速さ'],['*','そのほか']], T=['ふつう','めずらしい','激レア'];
+    const got=c.filter(x=>d[x[0]]).length, rare=c.filter(x=>x[2]===2&&d[x[0]]).length, rareAll=c.filter(x=>x[2]===2).length;
+    const sec=K.map(([k,lab])=>{ const L=c.filter(x=>k==='*'?!K.some(y=>y[0]===x[1]):x[1]===k); if(!L.length) return ''; const g=L.filter(x=>d[x[0]]).length;
+      return `<h3>${lab}<small>${g}／${L.length}</small></h3><ul>${L.map(x=>d[x[0]]?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0])}</b><small>${d[x[0]]}回</small></li>`:`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${T[x[2]]}</small></li>`).join('')}</ul>`; }).join('');
+    dl.innerHTML=`<div class="dexh"><h2>技図鑑</h2><button type="button" class="btn small" id="dexclose">閉じる</button></div>
+      <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>${sec}`;
+    $('#dexclose').onclick=()=>dl.close(); if(!dl.open) dl.showModal(); dl.scrollTop=0; }); }""")
+repall(".morebox{margin-top:8px}", r""".dexrow{display:flex;align-items:center;gap:10px;margin-top:10px}.dexp{font-size:13px;color:var(--muted)}
+.dexdlg{width:min(560px,calc(100% - 24px));max-height:86vh;border:none;border-radius:12px;padding:16px;background:var(--bg);color:inherit}.dexdlg::backdrop{background:rgba(0,0,0,.55)}
+.dexh{display:flex;align-items:center;justify-content:space-between;gap:10px}.dexh h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:24px}
+.dexsum{margin-top:8px;font-size:14px}.dexsum b{font-family:var(--f-display);font-size:26px;font-weight:400}.dexsum span{margin-left:12px;color:#b38f00;font-weight:700}
+.dexbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 4px}.dexbar i{display:block;height:100%;background:var(--hl)}
+.dexdlg h3{display:flex;align-items:baseline;gap:8px;margin:16px 0 6px;font-size:15px}.dexdlg h3 small{color:var(--muted);font-weight:400}
+.dexdlg ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.dexdlg li{border:2px dashed var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:1px;min-height:44px;justify-content:center}
+.dexdlg li b{font-size:13px;line-height:1.3}.dexdlg li small{font-size:11px;color:var(--muted)}
+.dexdlg li.got{border-style:solid;border-color:#111;background:#fff;box-shadow:2px 2px 0 rgba(0,0,0,.15)}.dexdlg li.t1{border-color:#7b9be0}.dexdlg li.t1.got{border-color:#2357ff}.dexdlg li.t2{border-color:#e0c25a}.dexdlg li.t2.got{border-color:#b38f00;background:linear-gradient(135deg,#fff8d6,#fff)}
+.dexnew{display:block;font-style:normal;font-family:var(--f-display);font-size:12px;color:#111;background:#7dff7a;border:2px solid #111;border-radius:3px;padding:0 6px;margin:0 0 4px;-webkit-text-stroke:0;text-shadow:none;width:max-content}
+.dexnewl{display:inline-block;font-size:11px;font-weight:700;color:#0a5c0a;background:#d9ffd6;border:1px solid #0a5c0a;border-radius:3px;padding:0 5px;margin-bottom:4px}
+.morebox{margin-top:8px}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
