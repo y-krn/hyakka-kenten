@@ -2070,13 +2070,15 @@ repall("log.push({t:k+1,side:aw?0:1,d:0,hp:[hp[0],hp[1]],s:intro+' '+res+'（'+s
 # ---- 113. 数えない印（nostat）のブラウザでホーム画面に追加したときも、Webアプリが ?nostat=1 で開くようにする
 #   iPhone のホーム画面のWebアプリは Safari と別の保存場所を持ち、manifest の start_url（./）で開くため、Safari の印が引き継がれない
 #   印のあるブラウザでは、manifest を start_url が ./?nostat=1 のもの（manifest-nostat.webmanifest）に差し替える
-repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
-const NOSTAT=(()=>{""")
+repall("/* ---------- 記録（この端末だけ） ---------- */\n", r"""/* ---------- 記録（この端末だけ） ---------- */
+setTimeout(()=>{ try{ if(NOSTAT){ const m=document.querySelector('link[rel="manifest"]'); if(m) m.href='manifest-nostat.webmanifest'; } }catch(_){} },0);
+""")
 
 # ---- 114. 数えない印の確認と切り替え：印のあるブラウザでは、見出しの上の小さな文字に「・計測なし」と出す。その文字を5回続けて押すと印を付け外しできる（ホーム画面のWebアプリでも使える）
-repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const show=()=>document.documentElement.classList.toggle('nostat',localStorage.getItem('hk-nostat')==='1'); show();
+repall("/* ---------- 記録（この端末だけ） ---------- */\n", r"""/* ---------- 記録（この端末だけ） ---------- */
+setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const show=()=>document.documentElement.classList.toggle('nostat',localStorage.getItem('hk-nostat')==='1'); show();
   let n=0, t=0; e.addEventListener('click',()=>{ const now=Date.now(); n=now-t<800?n+1:1; t=now; if(n>=5){ n=0; if(localStorage.getItem('hk-nostat')==='1') localStorage.removeItem('hk-nostat'); else localStorage.setItem('hk-nostat','1'); show(); } }); }catch(_){} },0);
-const NOSTAT=(()=>{""")
+""")
 repall(".eyebrow{", ".nostat #eyebrow::after{content:'・計測なし'}\n.eyebrow{")
 
 # ---- 115. 「今日の一戦の戦績表へ」を押しても戦績表が見えないことがある（なめらかなスクロールが途中で止まる）。戦績表そのものへ、すぐに移る
