@@ -139,6 +139,21 @@ footer .record{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bo
 .scoreboard.done{position:relative}
 .scoreboard{overflow:visible}.scoreboard .sb{position:relative}
 .fxbar{position:relative}.fxbar>i{position:relative;z-index:1}.fxbar .hptr{position:absolute;top:0;bottom:0;background:#fff;opacity:.85;transition:width .5s ease-out;z-index:0}.sb.A .hptr{left:0}.sb.B .hptr{right:0}
+.ring{position:relative}
+.intro{position:absolute;left:-16px;right:-16px;top:0;height:260px;z-index:9;display:grid;grid-template-columns:1fr;align-content:center;gap:4px;padding:0 16px;background:linear-gradient(180deg,#0b1640,#1a2a6c 50%,#3a0d16);color:#fff;overflow:hidden;animation:inOut 1.6s ease both;pointer-events:none}
+.intro small{display:block;font-size:12px;letter-spacing:.12em;opacity:.8}.intro b{display:block;font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.15;word-break:break-all}
+.inA{animation:inL .45s cubic-bezier(.2,.9,.2,1.2) both}.inB{text-align:right;animation:inR .45s .25s cubic-bezier(.2,.9,.2,1.2) both}
+.inA b{color:#9fc0ff}.inB b{color:#ff9fa8}
+.invs{justify-self:center;font-family:var(--f-display);font-size:54px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke fill;animation:inVS .5s .55s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes inL{from{transform:translateX(-120%)}to{transform:none}}@keyframes inR{from{transform:translateX(120%)}to{transform:none}}
+@keyframes inVS{from{transform:scale(3) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(-6deg);opacity:1}}
+@keyframes inOut{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
+.ring.tension #sb .tick{animation:tens .3s ease-in-out infinite alternate;background:var(--b);color:#fff;border-radius:4px}
+@keyframes tens{from{transform:scale(1)}to{transform:scale(1.35)}}
+.kostamp{position:absolute;left:50%;top:100%;margin-top:4px;z-index:8;font-family:var(--f-display);font-size:30px;color:#fff;background:var(--b);padding:4px 16px;border:3px solid #fff;border-radius:6px;box-shadow:0 4px 0 rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;animation:stampIn .45s cubic-bezier(.3,1.6,.5,1) both,stampOut .4s 1.8s ease-in forwards}
+.kostamp.up{background:var(--hl);color:var(--hl-ink)}.kostamp.draw{background:#555}
+@keyframes stampIn{from{transform:translateX(-50%) scale(2.6) rotate(-14deg);opacity:0}to{transform:translateX(-50%) scale(1) rotate(-6deg);opacity:1}}
+@keyframes stampOut{to{opacity:0;transform:translateX(-50%) scale(1.1) rotate(-6deg)}}
 .cutin{position:absolute;left:0;right:0;top:100%;margin-top:6px;pointer-events:none;overflow:hidden;z-index:6;display:flex}
 .cutin span{display:inline-block;padding:6px 14px;font-family:var(--f-display);font-size:20px;line-height:1.2;color:#fff;white-space:nowrap;border-radius:4px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .cutin.A span{background:var(--a);animation:cutL .85s cubic-bezier(.2,.8,.2,1) both}.cutin.B{justify-content:flex-end}.cutin.B span{background:var(--b);animation:cutR .85s cubic-bezier(.2,.8,.2,1) both}
@@ -1257,11 +1272,21 @@ function startBattle(pair){
     if(an.type==='kurabe'){ const w=[0,0]; for(let k=0;k<=idx;k++){ const x=r.log[k]; if(x&&x.side>=0&&!x.kai) w[x.side]++; }
       ['A','B'].forEach((s,j)=>{ const ps=$('#pip'+s).children; for(let k=0;k<ps.length;k++) ps[k].classList.toggle('on',k<w[j]); $('#hpn'+s).textContent=w[j]+'本'; }); $('#tk').textContent=l.t; return; }
     $('#hpA').style.width=(l.hp[0]/r.max[0]*100)+'%'; $('#hpB').style.width=(l.hp[1]/r.max[1]*100)+'%'; $('#tk').textContent=l.t; };
-  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); fxHit(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
+  const finIdx=(()=>{ let f=-1; r.log.forEach((l,i)=>{ if(l.side>=0&&!l.kai&&l.d>0) f=i; }); return f; })(); let held=false;
+  const stamp=()=>{ const sb=$('#sb'); if(!sb||sb.querySelector('.kostamp')) return; const s=document.createElement('div'); const up=an.upset||/番狂わせ/.test(an.tlabel||'');
+    s.className='kostamp'+(r.w===null?' draw':up?' up':''); s.textContent=r.w===null?'引き分け':up?'番狂わせ！':'決着！'; sb.append(s); };
+  const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
+    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; } items[k].classList.remove('hide'); items[k].classList.add('pop'); setHP(k); fxHit(k); if(follow&&k) items[k].scrollIntoView({block:'nearest',behavior:'smooth'}); k++; };
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let follow=true; const unf=()=>{ follow=false; }; ['wheel','touchmove','keydown'].forEach(ev=>addEventListener(ev,unf,{once:true,passive:true}));
-  step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv);
-  $('#skip').onclick=()=>{ clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
+  const noIntro=reduce||(current.orig&&current.orig.k==='dg');
+  const subOf=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; };
+  let introT=null; const begin=()=>{ introT=null; const o=ring.querySelector('.intro'); if(o) o.remove(); step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv); };
+  if(noIntro) begin();
+  else { const o=document.createElement('div'); o.className='intro';
+    o.innerHTML=`<div class="inA"><small>青コーナー${subOf(ai)?'　'+esc(subOf(ai)):''}</small><b>${esc(F[ai][0])}</b></div><div class="invs">VS</div><div class="inB"><small>赤コーナー${subOf(bi)?'　'+esc(subOf(bi)):''}</small><b>${esc(F[bi][0])}</b></div>`;
+    ring.prepend(o); introT=setTimeout(begin,1600); }
+  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; const o=ring.querySelector('.intro'); if(o) o.remove(); } clearInterval(timer); while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); stamp(); showResult(); { const rs=$('#res'); if(rs) rs.scrollIntoView({block:'start'}); } };
 }
 function showResult(){
   if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   /* 脚注は決着のあとに出す（同じ行に続きがあるので // は使わない） */ if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);

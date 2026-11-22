@@ -2313,6 +2313,42 @@ repall(".scoreboard.done{position:relative}", r""".scoreboard.done{position:rela
 .ring.flash::after{content:'';position:fixed;inset:0;background:#fff;pointer-events:none;z-index:50;animation:flash .25s ease-out both}
 @keyframes flash{0%{opacity:.7}100%{opacity:0}}""")
 
+# ---- 117. 試作：試合の演出（プレビューだけ）。選手入場とVS、決着の溜め
+#   ・始まりに、青コーナー・赤コーナーの札が左右から入り、真ん中に「VS」が落ちてくる（約1.6秒。ダンジョンと「視差効果を減らす」では出さない）
+#   ・とどめの一撃の前に一拍置いて（約0.9秒）、点数板を赤く脈打たせる
+#   ・決着したら「決着！」（番狂わせなら「番狂わせ！」、引き分けなら「引き分け」）の判を押す
+repall("  step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv);", r"""  const noIntro=reduce||(current.orig&&current.orig.k==='dg');
+  const subOf=i=>{ const c=(GEN[i]||{}).c||''; return c==='ヒト'?'人物':c; };
+  let introT=null; const begin=()=>{ introT=null; const o=ring.querySelector('.intro'); if(o) o.remove(); step(); window.__fnStep=step; window.__fnIv=reduce?350:1000; timer=setInterval(step,window.__fnIv); };
+  if(noIntro) begin();
+  else { const o=document.createElement('div'); o.className='intro';
+    o.innerHTML=`<div class="inA"><small>青コーナー${subOf(ai)?'　'+esc(subOf(ai)):''}</small><b>${esc(F[ai][0])}</b></div><div class="invs">VS</div><div class="inB"><small>赤コーナー${subOf(bi)?'　'+esc(subOf(bi)):''}</small><b>${esc(F[bi][0])}</b></div>`;
+    ring.prepend(o); introT=setTimeout(begin,1600); }""")
+repall("  $('#skip').onclick=()=>{ clearInterval(timer);", "  $('#skip').onclick=()=>{ if(introT){ clearTimeout(introT); introT=null; const o=ring.querySelector('.intro'); if(o) o.remove(); } clearInterval(timer);")
+# とどめの前の溜めと、決着の判
+repall("  const step=()=>{ if(k>=items.length){ clearInterval(timer); showResult(); return; }", r"""  const finIdx=(()=>{ let f=-1; r.log.forEach((l,i)=>{ if(l.side>=0&&!l.kai&&l.d>0) f=i; }); return f; })(); let held=false;
+  const stamp=()=>{ const sb=$('#sb'); if(!sb||sb.querySelector('.kostamp')) return; const s=document.createElement('div'); const up=an.upset||/番狂わせ/.test(an.tlabel||'');
+    s.className='kostamp'+(r.w===null?' draw':up?' up':''); s.textContent=r.w===null?'引き分け':up?'番狂わせ！':'決着！'; sb.append(s); };
+  const step=()=>{ if(k===finIdx&&!held&&!reduce&&timer){ held=true; clearInterval(timer); ring.classList.add('tension'); setTimeout(()=>{ ring.classList.remove('tension'); step(); timer=setInterval(step,window.__fnIv); },900); return; }
+    if(k>=items.length){ clearInterval(timer); stamp(); showResult(); return; }""")
+repall("while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); showResult();", "while(k<items.length){ items[k].classList.remove('hide'); k++; } setHP(items.length-1); stamp(); showResult();")
+repall(".cutin{position:absolute;", r""".ring{position:relative}
+.intro{position:absolute;left:-16px;right:-16px;top:0;height:260px;z-index:9;display:grid;grid-template-columns:1fr;align-content:center;gap:4px;padding:0 16px;background:linear-gradient(180deg,#0b1640,#1a2a6c 50%,#3a0d16);color:#fff;overflow:hidden;animation:inOut 1.6s ease both;pointer-events:none}
+.intro small{display:block;font-size:12px;letter-spacing:.12em;opacity:.8}.intro b{display:block;font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.15;word-break:break-all}
+.inA{animation:inL .45s cubic-bezier(.2,.9,.2,1.2) both}.inB{text-align:right;animation:inR .45s .25s cubic-bezier(.2,.9,.2,1.2) both}
+.inA b{color:#9fc0ff}.inB b{color:#ff9fa8}
+.invs{justify-self:center;font-family:var(--f-display);font-size:54px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke fill;animation:inVS .5s .55s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes inL{from{transform:translateX(-120%)}to{transform:none}}@keyframes inR{from{transform:translateX(120%)}to{transform:none}}
+@keyframes inVS{from{transform:scale(3) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(-6deg);opacity:1}}
+@keyframes inOut{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
+.ring.tension #sb .tick{animation:tens .3s ease-in-out infinite alternate;background:var(--b);color:#fff;border-radius:4px}
+@keyframes tens{from{transform:scale(1)}to{transform:scale(1.35)}}
+.kostamp{position:absolute;left:50%;top:100%;margin-top:4px;z-index:8;font-family:var(--f-display);font-size:30px;color:#fff;background:var(--b);padding:4px 16px;border:3px solid #fff;border-radius:6px;box-shadow:0 4px 0 rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;animation:stampIn .45s cubic-bezier(.3,1.6,.5,1) both,stampOut .4s 1.8s ease-in forwards}
+.kostamp.up{background:var(--hl);color:var(--hl-ink)}.kostamp.draw{background:#555}
+@keyframes stampIn{from{transform:translateX(-50%) scale(2.6) rotate(-14deg);opacity:0}to{transform:translateX(-50%) scale(1) rotate(-6deg);opacity:1}}
+@keyframes stampOut{to{opacity:0;transform:translateX(-50%) scale(1.1) rotate(-6deg)}}
+.cutin{position:absolute;""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
