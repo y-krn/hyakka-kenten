@@ -2377,7 +2377,7 @@ repall(".cutin{position:absolute;", r""".fxheal{position:absolute;top:-6px;font-
 @keyframes guard{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.1);opacity:1;box-shadow:0 0 0 10px rgba(43,108,176,.15)}80%{opacity:1}100%{opacity:0}}
 .fxslow{position:absolute;top:-6px;font-size:13px;font-weight:700;color:#6b4bb0;background:#efe8ff;border-radius:10px;padding:2px 8px;pointer-events:none;animation:slow 1.2s ease-in-out both}.sb.A .fxslow{left:20%}.sb.B .fxslow{right:20%}
 @keyframes slow{0%{transform:rotate(0) scale(.5);opacity:0}20%{opacity:1;transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg)}80%{opacity:1;transform:rotate(-6deg)}100%{opacity:0}}
-.fxcmp{position:absolute;left:0;right:0;top:100%;margin-top:6px;display:flex;justify-content:center;align-items:baseline;gap:10px;pointer-events:none;z-index:6;font-family:var(--f-display);animation:cmp .9s ease-out both}
+.fxcmp{position:absolute;left:0;right:0;top:100%;margin-top:54px;display:flex;justify-content:center;align-items:baseline;gap:10px;pointer-events:none;z-index:6;font-family:var(--f-display);animation:cmp .9s ease-out both}
 .fxcmp .w{font-size:26px;color:var(--hl-ink);background:var(--hl);padding:2px 8px;border-radius:4px}.fxcmp .v{font-size:14px;color:var(--muted)}.fxcmp .l{font-size:15px;color:var(--muted)}.fxcmp.B{flex-direction:row-reverse}
 @keyframes cmp{0%{transform:scale(.6);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
 .log li.kai{display:flex;align-items:flex-start;gap:8px}.log li.kai .t{display:none}.log li.kai::before{content:'解説';flex:none;font-size:11px;font-weight:700;color:#fff;background:#555;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
