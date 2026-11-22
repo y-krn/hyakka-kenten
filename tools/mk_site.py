@@ -2280,13 +2280,13 @@ repall("if($('#tdback')) $('#tdback').onclick=()=>{ const c=$('#today .tdcal'); 
 # ---- 116. 試作：試合の演出（プレビューだけ）。技名のカットインと、打撃の手応え
 #   ・技が出るたびに、技名の帯を攻撃した側から画面に走らせる（大きな一撃は帯を太く・長く）
 #   ・受けた側の札が揺れ、ダメージの数字が飛び出して消える。HPの棒は減った分が一瞬白く残ってから縮む
-#   ・大きな一撃（相手の最大HPの25%以上）は、画面が一瞬光る
+#   ・大きな一撃（とどめか、相手の最大HPの45%以上）は、画面が一瞬光る
 #   ・方針は「真面目にバカに派手に」：大きな一撃には、受けた側に擬音（ドゴォ！など）を大きく出し、帯に「必殺」の札を付ける
 #   ・端末で「視差効果を減らす」を選んでいる人には、揺れ・光・帯の動きを出さない（帯は動かさずに短く出す）
 repall("  const items=[...ring.querySelectorAll('#log li')]; let k=0;", r"""  const items=[...ring.querySelectorAll('#log li')]; let k=0;
   ['A','B'].forEach(s=>{ const h=$('#hp'+s); if(h&&h.parentElement){ h.parentElement.classList.add('fxbar'); const t=document.createElement('b'); t.className='hptr'; t.id='hptr'+s; t.style.width='100%'; h.parentElement.prepend(t); } });
   const fxHit=idx=>{ const l=r.log[idx]; if(!l||l.side<0||l.kai) return; const sb=$('#sb'); if(!sb) return; const atk=l.side===0?'A':'B', def=l.side===0?'B':'A';
-    const mv=l.mv&&l.mv[1]; const big=l.d>0&&r.max&&l.d>=r.max[l.side===0?1:0]*0.25;
+    const mv=l.mv&&l.mv[1]; const tgtHp=l.side===0?l.hp[1]:l.hp[0]; const big=l.d>0&&r.max&&(tgtHp<=0||l.d>=r.max[l.side===0?1:0]*0.45);   // 大きな一撃：とどめか、相手の最大HPの45%以上
     if(mv){ sb.querySelectorAll('.cutin').forEach(e=>e.remove()); const c=document.createElement('div'); c.className='cutin '+atk+(big?' big':'')+(reduce?' still':''); c.innerHTML='<span>'+(big?'<small>必殺</small>':'')+esc(mv)+'！</span>'; sb.append(c); setTimeout(()=>c.remove(),big?1100:850); }
     if(l.d>0){ const box=sb.querySelector('.sb.'+def); if(box){ if(!reduce){ box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
         const n=document.createElement('span'); n.className='dmgfly'+(big?' big':''); n.textContent='−'+l.d; box.append(n); setTimeout(()=>n.remove(),900); }
@@ -2302,7 +2302,7 @@ repall(".scoreboard.done{position:relative}", r""".scoreboard.done{position:rela
 .cutin.A span{background:var(--a);animation:cutL .85s cubic-bezier(.2,.8,.2,1) both}.cutin.B{justify-content:flex-end}.cutin.B span{background:var(--b);animation:cutR .85s cubic-bezier(.2,.8,.2,1) both}
 .cutin.big span{font-size:26px;padding:10px 20px;animation-duration:1.1s}
 .cutin.still span{animation:none}.cutin small{font-size:.55em;background:#fff;color:#111;border-radius:3px;padding:1px 5px;margin-right:8px;vertical-align:middle;letter-spacing:.1em}
-.onom{position:absolute;top:-34px;left:50%;font-family:var(--f-display);font-size:34px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke;white-space:nowrap;pointer-events:none;z-index:7;animation:onom 1s ease-out both}
+.onom{position:absolute;top:-8px;left:50%;font-family:var(--f-display);font-size:34px;color:var(--hl);-webkit-text-stroke:2px #111;paint-order:stroke;white-space:nowrap;pointer-events:none;z-index:7;animation:onom 1s ease-out both}
 @keyframes onom{0%{transform:translateX(-50%) rotate(-14deg) scale(.3);opacity:0}15%{transform:translateX(-50%) rotate(-8deg) scale(1.35);opacity:1}30%{transform:translateX(-50%) rotate(-10deg) scale(1)}80%{opacity:1}100%{transform:translateX(-50%) translateY(-14px) rotate(-10deg) scale(1.05);opacity:0}}
 @keyframes cutL{0%{transform:translateX(-110%) skewX(-12deg)}18%{transform:translateX(0) skewX(-12deg)}80%{transform:translateX(0) skewX(-12deg);opacity:1}100%{transform:translateX(30%) skewX(-12deg);opacity:0}}
 @keyframes cutR{0%{transform:translateX(110%) skewX(12deg)}18%{transform:translateX(0) skewX(12deg)}80%{transform:translateX(0) skewX(12deg);opacity:1}100%{transform:translateX(-30%) skewX(12deg);opacity:0}}
