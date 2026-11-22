@@ -2454,6 +2454,12 @@ repall("  for(const c of cand){ const g=c.meta?'meta':c.wp?'wp':c.gen?'gen':c.m[
   for(const c of cand){ if(out.length>=4) break; if(isPage(c)&&pg>=1){ rest.push(c); continue; } if(take(c)&&isPage(c)) pg++; }
   for(const c of rest){ if(out.length>=4) break; take(c); }""")
 
+# ---- 123. 試合前の技の一覧・技の候補にも、職業・分類の技の名前を出す
+repall("pickMoves(ai,bi).map(m=>`<span>${esc(m[1])", "pickMoves(ai,bi).map(m=>`<span>${esc(m[8]||m[1])")
+repall("pickMoves(bi,ai).map(m=>`<span>${esc(m[1])", "pickMoves(bi,ai).map(m=>`<span>${esc(m[8]||m[1])")
+repall("POOL[i].map(m=>`<li><span class=\"mn\">${esc(m[1])", "POOL[i].map(m=>`<li><span class=\"mn\">${esc(m[8]||m[1])")
+repall("POOL[i].slice(0,3).map(m=>m[1])", "POOL[i].slice(0,3).map(m=>m[8]||m[1])")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

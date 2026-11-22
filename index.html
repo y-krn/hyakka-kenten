@@ -1134,8 +1134,8 @@ const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?'<span cl
 function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="fams" data-fi="${i}"></div>
-  <details class="mvs"><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
-  <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
+  <details class="mvs"><summary>技の候補 ${POOL[i].length}個<span class="mvp">（${esc(POOL[i].slice(0,3).map(m=>m[8]||m[1]).join('・'))}${POOL[i].length>3?' など':''}）</span></summary>
+  <div class="empty">相手に合わせて4つ選び、数字で勝っている相手には比べ技も出す</div><ul class="moves">${POOL[i].map(m=>`<li><span class="mn">${esc(m[8]||m[1])}</span><span class="mf">${esc(m[3])}</span></li>`).join('')}</ul></details>`; }
 const WIDE=()=>{ try{ return matchMedia('(min-width: 720px)').matches; }catch(_){ return false; } };
 function renderPick(side){ const el=side===0?$('#pickA'):$('#pickB'); const i=sel[side];
   el.innerHTML=`<div class="row"><span class="sgw"><input id="in${side}" placeholder="記事名の一部を入力（例：富士）" value="${i===null?'':esc(F[i][0])}" aria-label="${side===0?'青コーナー':'赤コーナー'}の記事" autocomplete="off"><ul class="sg" role="listbox" hidden></ul></span><button type="button" class="btn small" data-rnd="${side}">ランダム</button></div>
@@ -1296,7 +1296,7 @@ function startBattle(pair){
     <div class="tick" id="tk">0</div>
     <div class="sb B">${current.orig&&current.orig.k==='pref'?`<span class="ptag">${esc(current.orig.q)}</span>`:''}<span class="nm">${esc(F[bi][0])}</span>${an.type==='kurabe'?`<span class="pips" id="pipB">${'<i></i>'.repeat(r.tick)}</span><span class="hpn" id="hpnB">0本</span>`:`<span class="hpbar"><i id="hpB" style="width:100%"></i></span>`}</div>
   </div>
-  <div class="plan"><div><b>${esc(F[ai][0])}</b>の技：${pickMoves(ai,bi).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div><div><b>${esc(F[bi][0])}</b>の技：${pickMoves(bi,ai).map(m=>`<span>${esc(m[1])}</span>`).join('')}</div></div>
+  <div class="plan"><div><b>${esc(F[ai][0])}</b>の技：${pickMoves(ai,bi).map(m=>`<span>${esc(m[8]||m[1])}</span>`).join('')}</div><div><b>${esc(F[bi][0])}</b>の技：${pickMoves(bi,ai).map(m=>`<span>${esc(m[8]||m[1])}</span>`).join('')}</div></div>
   <div class="logbar"><h3>実況</h3><div style="display:flex;gap:6px"><button type="button" class="btn small" id="skip">結果に移動</button></div></div>
   <ol class="log" id="log">${r.log.map(l=>{
     if(l.side<0) return `<li class="${l.kai?'kai':'sys'} hide"><span class="t"></span><div class="bub">${mark(l.s)}</div></li>`;
