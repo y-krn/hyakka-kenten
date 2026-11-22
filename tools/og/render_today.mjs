@@ -14,10 +14,13 @@ await page.goto(SITE + '/?nostat=1', { waitUntil: 'domcontentloaded' });
 if (!(await page.$('#today'))) { console.log('このページには「今日の一戦」がありません。何もしません'); await browser.close(); process.exit(0); }
 const ok = await page.waitForFunction(() => typeof TD !== 'undefined' && TD && TD.day, null, { timeout: 60000 }).then(() => true).catch(() => false);
 if (!ok) { console.error('今日の一戦の組み合わせが決まりませんでした（ページの読み込みに失敗？）'); await browser.close(); process.exit(1); }
+// 記事の短い説明（「日本のプロ野球選手」など）は、ページの今日の一戦の枠に出ているものを使う（読み込みを少し待つ）
+await page.waitForFunction(() => [...document.querySelectorAll('#today b')].filter(b => b.nextElementSibling && b.nextElementSibling.tagName === 'A' && b.nextElementSibling.textContent.trim()).length >= 2, null, { timeout: 15000 }).catch(() => {});
 const M = await page.evaluate(() => {
+  const qs = [...document.querySelectorAll('#today b')].map(b => b.nextElementSibling && b.nextElementSibling.tagName === 'A' ? b.nextElementSibling.textContent.trim() : '');
   const mv = (x, y) => { try { return [...new Set(pickMoves(x, y).map(m => m[8] || m[1]))]; } catch (_) { return []; } };
-  const one = (x, y) => ({ name: F[x][0], title: F[x][1], q: F[x][2] || '', mv: mv(x, y) });
-  return { day: TD.day, a: one(TD.a, TD.b), b: one(TD.b, TD.a) };
+  const one = (x, y, q) => ({ name: F[x][0], title: F[x][1], q: q || '', mv: mv(x, y) });
+  return { day: TD.day, a: one(TD.a, TD.b, qs[0]), b: one(TD.b, TD.a, qs[1]) };
 });
 console.log(M.day, M.a.name, 'vs', M.b.name, M.a.mv.join('・'), '/', M.b.mv.join('・'));
 const card = await browser.newPage({ viewport: { width: 1200, height: 630 } });
