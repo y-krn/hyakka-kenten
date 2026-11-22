@@ -19,7 +19,7 @@ const td = await page.evaluate(() => ({ day: TD.day, a: F[TD.a][0], b: F[TD.b][0
 await browser.close();
 
 const md = d => (+d.slice(5, 7)) + '月' + (+d.slice(8, 10)) + '日';
-const url = SITE + '/?today=1';
+const url = SITE + '/?today=1&d=' + td.day;   // 日付つき（共有カードの画像が日付ごとなので）
 const xlen = s => [...s].reduce((n, c) => n + (c.codePointAt(0) < 0x1100 ? 1 : 2), 0);   // Xの文字数の数え方（URLは別に23）
 let lines = [`【百科拳典 今日の一戦 ${md(td.day)}】`, `${td.a} vs ${td.b}`, '人気の記事に、ランダムに選ばれた記事が挑む。どっちが勝つ？ 予想してから観戦しよう', '#百科拳典', DISC];
 if (xlen(lines.join('\n')) > 280 - 24) lines.splice(2, 1);   // 長すぎるときは、説明の行を削る
@@ -29,5 +29,5 @@ if (!NTFY) { console.log('NTFY_TOPIC がないので、通知は送りません'
 const intent = 'https://x.com/intent/post?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url);
 const r = await fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
   topic: NTFY, title: `今日の一戦：${td.a} vs ${td.b}`, message: text + '\n\nタップするとXの投稿画面が開きます', tags: ['crossed_swords'],
-  click: intent, actions: [{ action: 'view', label: 'Xで投稿', url: intent, clear: true }, { action: 'view', label: 'ページを見る', url }] }) });
+  click: intent, attach: SITE + '/og/t/' + td.day + '.jpg', filename: 'hyakkakenten-today-' + td.day + '.jpg', actions: [{ action: 'view', label: 'Xで投稿', url: intent, clear: true }, { action: 'view', label: 'ページを見る', url }] }) });
 console.log('通知', r.status);

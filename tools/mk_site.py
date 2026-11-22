@@ -2463,6 +2463,10 @@ repall("""    const body=!L.length?""", """    const byTier=M=>[0,1,2].map(t=>{ 
     const body=!L.length?""")
 repall(".dexlist{margin-top:4px}", ".dexlist{margin-top:4px}\n.dexdlg h4.dext{display:flex;align-items:baseline;gap:6px;margin:10px 0 5px;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted)}.dexdlg h4.dext small{font-weight:400}.dexdlg h4.dext.t1{color:#2357ff}.dexdlg h4.dext.t2{color:#b38f00}")
 
+# ---- 129. 今日の一戦を共有するURLに日付を付ける（?today=1&d=日付）
+#   共有カード（OGP）の画像を日付ごとに作るので、昨日の共有に今日の画像が出ないように。ページ側は d を見ない
+repall("location.origin+'/?today=1'", "location.origin+'/?today=1'+(TD&&TD.day?'&d='+TD.day:'')")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
