@@ -2074,9 +2074,10 @@ repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ if(NOSTAT){ const m=docu
 const NOSTAT=(()=>{""")
 
 # ---- 114. 数えない印の確認と切り替え：印のあるブラウザでは、見出しの上の小さな文字に「・計測なし」と出す。その文字を5回続けて押すと印を付け外しできる（ホーム画面のWebアプリでも使える）
-repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const base=e.textContent; const show=()=>{ e.textContent=base+(localStorage.getItem('hk-nostat')==='1'?'・計測なし':''); }; show();
+repall("const NOSTAT=(()=>{", r"""setTimeout(()=>{ try{ const e=document.getElementById('eyebrow'); if(!e) return; const show=()=>document.documentElement.classList.toggle('nostat',localStorage.getItem('hk-nostat')==='1'); show();
   let n=0, t=0; e.addEventListener('click',()=>{ const now=Date.now(); n=now-t<800?n+1:1; t=now; if(n>=5){ n=0; if(localStorage.getItem('hk-nostat')==='1') localStorage.removeItem('hk-nostat'); else localStorage.setItem('hk-nostat','1'); show(); } }); }catch(_){} },0);
 const NOSTAT=(()=>{""")
+repall(".eyebrow{", ".nostat #eyebrow::after{content:'・計測なし'}\n.eyebrow{")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
