@@ -2750,6 +2750,13 @@ repall("if(type==='shunsatsu'){ const R=rounds(ai,bi); const gap=R.filter(x=>PHY
        "if(type==='shunsatsu'){ const gap=gapOf(ai,bi);\n    if(gap&&r.w===(gap.a>gap.b?ai:bi)){")
 repall("if(va!==null&&vb!==null&&va!==vb){ w=va>vb?ai:bi;", "if(va!==null&&vb!==null&&va!==vb&&(r.w===null||r.w===(va>vb?ai:bi))){ w=va>vb?ai:bi;")
 
+# ---- 138. 計算を直す前の王座戦の記録を再生して勝者が食い違うときは、決め手・自滅・因縁の行を出さない（2026-11-24）
+#   見出しは記録どおり（例：新王者誕生）なのに、決め手が相手の技になって、ちぐはぐに見えていた
+repall("  if(decW.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5倍がなければ、結果は違っていた');",
+       """  if(decW.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5倍がなければ、結果は違っていた');
+  if(M&&M.replay){ const x=M.res, recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; if(recW!==(w===null?null:F[w][1])) lines.length=0; }""")
+repall("の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>", "の勝ちとして扱われていますが、いまの計算で再生すると結果が異なるため、決め手は出していません。</div>")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
