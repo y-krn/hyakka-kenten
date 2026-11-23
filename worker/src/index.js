@@ -63,6 +63,16 @@ async function ipHash(env, req) {
   return [...new Uint8Array(d)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// 防衛を重ねた王者は、歴代王者を従える（連戦）。挑戦者は自分の記事1つで、助っ人 → 王者の順に全員倒すと王座を取れる
+//   防衛0〜1回：王者だけ ／ 2〜4回：前の王者＋王者の2連戦 ／ 5回以上：前の前の王者＋前の王者＋王者の3連戦
+//   助っ人は、いまの王者より前の王者を新しい順に（王者と同じ記事・同じ記事の重なりは飛ばす）。古い方から戦う
+const GUARD_AT = [[5, 2], [2, 1]];   // [防衛回数, 助っ人の数]
+async function guardsOf(env, c) {
+  const n = (GUARD_AT.find(([d]) => (c.defenses || 0) >= d) || [0, 0])[1]; if (!n) return [];
+  const r = await env.DB.prepare('SELECT id, title, display FROM reigns WHERE id < ? ORDER BY id DESC LIMIT 12').bind(c.id).all();
+  const out = []; for (const x of r.results) { if (x.title === c.title || out.some(o => o.title === x.title)) continue; out.push({ reignNo: x.id, title: x.title, display: x.display }); if (out.length >= n) break; }
+  return out.reverse();
+}
 async function current(env) {
   let c = await env.DB.prepare('SELECT * FROM reigns WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1').first();
   if (!c) {   // 初代王者を置く
@@ -90,7 +100,8 @@ async function throneBody(env) {
     env.DB.prepare("SELECT n FROM stats WHERE k = 'plays'"),
     env.DB.prepare('SELECT COUNT(*) AS n FROM challenges'),
   ]);
-  return { champ: c, reignNo: c.id, recent: recent.results,   // 最長防衛・歴代王者は /api/hall（王者の殿堂）へ移した
+  const guards = await guardsOf(env, c);
+  return { champ: c, reignNo: c.id, guards, recent: recent.results,   // 最長防衛・歴代王者は /api/hall（王者の殿堂）へ移した
     count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } };
 }
 
@@ -149,13 +160,29 @@ async function challenge(env, req, ctx) {
     return json(env, req, { error: '「' + B.name + '」と「' + c.display + '」は、すでに王座戦で戦っています（' + (w ? w + 'の勝ち' : '引き分け') + '）。結果は何度やっても同じなので、別の記事で挑んでください。', known: { id: met.id, result: met.result } }, 409);
   }
 
-  const ai = await E.loadOne(c.title);
-  let v, result;
-  if (ai < 0 || E.info(ai).blocked) { v = { w: B.title, kind: '不戦勝', how: '王者が収録から外れていたため不戦勝' }; }
-  else v = E.verdict(ai, bi);
+  // 連戦：助っ人（歴代王者）と古い方から戦い、1つでも負け・引き分けたら、そこで挑戦は終わる（王者の防衛に数える）
+  const gauntlet = [];
+  let v, result, stop = null;
+  for (const g of await guardsOf(env, c)) {
+    if (g.title === B.title) continue;   // 自分の記事が助っ人にいるときは、その試合はなし
+    const gi = await E.loadOne(g.title); if (gi < 0 || E.info(gi).blocked) continue;   // 収録から外れた助っ人は休み
+    const gv = E.verdict(gi, bi), gr = gv.w === B.title ? 'win' : gv.w === null ? 'draw' : 'lose';
+    gauntlet.push({ reignNo: g.reignNo, title: g.title, display: g.display, result: gr, how: gv.how });
+    if (gr !== 'win') { stop = g; v = { w: gv.w === B.title ? B.title : gv.w === null ? null : c.title, how: (gr === 'draw' ? '前の王者' + g.display + 'と引き分け' : '前の王者' + g.display + 'に敗れる') + '（' + gv.how + '）' }; break; }
+  }
+  if (!stop) {
+    const ai = await E.loadOne(c.title);
+    if (ai < 0 || E.info(ai).blocked) { v = { w: B.title, kind: '不戦勝', how: '王者が収録から外れていたため不戦勝' }; }
+    else v = E.verdict(ai, bi);
+  }
   result = v.w === B.title ? 'win' : v.w === null ? 'draw' : 'lose';
   const t = now();
-  const ins = await env.DB.prepare('INSERT OR IGNORE INTO challenges (reign_id, title, display, name, result, how, at, iphash, client) VALUES (?,?,?,?,?,?,?,?,?)')
+  let ins;
+  if (gauntlet.length) {   // 連戦の中身も残す（記録の再生用）。列がまだないデータベースでは、残さずに記録する
+    try { ins = await env.DB.prepare('INSERT OR IGNORE INTO challenges (reign_id, title, display, name, result, how, at, iphash, client, gauntlet) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .bind(c.id, B.title, B.name, nm.name, result, v.how, t, ih, cl, JSON.stringify(gauntlet)).run(); } catch (_) { ins = null; }
+  }
+  if (!ins) ins = await env.DB.prepare('INSERT OR IGNORE INTO challenges (reign_id, title, display, name, result, how, at, iphash, client) VALUES (?,?,?,?,?,?,?,?,?)')
     .bind(c.id, B.title, B.name, nm.name, result, v.how, t, ih, cl).run();
   if (!ins.meta.changes) {   // ほぼ同時に、別の人が同じ記事で同じ王者に挑んでいた（同じ組み合わせは1回まで）
     const same = await env.DB.prepare('SELECT id FROM challenges WHERE reign_id = ? AND title = ?').bind(c.id, B.title).first();
@@ -179,15 +206,17 @@ async function challenge(env, req, ctx) {
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
   let nowC = null;   // ひと足遅れ・王者がもう倒されていたとき：いまの王者を知らせる（そのまま挑み直せるように）
   if (result === 'late' || gone) { const n = await current(env); nowC = { id: n.id, title: n.title, display: n.display, holder: n.holder }; }
-  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, gone, now: nowC, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
+  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, gone, now: nowC, gauntlet, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
 }
 
 // 1つの挑戦の記録（共有URL ?c=番号 で、その試合を再生するため）
 async function getChallenge(env, req, id) {
-  const x = await env.DB.prepare('SELECT c.id, c.reign_id, c.title, c.display, c.name, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(id).first();
+  let x; try { x = await env.DB.prepare('SELECT c.id, c.reign_id, c.title, c.display, c.name, c.result, c.how, c.at, c.gauntlet, r.title AS ctitle, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(id).first(); }
+  catch (_) { x = await env.DB.prepare('SELECT c.id, c.reign_id, c.title, c.display, c.name, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.id = ?').bind(id).first(); }   // 連戦の列がまだないとき
   if (!x) return json(env, req, { error: 'その挑戦の記録はありません' }, 404);
   const d = await env.DB.prepare("SELECT COUNT(*) AS n FROM challenges WHERE reign_id = ? AND id <= ? AND result IN ('lose','draw')").bind(x.reign_id, x.id).first();
-  return json(env, req, { id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, name: x.name,
+  let gauntlet = []; try { gauntlet = x.gauntlet ? JSON.parse(x.gauntlet) : []; } catch (_) {}
+  return json(env, req, { id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, name: x.name, gauntlet,
     champ: { title: x.ctitle, display: x.cdisplay, defenses: d.n }, challenger: { title: x.title, display: x.display } });
 }
 
