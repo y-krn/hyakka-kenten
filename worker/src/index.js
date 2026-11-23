@@ -8,6 +8,7 @@
 //   POST /api/plays             … {n, k:{t,m,f,d}, client} 自由対戦などの対戦数（ブラウザでまとめて数えたもの）を足す。k は遊び方ごとの内訳
 //   GET  /og/c/番号.jpg          … 王座戦の試合ごとの共有画像
 //   GET  /api/og/pending        … 画像がまだない挑戦の一覧（管理用。GitHub Actions が使う）
+//   GET  /api/throne/day?d=日付  … その日の王座戦のまとめ（交代の回数・挑戦の数・いちばん防衛した王者・いまの王者）
 //   PUT  /api/og/番号            … 作った画像を預ける（管理用）
 //   GET  /og/t/日付.jpg          … 今日の一戦の共有画像（毎日0時すぎに GitHub Actions が作る）
 //   PUT  /api/og/today/日付?a=&b= … 今日の一戦の共有画像を預ける（管理用）
@@ -295,12 +296,24 @@ async function askImage(env, info) {
 async function ogPending(env, req) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
   const q = new URL(req.url).searchParams, all = q.get('all') === '1', before = parseInt(q.get('before'), 10) || 1e9;   // all=1 … 作り直し用に、画像のあるものも含めて古い順にたどる
-  const r = await env.DB.prepare(`SELECT c.id, c.reign_id, c.title, c.display, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay,
+  const r = await env.DB.prepare(`SELECT c.id, c.reign_id, c.title, c.display, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay, r.started_at AS since,
       (SELECT COUNT(*) FROM challenges d WHERE d.reign_id = c.reign_id AND d.id <= c.id AND d.result IN ('lose','draw')) AS defenses
     FROM challenges c JOIN reigns r ON r.id = c.reign_id LEFT JOIN ogimg o ON o.id = c.id
     WHERE ${all ? 'c.id < ?' : 'o.id IS NULL'} ORDER BY c.id DESC LIMIT 30`).bind(...(all ? [before] : [])).all();
-  return json(env, req, { items: r.results.map(x => ({ id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, defenses: x.defenses,
+  return json(env, req, { items: r.results.map(x => ({ id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, since: x.since, defenses: x.defenses,
     ch: { title: x.title, name: x.display }, cp: { title: x.ctitle, name: x.cdisplay } })) });
+}
+// その日（日本時間）の王座戦のまとめ。夜のまとめ通知（GitHub Actions）が使う。名前などは出さない
+async function throneDay(env, req) {
+  const d0 = new URL(req.url).searchParams.get('d') || '', day = /^\d{4}-\d\d-\d\d$/.test(d0) ? d0 : new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const [a, b, c, w] = await env.DB.batch([
+    env.DB.prepare("SELECT COUNT(*) AS n FROM reigns WHERE date(started_at, '+9 hours') = ? AND holder <> '初代'").bind(day),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM challenges WHERE date(at, '+9 hours') = ? AND result <> 'late'").bind(day),
+    env.DB.prepare("SELECT display, defenses FROM reigns WHERE date(started_at, '+9 hours') = ? OR date(ended_at, '+9 hours') = ? OR (ended_at IS NULL AND date(started_at, '+9 hours') <= ?) ORDER BY defenses DESC, id LIMIT 1").bind(day, day, day),
+    env.DB.prepare("SELECT id FROM challenges WHERE result = 'win' ORDER BY id DESC LIMIT 1")]);
+  const cur = await current(env);
+  return json(env, req, { day, changes: a.results[0].n, challenges: b.results[0].n, best: c.results[0] || null, lastWin: w.results[0] ? w.results[0].id : null,
+    champ: { reignNo: cur.id, display: cur.display, defenses: cur.defenses } });
 }
 async function ogPut(env, req, id) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
@@ -548,6 +561,7 @@ export default {
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req, ctx);
+      if (u.pathname === '/api/throne/day' && req.method === 'GET') return await throneDay(env, req);
       if (u.pathname === '/api/hall' && req.method === 'GET') return await hall(env, req, ctx);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);
       if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
