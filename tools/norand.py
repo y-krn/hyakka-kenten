@@ -1,7 +1,7 @@
 # ランダム（初期表示・ランダムボタン・おまかせ）に出さない記事を選ぶ。今日の一戦・百科ダンジョンの扉の候補からも外れる。
 #   対戦から外すわけではなく、自分で名前を入れれば選べる。
 #   ・性的な内容の記事
-# あわせて、長くなった記事から切り出された一部（「浜崎あゆみのディスコグラフィ」「らき☆すたの登場人物」など。親の記事が収録されているものだけ）を
+# あわせて、長くなった記事から切り出された一部（「浜崎あゆみのディスコグラフィ」「らき☆すたの登場人物」など）と一覧の記事（「〜一覧」・年表）を
 #   data/exclude.json に書き出し、対戦そのものから外す（収録していない扱い。名前を入れても選べない）。exclude.json に手で足した記事はそのまま残す
 #   性的指向・LGBT・医学一般は対象にしない。言葉の一部だけが一致する誤検出（サセックス、ピエロ、官能基 など）は避ける。
 #   python3 tools/norand.py data  → data/norand.json（記事名の一覧）
@@ -23,7 +23,13 @@ IGNORE = re.compile(r'ロマンポルノ|ポルノグラフィティ|セック�
 ALLOW = {'ポルノグラフィティ', 'セックス・ピストルズ', 'Fate/stay night'}   # 一般に広く知られていて、ランダムに出ても差し支えないもの
 # 切り出された一部：「（親の記事名）の◯◯」で、親の記事も収録されているもの。事実がほとんどなく、記事の長さだけで親に勝ってしまうことがある
 #   「〜の歴史」は、それ自体が題材として成り立つ記事が多いので外さない
-SPLIT = re.compile(r'^(.+?)の(ディスコグラフィ|作品|作品一覧|登場人物|年表|受賞リスト|受賞記録|受賞歴|受賞とノミネート|出演作品|映像作品)$')
+SPLIT = re.compile(r'^(.+?)の(ディスコグラフィー?|作品|作品一覧|登場人物|登場人物一覧|キャラクター一覧|年表|受賞リスト|受賞記録|受賞歴|受賞とノミネート|出演作品|映像作品|サウンドトラック|楽曲一覧|エピソード一覧|各話リスト|シングル一覧|アルバム一覧|ライブアルバム|カバー曲)(?: \(.+\))?$')
+# 一覧の記事：「〜一覧」で終わるもの（括弧の補足つきも）、Wikidataの分類が年表のもの。作品（映画・曲など）は除く
+#   （2026-11-23：「攻殻機動隊 S.A.C.シリーズの登場人物」が王座を取った。親の記事がない一覧はすり抜けていたので、親の有無は問わないことにした）
+#   「〜リスト」で終わる記事は人物・用語も多い（フランツ・リスト、連結リスト など）ので、型では外さず、exclude.json に手で足す
+LIST = re.compile(r'一覧(?: \(.+\))?$')
+LISTC = {'年表', '架空の年表'}
+WORKC = re.compile(r'映画|小説|漫画|楽曲|シングル|アルバム|著作|ゲーム|テレビ|ドラマ|書籍|戯曲|アニメ|番組|絵画|作品$|文学|曲$|写真|彫刻|ラジオ|ウェブシリーズ|フレスコ|トリプティック|定期刊行物')
 files = sorted(glob.glob(os.path.join(D, 'a', '*.json.gz')))
 ALLT = set()
 for f in files: ALLT.update(json.loads(gzip.open(f).read()).keys())
@@ -31,9 +37,8 @@ out = []; split = []
 for f in files:
     for t, r in json.loads(gzip.open(f).read()).items():
         if t in ALLOW: continue
-        m = SPLIT.match(t)
-        if m and m.group(1) in ALLT: split.append(t); continue
         g = r.get('gen', {})
+        if SPLIT.match(t) or ((LIST.search(t) or (g.get('c') or '') in LISTC) and not WORKC.search(g.get('c') or '')): split.append(t); continue
         meta = [g.get('c') or ''] + list(g.get('cc', [])) + [x for e in r.get('ext', []) if e[0] != '_m' and isinstance(e[2], list) for x in e[2] if isinstance(x, str)]
         sig = {m for m in meta if META.search(m) and not IGNORE.search(m)}
         # 人物は、手がかりが2つ以上あるときだけ（過去に一度だけ関わった俳優などを外さないため）
@@ -43,6 +48,6 @@ json.dump(out, open(os.path.join(D, 'norand.json'), 'w'), ensure_ascii=False, se
 print('ランダムに出さない記事', len(out))
 EX = os.path.join(D, 'exclude.json')
 old = json.load(open(EX)) if os.path.exists(EX) else []
-ex = sorted(set([t for t in old if not SPLIT.match(t)] + split))
+ex = sorted(set(old) | set(split))   # 手で足した記事も、以前の型で外した記事も残す（データを作り直して型に当たらなくなっても、勝手に戻さない）
 json.dump(ex, open(EX, 'w'), ensure_ascii=False, separators=(',', ':'))
 print('対戦から外す記事（exclude.json）', len(ex), '（うち切り出された一部', len(split), '）')
