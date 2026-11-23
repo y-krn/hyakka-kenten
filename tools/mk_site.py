@@ -2555,6 +2555,10 @@ repall(".morebox{margin-top:8px}", ".rechal{display:block;margin-top:8px}\n.more
 repall("function goThrone(t){ THOPEN=true;", "function goThrone(t){ THOPEN=true; try{ thTick(true); }catch(_){}")
 repall("document.addEventListener('visibilitychange',()=>{ if(!document.hidden) thTick(); })", "let TH_HID=0; document.addEventListener('visibilitychange',()=>{ if(document.hidden){ TH_HID=Date.now(); return; } thTick(TH_HID&&Date.now()-TH_HID>60000); }); document.addEventListener('toggle',e=>{ if(e.target&&e.target.id==='thx'&&e.target.open) thTick(true); },true)")
 
+# ---- 135. フッターに公式Xへのリンクを置く（2026-11-23）
+repall("WikipediaはWikimedia Foundationの登録商標です。</span>", "WikipediaはWikimedia Foundationの登録商標です。</span>\n    <span class=\"fsns\">公式X：<a href=\"https://x.com/hyakkakenten\" target=\"_blank\" rel=\"noopener\">@hyakkakenten</a></span>")
+repall(".morebox{margin-top:8px}", ".fsns{margin-top:4px}.fsns a{color:inherit;font-weight:700}\n.morebox{margin-top:8px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
