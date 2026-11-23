@@ -2622,6 +2622,46 @@ repall("</style>", r""".fxhaste{position:absolute;top:-26px;z-index:8;display:fl
 @media (prefers-reduced-motion: reduce){.fxhaste,.sb.fxfast::after{animation:none}}
 </style>""",)
 
+# ---- 131. 選手図鑑：試合に出た記事を、職業（人物）・分類（もの・こと）ごとに集める（2026-11-23）
+#   ・目録は data/playerdex.json（[種類（j:職業／c:分類）, その種類の技の名前, 出やすさ 0ふつう・1めずらしい・2激レア]。職業170・分類148の318種類）
+#     出やすさは記事14万件の見本で、その種類の記事の割合：0.2%以上＝ふつう、0.02%以上＝めずらしい、それ未満＝激レア
+#   ・試合が終わったら、両方の記事の種類を記録する（この端末だけ。サーバーには送らない）。初めての種類は結果の上に「選手図鑑に初登録」
+#   ・図鑑は技図鑑と同じ作り：見た／まだ／激レア／すべて、人物／もの・こと で絞り込み、区分ごとに「ふつう→めずらしい→激レア」
+repall('<div class="dexrow"><button type="button" class="btn small" id="achbtn">', '<div class="dexrow"><button type="button" class="btn small" id="plbtn">選手図鑑を見る</button><span class="dexp" id="plp"></span></div><div class="dexrow"><button type="button" class="btn small" id="achbtn">')
+repall("dexBind(); achBind(); }", r"""dexBind(); plBind(); achBind(); }
+const PL_KEY='hk-pldex';
+function plGet(){ try{ const d=JSON.parse(localStorage.getItem(PL_KEY)||'{}'); return d&&typeof d==='object'?d:{}; }catch(_){ return {}; } }
+let PLCAT=null; const plCat=()=>PLCAT||(PLCAT=fetch('data/playerdex.json?v=1').then(r=>r.ok?r.json():[]).catch(()=>[]));
+const plKey=i=>{ const P=POOL[i]||[]; const j=P.find(m=>m[1]==='本業'), c=P.find(m=>m[1]==='正体開示'); return j?'j:'+j[2]:c?'c:'+c[2]:null; };
+async function plRec(list){ const cat=await plCat(), has=new Set(cat.map(x=>x[0])), d=plGet(), nw=[];
+  for(const i of list){ if(i==null||i<0||!F[i]) continue; const k=plKey(i); if(!k||!has.has(k)) continue; const x=d[k]||(d[k]={n:0,f:F[i][0]}); if(!x.n) nw.push([k.slice(2),F[i][0]]); x.n++; x.l=F[i][0]; }
+  try{ localStorage.setItem(PL_KEY,JSON.stringify(d)); }catch(_){} plBind(); return nw; }
+function plBind(){ const b=$('#plbtn'); if(!b) return; b.onclick=plOpen; plCat().then(c=>{ const d=plGet(), p=$('#plp'); if(p) p.textContent=c.filter(x=>d[x[0]]).length+'／'+c.length+'種類'; }); }
+function plOpen(){ plCat().then(c=>{ const d=plGet(); let dl=$('#pldlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='pldlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','選手図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
+    const G=[['j','人物（職業）'],['c','もの・こと（分類）']], T=['ふつう','めずらしい','激レア'];
+    let Fl={g:'',s:'got'}; try{ Fl={...Fl,...JSON.parse(localStorage.getItem('hk-plf')||'{}')}; }catch(_){}
+    const got=c.filter(x=>d[x[0]]).length, rare=c.filter(x=>x[2]===2&&d[x[0]]).length, rareAll=c.filter(x=>x[2]===2).length;
+    const chip=(grp,v,lab,n)=>`<button type="button" class="btn small dexf${Fl[grp]===v?' on':''}" data-g="${grp}" data-v="${v}" aria-pressed="${Fl[grp]===v}">${lab}${n!==undefined?`<small>${n}</small>`:''}</button>`;
+    const pass=x=>(!Fl.g||x[0][0]===Fl.g)&&(Fl.s==='all'||(Fl.s==='got'&&d[x[0]])||(Fl.s==='not'&&!d[x[0]])||(Fl.s==='rare'&&x[2]===2));
+    const L=c.filter(pass).sort((a,b)=>((d[b[0]]?1:0)-(d[a[0]]?1:0)));
+    const item=x=>{ const y=d[x[0]]; return y?`<li class="t${x[2]} got" title="${T[x[2]]}"><b>${esc(x[0].slice(2))}</b><small>${y.n}回・${T[x[2]]}</small><small class="plf">${esc(y.f)}${y.l&&y.l!==y.f?'、'+esc(y.l):''}</small></li>`
+      :`<li class="t${x[2]}" title="${T[x[2]]}"><b>？？？</b><small>${x[0][0]==='j'?'人物':'もの・こと'}・${T[x[2]]}</small></li>`; };
+    const byTier=M=>[0,1,2].map(t=>{ const Q=M.filter(x=>x[2]===t); return Q.length?`<h4 class="dext t${t}">${T[t]}<small>${Q.length}</small></h4><ul>${Q.map(item).join('')}</ul>`:''; }).join('');
+    const body=!L.length?`<p class="fsub">${Fl.s==='got'?'まだ登録された選手がいません。試合をすると、出場した記事の職業・分類がここに載っていきます':'該当する選手はいません'}</p>`
+      :G.map(([g,lab])=>{ const M=L.filter(x=>x[0][0]===g); return M.length?`<h3>${lab}<small>${M.length}</small></h3>${byTier(M)}`:''; }).join('');
+    dl.innerHTML=`<div class="dexh"><h2>選手図鑑</h2><button type="button" class="btn small" id="plclose">閉じる</button></div>
+      <div class="dexsum"><b>${got}</b>／${c.length}種類<span>激レア ${rare}／${rareAll}</span></div><div class="dexbar"><i style="width:${(got/Math.max(1,c.length)*100).toFixed(1)}%"></i></div>
+      <div class="dexfl">${chip('s','got','登録済み',got)}${chip('s','not','まだ',c.length-got)}${chip('s','rare','激レア',rareAll)}${chip('s','all','すべて',c.length)}</div>
+      <div class="dexfl dexk">${chip('g','','全部')}${G.map(([g,lab])=>{ const A=c.filter(x=>x[0][0]===g); return chip('g',g,lab.replace(/（.*）/,''),A.filter(x=>d[x[0]]).length+'／'+A.length); }).join('')}</div>
+      <div class="dexlist">${body}</div>`;
+    dl.querySelectorAll('.dexf').forEach(b=>b.onclick=()=>{ Fl[b.dataset.g]=b.dataset.v; try{ localStorage.setItem('hk-plf',JSON.stringify(Fl)); }catch(_){} plOpen(); });
+    $('#plclose').onclick=()=>dl.close(); if(!dl.open){ dl.showModal(); dl.scrollTop=0; } }); }""")
+repall("function showResult(){", r"""function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>{ if(!nw.length) return; const box=$('#ring .result'); if(!box||box.querySelector('.plnew')) return;
+    box.insertAdjacentHTML('afterbegin','<div class="plnew"><i>選手図鑑に初登録</i>'+nw.map(([k,n])=>'<b>'+esc(k)+'</b><small>（'+esc(n)+'）</small>').join('')+'</div>'); }).catch(()=>{}); }catch(_){}""")
+repall(".morebox{margin-top:8px}", r""".dexdlg li small.plf{font-size:10.5px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plnew{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 10px;padding:6px 10px;border:2px solid #111;border-radius:6px;background:#d9ffd6;box-shadow:2px 2px 0 #111;font-size:14px}.plnew i{font-style:normal;font-size:11px;font-weight:700;color:#0a5c0a;width:100%}.plnew b{font-family:var(--f-display);font-weight:400;font-size:17px}.plnew small{font-size:12px;color:#333}
+.morebox{margin-top:8px}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
