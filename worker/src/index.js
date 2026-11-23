@@ -88,7 +88,7 @@ async function throneBody(env) {
   ]);
   const [pl, ch] = await env.DB.batch([
     env.DB.prepare("SELECT n FROM stats WHERE k = 'plays'"),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM challenges'),
+    env.DB.prepare('SELECT COALESCE(MAX(id), 0) AS n FROM challenges'),   // 挑戦の数。記録は消さないので、いちばん新しい番号＝数（COUNT は全部の行を読むので使わない）
   ]);
   return { champ: c, reignNo: c.id, recent: recent.results,   // 最長防衛・歴代王者は /api/hall（王者の殿堂）へ移した
     count: { plays: (pl.results[0] || {}).n || 0, throne: (ch.results[0] || {}).n || 0 } };
@@ -295,11 +295,12 @@ async function askImage(env, info) {
 }
 async function ogPending(env, req) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
+  // 画像待ちを探すのは、いちばん新しい画像の50件前から先だけ（毎回すべての記録を読むと、読み取り行数が記録の数に比例して増えるため）
   const q = new URL(req.url).searchParams, all = q.get('all') === '1', before = parseInt(q.get('before'), 10) || 1e9;   // all=1 … 作り直し用に、画像のあるものも含めて古い順にたどる
   const r = await env.DB.prepare(`SELECT c.id, c.reign_id, c.title, c.display, c.result, c.how, c.at, r.title AS ctitle, r.display AS cdisplay, r.started_at AS since,
       (SELECT COUNT(*) FROM challenges d WHERE d.reign_id = c.reign_id AND d.id <= c.id AND d.result IN ('lose','draw')) AS defenses
     FROM challenges c JOIN reigns r ON r.id = c.reign_id LEFT JOIN ogimg o ON o.id = c.id
-    WHERE ${all ? 'c.id < ?' : 'o.id IS NULL'} ORDER BY c.id DESC LIMIT 30`).bind(...(all ? [before] : [])).all();
+    WHERE ${all ? 'c.id < ?' : 'o.id IS NULL AND c.id > (SELECT COALESCE(MAX(id), 0) FROM ogimg) - 50'} ORDER BY c.id DESC LIMIT 30`).bind(...(all ? [before] : [])).all();
   return json(env, req, { items: r.results.map(x => ({ id: x.id, reignNo: x.reign_id, result: x.result, how: x.how, at: x.at, since: x.since, defenses: x.defenses,
     ch: { title: x.title, name: x.display }, cp: { title: x.ctitle, name: x.cdisplay } })) });
 }

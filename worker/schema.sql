@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS challenges (
   UNIQUE(reign_id, title)
 );
 CREATE INDEX IF NOT EXISTS ch_ip ON challenges(iphash, at);
+CREATE INDEX IF NOT EXISTS ch_title ON challenges(title, reign_id);   -- 記事名で過去の挑戦を探す（歴代王者の一覧・同じ組み合わせの対戦）
 -- みんなの対戦数（自由対戦はブラウザでまとめて数えて、ときどき送ってもらう）
 CREATE TABLE IF NOT EXISTS stats (k TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS plays (
