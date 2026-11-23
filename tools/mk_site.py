@@ -2536,6 +2536,25 @@ repall(".morebox{margin-top:8px}", r""".cols{display:grid;gap:6px;margin-top:16p
 .colb{width:100%;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:10px;background-image:linear-gradient(var(--hl),var(--hl));background-repeat:no-repeat;background-size:var(--p,0%) 3px;background-position:0 100%}.colb .dexp{font-size:12px;color:var(--muted);font-weight:400}
 .morebox{margin-top:8px}""")
 
+# ---- 133. 王座戦に何人かが同時に挑んだときの知らせを分かりやすくする（2026-11-23）
+#   ・ひと足遅れ（勝ったのに王座はもう別の記事へ）：いまの王者の名前を出し、同じ記事のまま「新王者に挑む」を置く
+#   ・勝敗を決めているあいだに王者が倒されていた（サーバーが gone を返す）：「防衛」と出さず、事実どおりに知らせる。防衛には数えない
+#   ・見ている間に王者が替わったときの知らせに、誰の挑戦かを添える
+repall("d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が王者を倒していました。新しい王者に挑み直してください。`:",
+  "d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が${esc(d.champ.display)}を倒していました。いまの王者は${esc(d.now?d.now.display:'別の記事')}です。`+reBtn(d):d.gone?`${esc(d.challenger.display)}は${esc(d.champ.display)}${d.result==='draw'?'と引き分け':'に敗れました'}。ただ、この直前に${esc(d.champ.display)}は別の挑戦者に倒されていたため、防衛には数えません。いまの王者は${esc(d.now?d.now.display:'別の記事')}です。`+reBtn(d):")
+repall("async function doChallenge(){", r"""const reBtn=d=>d.now&&d.now.title!==d.challenger.title?`<span class="rechal"><button type="button" class="btn small" data-t="${esc(d.challenger.title)}">新王者に挑む</button></span>`:'';
+document.addEventListener('click',async e=>{ const b=e.target.closest&&e.target.closest('.rechal button'); if(!b) return; const t=b.dataset.t; b.disabled=true; TH_HOLD=null; await loadThrone(null,true); CHOPT.add(t); const i=$('#chT'); if(i) i.value=t; doChallenge(); });
+async function doChallenge(){""")
+repall("x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:", "x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに${x.now?x.now.display:'別の記事'}へ`:x.gone?`${x.result==='draw'?'引き分け':x.champ.display+'の勝ち'}。ただし王座はすでに${x.now?x.now.display:'別の記事'}へ`:")
+repall("x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`", "(x.result==='lose'||x.result==='draw')&&!x.gone?`王者は${x.champ.defenses}度目の防衛。`")
+repall("'王者が「'+esc(d.champ.display)+'」に変わりました'", "'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':'')")
+repall(".morebox{margin-top:8px}", ".rechal{display:block;margin-top:8px}\n.morebox{margin-top:8px}")
+
+#   ・タブを開いたまま時間がたっても、古い王者のまま挑まないように：王座戦を開いたとき（「勝者で王者に挑む」・欄を開く）と、
+#     1分以上よそにいてタブに戻ったときは、2分待たずに王者を読み直す（替わっていれば「王者が◯◯に変わりました（誰の挑戦）」）
+repall("function goThrone(t){ THOPEN=true;", "function goThrone(t){ THOPEN=true; try{ thTick(true); }catch(_){}")
+repall("document.addEventListener('visibilitychange',()=>{ if(!document.hidden) thTick(); })", "let TH_HID=0; document.addEventListener('visibilitychange',()=>{ if(document.hidden){ TH_HID=Date.now(); return; } thTick(TH_HID&&Date.now()-TH_HID>60000); }); document.addEventListener('toggle',e=>{ if(e.target&&e.target.id==='thx'&&e.target.open) thTick(true); },true)")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
