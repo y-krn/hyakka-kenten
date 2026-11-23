@@ -2686,7 +2686,7 @@ document.addEventListener('click',async e=>{ const b=e.target.closest&&e.target.
 async function doChallenge(){""")
 repall("x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに別の記事へ`:", "x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに${x.now?x.now.display:'別の記事'}へ`:x.gone?`${x.result==='draw'?'引き分け':x.champ.display+'の勝ち'}。ただし王座はすでに${x.now?x.now.display:'別の記事'}へ`:")
 repall("x.result==='lose'||x.result==='draw'?`王者は${x.champ.defenses}度目の防衛。`", "(x.result==='lose'||x.result==='draw')&&!x.gone?`王者は${x.champ.defenses}度目の防衛。`")
-repall("'王者が「'+esc(d.champ.display)+'」に変わりました'", "'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':'')")
+repall("'王者が「'+esc(d.champ.display)+'」に変わりました'", "'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）|名無しの挑戦者)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':'')")
 repall(".morebox{margin-top:8px}", ".rechal{display:block;margin-top:8px}\n.morebox{margin-top:8px}")
 
 #   ・タブを開いたまま時間がたっても、古い王者のまま挑まないように：王座戦を開いたとき（「勝者で王者に挑む」・欄を開く）と、
