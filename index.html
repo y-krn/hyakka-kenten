@@ -1361,7 +1361,6 @@ prefDraw();
 /* ---------- 対戦 ---------- */
 let timer=null, current=null, MODE=null;   // MODE：王座戦の挑戦なら {res, no}
 function ringHead(m,c){ if(!m) return '<div class="ringhead">'+(c&&c.today?'今日の一戦':c&&c.orig&&c.orig.k==='fam'?'仲間さがしから':c&&c.orig&&c.orig.k==='mine'?'あなたの代表戦':c&&c.orig&&c.orig.k==='dg'?'百科ダンジョン':c&&c.orig&&c.orig.k==='pref'?esc(c.orig.p)+'の応援試合 ／ '+esc(c.orig.c)+'対決'+(c.orig.rev?'（仇討ち）':c.orig.n?'（'+(c.orig.n+1)+'戦目）':''):'自由対戦')+'</div>';
-  if(m.bout){ const B=m.bout, g=B.list[B.i]; return `<div class="ringhead th">${m.replay?'王座戦の記録':'王座戦'} 連戦${B.i+1}/${B.n||B.list.length} ／ ${g.guard?'前の王者（第'+g.reignNo+'代）'+esc(g.display):'第'+m.no+'代王者 '+esc(g.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
   return `<div class="ringhead th">${m.replay?'王座戦の記録（'+esc(dt(m.res.at))+'）':'王座戦'} ／ 第${m.no}代王者 ${esc(m.res.champ.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }
 function startBattle(pair){
   clearInterval(timer);
@@ -1487,7 +1486,7 @@ function startBattle(pair){
 }
 function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>{ if(!nw.length) return; const box=$('#ring .result'); if(!box||box.querySelector('.plnew')) return;
     box.insertAdjacentHTML('afterbegin','<div class="plnew"><i>選手図鑑に初登録</i>'+nw.map(([k,n])=>'<b>'+esc(k)+'</b><small>（'+esc(n)+'）</small>').join('')+'</div>'); }).catch(()=>{}); }catch(_){} try{ const h=new Date().getHours(); if(h<4) achFlag('night'); if(current&&current.an&&current.an.r&&current.an.r.w===null) achFlag('draw'); setTimeout(()=>achCheck(true),1800); }catch(_){}
-  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   /* 脚注は決着のあとに出す（同じ行に続きがあるので // は使わない） */ if(current.mode&&TH_HOLD&&!boutMore(current)){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
+  if(!current||current.shown) return; current.shown=true; { const fl=$('#fnl'); if(fl) fl.hidden=false; }   /* 脚注は決着のあとに出す（同じ行に続きがあるので // は使わない） */ if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg; TH_HOLD=null; setTimeout(()=>loadThrone(h),0); } /* 王座戦の結果は、ここで王座の欄に出す */ if(current.today) setTimeout(()=>todayDone(current),0);
   { const sb=$('#sb'), ww=current.an.r.w; if(sb){ sb.classList.add('done'); const tk=$('#tk'); if(tk) tk.textContent=ww===null?'引分':'決着';
       const A=sb.querySelector('.sb.A'), B=sb.querySelector('.sb.B'); if(ww!==null){ (ww===current.ai?A:B).classList.add('won'); (ww===current.ai?B:A).classList.add('lost'); } } }
   const {ai,bi,an}=current; const {r,upset,dec}=an; const w=r.w; const l=w===ai?bi:ai;
@@ -1538,11 +1537,10 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
   const ASOF=((document.querySelector('footer')||{}).textContent||'').match(/(\d{4}年\d+月\d+日)時点/);
   let title=w===null?'引き分け':`${F[w][0]}の勝ち`;
   if(M){ const x=M.res; title=x.result==='win'?`新王者誕生！ 第${M.no+1}代王者 ${x.challenger.display}`:x.result==='late'?`${x.challenger.display}の勝ち。ただし王座はすでに${x.now?x.now.display:'別の記事'}へ`:x.gone?`${x.result==='draw'?'引き分け':x.champ.display+'の勝ち'}。ただし王座はすでに${x.now?x.now.display:'別の記事'}へ`:x.result==='draw'?`引き分け。王者${x.champ.display}の防衛`:`王者${x.champ.display}、${x.champ.defenses}度目の防衛`; if(M.replay) title='【記録】'+title; }
-  if(M&&M.bout){ const B=M.bout, g=B.list[B.i]; if(g.guard){ title=`連戦${B.i+1}/${B.n||B.list.length}：前の王者${g.display}${w===null?'と引き分け':w===current.ai?'に勝利！':'に敗れる'}`+(w===current.ai?'':'。王座には届かず'); if(M.replay) title='【記録】'+title; } }
   const how=r.how||(r.kind==='KO'?`${r.tick}カウントでKO勝ち`:r.kind==='判定'?'判定勝ち':'相打ち');
   let share=w===null?`【百科拳典】${F[ai][0]}と${F[bi][0]}は${r.kind==='相打ち'?'相打ち':'引き分け'}。`:
     `【百科拳典】${F[w][0]}が${F[l][0]}に${how}。${an.tail?an.tail:key?`決め手は【${key.move}】。`:lm?`最後は【${lm}】。`:'最後は普通に殴って決着。'}${upset?'下馬評を覆す番狂わせ。':''}`;
-  if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'&&!(M.bout&&M.bout.list[M.bout.i].guard)?`第${M.no+1}代王者に。`:(x.result==='lose'||x.result==='draw')&&!x.gone?`王者は${x.champ.defenses}度目の防衛。`:''); }
+  if(M){ const x=M.res; share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?`第${M.no+1}代王者に。`:(x.result==='lose'||x.result==='draw')&&!x.gone?`王者は${x.champ.defenses}度目の防衛。`:''); }
   const TDY=current.today&&TD&&current.today.day===TD.day;
   if(TDY){ const me=tdLoad()[TD.day]||{}; const wi=w===null?null:(w===TD.a?0:1); const hit=(me.p===0||me.p===1)&&me.p===wi; const st=tdStreak({...tdLoad(),[TD.day]:{...me,done:1,hit}});
     share=`【百科拳典 今日の一戦 ${mdJ(TD.day)}】${F[TD.a][0]} vs ${F[TD.b][0]}`+(me.p===0||me.p===1?`\n予想は${hit?'当たり！'+(st>1?`（${tdTitle(st)?tdTitle(st)+'・':''}${st}日連続）`:''):'外れ…'}`:'')+'\nあなたはどっちが勝つと思う？'; }
@@ -1573,7 +1571,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
     <div class="next">${TDY?`
       <button type="button" class="btn big" id="topref">県を応援する</button>
       <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>
-      <div style="flex-basis:100%"><button type="button" class="btn small" id="tdback">今日の一戦の戦績表へ</button></div>`:boutMore(current)?`<button type="button" class="btn big" id="nextbout">次の試合へ（${M.bout.list[M.bout.i+1].guard?'前の王者 ':'王者 '}${esc(M.bout.list[M.bout.i+1].display)}）</button>`:M?`
+      <div style="flex-basis:100%"><button type="button" class="btn small" id="tdback">今日の一戦の戦績表へ</button></div>`:M?`
       ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
       <button type="button" class="btn" id="tofree">自由対戦へ</button>`:current.orig&&current.orig.k==='pref'?prefBtns(w===null?null:w===ai):`
@@ -1626,8 +1624,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
         box.insertAdjacentHTML('beforeend',ok.map(c=>`<div><a href="?a=${encodeURIComponent(F[me][1])}&b=${encodeURIComponent(c.t)}" data-t="${esc(c.t)}">${esc(c.t)}</a>${c.r?`<small>（${esc(c.r)}）</small>`:''}</div>`).join('')); box.hidden=false;
         box.querySelectorAll('a[data-t]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const j=await loadTitle(a.dataset.t); if(j<0) return; const side=me===ai?0:1; sel[side]=me; sel[1-side]=j; renderPick(0); renderPick(1); updateFight(); startBattle(); }); })(); } }
   if($('#cont')) $('#cont').onclick=async()=>{ const keep=w; const side=keep===ai?0:1; sel[side]=keep; sel[1-side]=await rnd([keep]); renderPick(0); renderPick(1); updateFight(); startBattle(); };
-  if($('#nextbout')) $('#nextbout').onclick=async()=>{ const B=M.bout, nx=B.list[B.i+1]; const b=await loadTitle(nx.title); if(b<0) return; MODE={...M,bout:{...B,i:B.i+1}}; startBattle([current.ai,b]); };
-  if(M&&$('#thr')){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
+  if(M){ $('#thr').onclick=()=>{ THOPEN=true; if($('#thx')) $('#thx').open=true; $('#throne').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const t=$('#chT'); if(t) t.focus({preventScroll:true}); },400); };
     $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); }; }
   if($('#tofree')&&!M) $('#tofree').onclick=()=>{ $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); };
   if($('#tothr')) $('#tothr').onclick=()=>goThrone(F[w][1]);
@@ -1982,8 +1979,8 @@ function battleURL(){ const base=location.origin+location.pathname; if(!current)
 // 共有URLから開いたとき：その試合を再生する。うまくいかなければ false
 async function openShared(){ const q=new URLSearchParams(location.search);
   if(q.get('c')&&API){ try{ const [,x]=await Promise.all([loadThrone(), fetch(API+'/api/challenge/'+encodeURIComponent(q.get('c'))).then(r=>r.json())]); if(x.error) return false;
-      const [a,b]=await Promise.all([loadTitle(x.challenger.title), loadTitle(gauntletList(x)[0].title)]); if(a<0||b<0) return false;
-      MODE={res:x,no:x.reignNo,replay:true,bout:boutOf(x)}; startBattle([a,b]);   // 再生を先に始めて、自由対戦の欄はあとから埋める
+      const [a,b]=await Promise.all([loadTitle(x.challenger.title), loadTitle(x.champ.title)]); if(a<0||b<0) return false;
+      MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]);   // 再生を先に始めて、自由対戦の欄はあとから埋める
       const [c,d]=await Promise.all([rnd([a,b]),rnd([a,b])]); sel[0]=c; sel[1]=d===c?await rnd([a,b,c]):d; renderPick(0); renderPick(1); updateFight(); return true; }catch(_){ return false; } }
   const ta=q.get('a'), tb=q.get('b'); if(!ta||!tb) return false;
   const [,ia,ib]=await Promise.all([loadThrone(), loadTitle(ta).catch(()=>-1), loadTitle(tb).catch(()=>-1)]);
@@ -2016,7 +2013,7 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   
   <form id="chf"><span class="sgw"><input id="chT" placeholder="挑戦する記事名（一部でも可）" autocomplete="off" aria-label="挑戦する記事名"><ul class="sg" id="sgT" role="listbox" hidden></ul></span>
     <input id="chN" class="nm" maxlength="16" placeholder="名前（任意）" value="${esc(nm)}" aria-label="名前"><button type="submit" class="btn" disabled>挑戦する</button></form>
-  <div class="meta thn">${d.guards&&d.guards.length?`防衛を重ねた王者には、歴代王者がつきます。挑むと<b>${d.guards.map(g=>esc(g.display)).join(' → ')} → ${esc(c.display)}</b>の${d.guards.length+1}連戦。全員に勝てば、あなたの記事が次の王者。`:'勝てば、あなたの記事が次の王者。'}同じ組み合わせで挑めるのは1回だけです。</div>
+  <div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
 </details>`;
@@ -2062,7 +2059,7 @@ async function openHall(){ const dlg=$('#famdlg'); if(!dlg) return; let d;
   if(!dlg.open) dlg.showModal(); dlg.scrollTop=0; }
 // 記録された挑戦を、その場で再生する
 async function replayChallenge(id){ try{ const x=await fetch(API+'/api/challenge/'+id).then(r=>r.json()); if(x.error) return;
-  const a=await loadTitle(x.challenger.title), b=await loadTitle(gauntletList(x)[0].title); if(a<0||b<0) return; MODE={res:x,no:x.reignNo,replay:true,bout:boutOf(x)}; startBattle([a,b]); }catch(_){} }
+  const a=await loadTitle(x.challenger.title), b=await loadTitle(x.champ.title); if(a<0||b<0) return; MODE={res:x,no:x.reignNo,replay:true}; startBattle([a,b]); }catch(_){} }
 // keep=true なら、入力中の記事名・名前・カーソル位置を残したまま描き直す
 function renderKeep(d,msg){ const t=$('#chT'), n=$('#chN'); const prev={t:t?t.value:'',n:n?n.value:'',f:document.activeElement&&document.activeElement.id};
   renderThrone(d,msg); const t2=$('#chT'), n2=$('#chN'); if(t2){ t2.value=prev.t; t2.dispatchEvent(new Event('change')); } if(n2&&prev.n) n2.value=prev.n;
@@ -2085,12 +2082,6 @@ setInterval(()=>thTick(),15000);
 let TH_HID=0; document.addEventListener('visibilitychange',()=>{ if(document.hidden){ TH_HID=Date.now(); return; } thTick(TH_HID&&Date.now()-TH_HID>60000); }); document.addEventListener('toggle',e=>{ if(e.target&&e.target.id==='thx'&&e.target.open) thTick(true); },true);
 const reBtn=d=>d.now&&d.now.title!==d.challenger.title?`<span class="rechal"><button type="button" class="btn small" data-t="${esc(d.challenger.title)}">新王者に挑む</button></span>`:'';
 document.addEventListener('click',async e=>{ const b=e.target.closest&&e.target.closest('.rechal button'); if(!b) return; const t=b.dataset.t; b.disabled=true; TH_HOLD=null; await loadThrone(null,true); CHOPT.add(t); const i=$('#chT'); if(i) i.value=t; doChallenge(); });
-/* 連戦の並び（助っ人を古い順に。負けた助っ人までで終わり。全員に勝っていれば最後に王者） */
-const gauntletList=d=>{ const G=(d.gauntlet||[]).map(g=>({title:g.title,display:g.display,reignNo:g.reignNo,guard:true,result:g.result})); const lost=G.findIndex(g=>g.result&&g.result!=='win');
-  return lost>=0?G.slice(0,lost+1):G.concat([{title:d.champ.title,display:d.champ.display,guard:false}]); };
-const boutOf=d=>{ const L=gauntletList(d); return L.length>1?{i:0,list:L,n:(d.gauntlet||[]).length+1}:null; };
-const boutMore=c=>!!(c&&c.mode&&c.mode.bout&&c.mode.bout.i<c.mode.bout.list.length-1&&c.an&&c.an.r&&c.an.r.w===c.ai);
-const gLost=d=>(d.gauntlet||[]).find(g=>g.result&&g.result!=='win');
 async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').value.trim(), m=$('#chM'), btn=$('#chf button');
   if(!t){ m.className='msg err'; m.textContent='挑戦する記事名を入れてください'; return; }
   if(!CHOPT.has(t)){ m.className='msg err'; m.textContent='入力すると出てくる候補の中から選んでください（収録している記事だけが候補に出ます）'; return; }
@@ -2105,11 +2096,11 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
     return; }
   const msg=d.result==='win'?`<span class="msg win">${esc(d.challenger.display)}が${esc(d.champ.display)}を倒し、新王者になりました！（${esc(d.how||'')}）</span>`:
     d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が${esc(d.champ.display)}を倒していました。いまの王者は${esc(d.now?d.now.display:'別の記事')}です。`+reBtn(d):d.gone?`${esc(d.challenger.display)}は${esc(d.champ.display)}${d.result==='draw'?'と引き分け':'に敗れました'}。ただ、この直前に${esc(d.champ.display)}は別の挑戦者に倒されていたため、防衛には数えません。いまの王者は${esc(d.now?d.now.display:'別の記事')}です。`+reBtn(d):
-    gLost(d)?`${esc(d.challenger.display)}は${d.gauntlet.length+1}連戦のうち${d.gauntlet.indexOf(gLost(d))+1}戦目で、前の王者${esc(gLost(d).display)}${gLost(d).result==='draw'?'と引き分け':'に敗れました'}。王者${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。`:d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
+    d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
   // 対戦の中身をリングで見せる（同じ計算なので、サーバーと同じ結果になる）
   try{ const ae=document.activeElement; if(ae&&ae.blur) ae.blur(); }catch(_){}
   let shown=false; m.className='msg'; m.textContent='試合開始。結果は、試合のあとでここに出ます。';
-  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(gauntletList(d)[0].title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1),bout:boutOf(d)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}
+  try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}
   if(!shown){ TH_HOLD=null; await loadThrone(msg); } }
 // スマホのキーボードが閉じきるのを待つ（最大0.7秒）
 function kbClosed(){ const vv=window.visualViewport; if(!TOUCH||!vv) return Promise.resolve();

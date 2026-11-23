@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS challenges (
   at TEXT NOT NULL,
   iphash TEXT NOT NULL,
   client TEXT,                -- ブラウザごとの番号（を、さらにハッシュしたもの）
-  gauntlet TEXT,              -- 連戦（歴代王者との試合）の中身。JSON。連戦がなければ NULL
   UNIQUE(reign_id, title)
 );
 CREATE INDEX IF NOT EXISTS ch_ip ON challenges(iphash, at);
