@@ -156,8 +156,11 @@ async function challenge(env, req, ctx) {
   const t = now();
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO challenges (reign_id, title, display, name, result, how, at, iphash, client) VALUES (?,?,?,?,?,?,?,?,?)')
     .bind(c.id, B.title, B.name, nm.name, result, v.how, t, ih, cl).run();
-  if (!ins.meta.changes) return json(env, req, { error: 'ちょうど同じ挑戦が受け付けられました。少し待ってから見直してください。' }, 409);
-  let newReign = null;
+  if (!ins.meta.changes) {   // ほぼ同時に、別の人が同じ記事で同じ王者に挑んでいた（同じ組み合わせは1回まで）
+    const same = await env.DB.prepare('SELECT id FROM challenges WHERE reign_id = ? AND title = ?').bind(c.id, B.title).first();
+    return json(env, req, { error: '同じ記事での挑戦が、ほぼ同時に別の人から届いていました。結果は同じなので、その試合を見てください。', known: same ? { id: same.id } : null }, 409);
+  }
+  let newReign = null, gone = false;   // gone：勝敗を決めているあいだに、王者が別の挑戦者に倒されていた
   if (result === 'win') {
     const up = await env.DB.prepare('UPDATE reigns SET ended_at = ?, ended_by = ? WHERE id = ? AND ended_at IS NULL').bind(t, B.name, c.id).run();
     if (up.meta.changes) {
@@ -167,12 +170,15 @@ async function challenge(env, req, ctx) {
       result = 'late'; await env.DB.prepare("UPDATE challenges SET result = 'late' WHERE id = ?").bind(ins.meta.last_row_id).run();
     }
   } else {
-    await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
+    const df = await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
+    if (!df.meta.changes) gone = true;   // 防衛には数えない（記録は「元王者に負けた・引き分けた」として残る）
   }
   try { await caches.default.delete(TH_KEY); await caches.default.delete(HALL_KEY); } catch (_) {}   // 使い回している王座戦の情報を捨てる（すぐ新しい結果が見えるように）
   if (ctx) ctx.waitUntil(askImage(env, { id: ins.meta.last_row_id }));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
-  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
+  let nowC = null;   // ひと足遅れ・王者がもう倒されていたとき：いまの王者を知らせる（そのまま挑み直せるように）
+  if (result === 'late' || gone) { const n = await current(env); nowC = { id: n.id, title: n.title, display: n.display, holder: n.holder }; }
+  return json(env, req, { id: ins.meta.last_row_id, reignNo: c.id, result, gone, now: nowC, newChamp: !!newReign, champ: { id: c.id, title: c.title, display: c.display, defenses: after ? after.defenses : c.defenses }, challenger: { title: B.title, display: B.name }, how: v.how, kind: v.kind, name: nm.name });
 }
 
 // 1つの挑戦の記録（共有URL ?c=番号 で、その試合を再生するため）
