@@ -2606,6 +2606,22 @@ repall(".dexlist{margin-top:4px}", ".dexlist{margin-top:4px}\n.dexdlg h4.dext{di
 #   共有カード（OGP）の画像を日付ごとに作るので、昨日の共有に今日の画像が出ないように。ページ側は d を見ない
 repall("location.origin+'/?today=1'", "location.origin+'/?today=1'+(TD&&TD.day?'&d='+TD.day:'')")
 
+# ---- 130. 技図鑑の仕上げ：速さの技にも専用の演出を付ける。審判員の吹き出しのしっぽを、継ぎ目のない三角にする
+#   ・速さ＝水色の札「ビュン！ 加速！」が横に走り抜け、使った側の点数板に速さの線が流れる（縛る・鈍らせると同じアメコミ調）
+#   ・しっぽは、黒い三角の上に一回り小さい白い三角を重ねて縁取りにする（以前は丸めた角と白い当て布で、継ぎ目が見えていた）
+repall("    else if(kd==='GUARD') add(A,'fxguard','受け流し',1000);", "    else if(kd==='GUARD') add(A,'fxguard','受け流し',1000);\n    else if(kd==='HASTE'){ add(A,'fxhaste','<i>ビュン！</i>加速！',1300); if(A){ A.classList.remove('fxfast'); void A.offsetWidth; A.classList.add('fxfast'); setTimeout(()=>A.classList.remove('fxfast'),1300); } }")
+repall(".ring .log li.kai .bub::before{content:'';position:absolute;left:-11px;top:16px;width:18px;height:18px;background:#fff;border-left:2.5px solid #111;border-bottom:2.5px solid #111;border-radius:0 0 0 14px;transform:skewY(-28deg) rotate(10deg)}\n.ring .log li.kai .bub::after{content:'';position:absolute;left:2px;top:14px;width:14px;height:24px;background:#fff}",
+ ".ring .log li.kai .bub::before{content:'';position:absolute;left:-17px;top:14px;width:20px;height:24px;background:#111;clip-path:polygon(100% 0,0 78%,100% 100%)}\n.ring .log li.kai .bub::after{content:'';position:absolute;left:-11.5px;top:17.5px;width:15px;height:15.5px;background:#fff;clip-path:polygon(100% 0,0 84%,100% 100%)}")
+repall("</style>", r""".fxhaste{position:absolute;top:-26px;z-index:8;display:flex;flex-direction:column;align-items:center;font-family:var(--f-display);font-size:22px;line-height:1.1;color:#fff;background:#00a6c8;border:3px solid #111;border-radius:6px;padding:3px 12px;box-shadow:4px 4px 0 #111;white-space:nowrap;pointer-events:none;-webkit-text-stroke:1px #111;paint-order:stroke fill;animation:hasteIn 1.3s cubic-bezier(.2,1.2,.4,1) both}
+.fxhaste i{font-style:normal;font-size:12px;letter-spacing:.15em;color:#d8f8ff;-webkit-text-stroke:0}.sb.A .fxhaste{left:10%}.sb.B .fxhaste{right:10%;animation-name:hasteInB}
+@keyframes hasteIn{0%{transform:translateX(-60px) skewX(-25deg);opacity:0}20%{transform:translateX(6px) skewX(-12deg);opacity:1}32%,78%{transform:translateX(0) skewX(-8deg);opacity:1}100%{transform:translateX(70px) skewX(-25deg);opacity:0}}
+@keyframes hasteInB{0%{transform:translateX(60px) skewX(25deg);opacity:0}20%{transform:translateX(-6px) skewX(12deg);opacity:1}32%,78%{transform:translateX(0) skewX(8deg);opacity:1}100%{transform:translateX(-70px) skewX(25deg);opacity:0}}
+.sb.fxfast::after{content:'';position:absolute;inset:-2px -10px;pointer-events:none;z-index:5;background:repeating-linear-gradient(180deg,transparent 0 7px,rgba(0,166,200,.55) 7px 9px,transparent 9px 15px);-webkit-mask:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);animation:fastLines 1.3s linear both}
+.sb.B.fxfast::after{animation-name:fastLinesB}
+@keyframes fastLines{0%{opacity:0;transform:translateX(-30px)}15%,75%{opacity:1}100%{opacity:0;transform:translateX(30px)}}@keyframes fastLinesB{0%{opacity:0;transform:translateX(30px)}15%,75%{opacity:1}100%{opacity:0;transform:translateX(-30px)}}
+@media (prefers-reduced-motion: reduce){.fxhaste,.sb.fxfast::after{animation:none}}
+</style>""",)
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
