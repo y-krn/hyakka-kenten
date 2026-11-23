@@ -12,6 +12,7 @@
 //   GET  /og/t/日付.jpg          … 今日の一戦の共有画像（毎日0時すぎに GitHub Actions が作る）
 //   PUT  /api/og/today/日付?a=&b= … 今日の一戦の共有画像を預ける（管理用）
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
+//   GET  /sitemap.xml           … 検索エンジン向けの一覧（トップ・王座戦の試合の記録・仲間さがしの一門・県の応援の入口）。1日覚えておく
 //   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
 //   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
 import * as E from './engine.mjs';
@@ -344,6 +345,27 @@ async function cardFor(env, u) {
   if (a && b && a !== b && (await Promise.all([known(env, a), known(env, b)])).every(Boolean)) return { title: `${clip(a, 40)} vs ${clip(b, 40)} ― 百科拳典`, desc: 'Wikipediaの記事どうしが、事実だけで殴り合う。勝ったのはどちらか。', url: SITE + '/?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) };
   return null;
 }
+// 検索エンジン向けのサイトマップ。中身のあるページ（共有カードの文字を書き換えているページ）だけを並べる
+async function sitemap(req, env, ctx) {
+  const cache = caches.default, key = new Request(SITE + '/sitemap.xml?d=' + new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10));
+  const hit = await cache.match(key); if (hit) return hit;
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const urls = [[SITE + '/', null, 'daily', '1.0']];
+  try {   // 王座戦の試合の記録（新しい順）
+    const r = await env.DB.prepare('SELECT id, at FROM challenges ORDER BY id DESC LIMIT 5000').all();
+    for (const x of r.results) urls.push([SITE + '/?c=' + x.id, String(x.at || '').slice(0, 10), null, '0.5']);
+  } catch (_) {}
+  try {   // 仲間さがしの一門（目立つものの一覧）
+    const r = await env.ASSETS.fetch(new Request(new URL('/data/fam/featured.json', req.url)));
+    if (r.ok) for (const g of ((await r.json()).featured || [])) if (/^[pcosw]Q\d{1,12}$/.test(g[0])) urls.push([SITE + '/?fam=' + g[0], null, 'monthly', '0.4']);
+  } catch (_) {}
+  if (typeof PREFS !== 'undefined') for (const p of PREFS) urls.push([SITE + '/?pref=' + encodeURIComponent(p), null, 'weekly', '0.6']);   // 都道府県の応援の入口
+  const body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map(([l, m, c, p]) => `  <url><loc>${esc(l)}</loc>${m ? `<lastmod>${m}</lastmod>` : ''}${c ? `<changefreq>${c}</changefreq>` : ''}<priority>${p}</priority></url>`).join('\n') + '\n</urlset>\n';
+  const res = new Response(body, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
 async function page(req, env, u) {
   const res0 = await env.ASSETS.fetch(new Request(new URL('/', u), req));
   // 数えない印（?nostat=1）で開いたときは、最初のHTMLから manifest を ?nostat=1 で開くものに替える（iPhone のホーム画面のWebアプリにも印が付くように）
@@ -358,6 +380,7 @@ async function page(req, env, u) {
     .on('meta[property="og:description"]', set(card.desc))
     .on('meta[name="description"]', set(card.desc))
     .on('meta[property="og:url"]', set(card.url))
+    .on('link[rel="canonical"]', { element(e) { if (card.url && !u.searchParams.has('today')) e.setAttribute('href', card.url); } })
     .on('meta[property="og:image"]', set(card.image || SITE + '/og.png'))
     .on('meta[name="twitter:card"]', set(card.image ? 'summary_large_image' : 'summary'))
     .transform(res);
@@ -451,6 +474,7 @@ export default {
     if (u.hostname === 'hyakka-kenten-api.y-krn.workers.dev') return Response.redirect(SITE + u.pathname + u.search, 301);   // 古いアドレス（試作版のプレビュー用URLは別の名前なので対象外）
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(env, req) });
     if (env.ASSETS && (u.pathname === '/' || u.pathname === '/index.html') && (req.method === 'GET' || req.method === 'HEAD')) return page(req, env, u);
+    if (env.ASSETS && u.pathname === '/sitemap.xml' && (req.method === 'GET' || req.method === 'HEAD')) return sitemap(req, env, ctx);
     const og = u.pathname.match(/^\/og\/c\/(\d{1,9})\.jpg$/); if (og && req.method === 'GET') return ogGet(req, env, ctx, +og[1]);
     const ot = u.pathname.match(/^\/og\/t\/(\d{4}-\d\d-\d\d)\.jpg$/); if (ot && req.method === 'GET') return todayOgGet(req, env, ctx, ot[1]);
     if (env.ASSETS && !u.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
