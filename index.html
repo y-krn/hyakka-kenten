@@ -860,18 +860,21 @@ function disamb(a,b){ if(a!==null&&b!==null&&a!==b&&F[a]&&F[b]&&F[a][0]===F[b][0
 function simulate(ai,bi,opt={}){ disamb(ai,bi);
   const mk=(i,o)=>{const f=F[i], s=f[3]; return {i,name:f[0],maxhp:s[0],hp:s[0],atk:s[1],df:s[2],spd:s[3],rate:s[3]+30,g:0,n:0,out:false,atkb:0,guard:0,used:{},first:true,year:f[8],
     moves:opt.noMoves?[]:pickMoves(i,o).filter(m=>!(opt.disable&&opt.disable[i]===m[1]))};};
-  const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; let senUsed=false; const summoned=[];
+  const A=mk(ai,bi),B=mk(bi,ai); const riv=opt.noRiv?null:rival(ai,bi); const log=[]; const key=F[ai][2]+F[bi][2]; const summoned=[];
   if(riv) log.push({t:0,side:-1,s:'【因縁】'+riv+'。両者とも初撃1.5倍',d:0,hp:[A.hp,B.hp]});
   const baseDmg=(x,y)=>Math.max(1,x.atk+x.atkb-Math.floor(y.df/2));
-  const left=x=>x.moves.filter(m=>!x.used[m[1]]&&!(m[0]==='SENIORITY'&&senUsed));
+  const left=x=>x.moves.filter(m=>!x.used[m[1]]);
   const est=(x,y,m)=>{ const b0=baseDmg(x,y), T=m[4]; return m[0]==='STRIKE'?b0*(1+0.15*T):m[0]==='MULTI'?(1+Math.floor(T/2))*Math.max(1,Math.round(b0*0.45)):m[0]==='SUMMON'?b0*1.5+5:m[0]==='NAME'?b0:b0*0.6; };
   /* 戦況を見て次の技を選ぶ */
-  const choose=(x,y)=>{ const L=left(x); if(!L.length) return [null,''];
+  /* 構えを考えない場合に選ぶ技（相手の次の一手を読むのにも使う。n は何回目の行動か） */
+  const plain=(x,y,n)=>{ const L=left(x); if(!L.length) return [null,''];
     const heal=L.find(m=>m[0]==='HEAL'); if(heal&&x.hp<=x.maxhp*0.45) return [heal,'（追い込まれて）'];
-    const guard=L.find(m=>m[0]==='GUARD'); const yn=left(y)[0]; if(guard&&BIG(yn)&&!y.out) return [guard,'（'+y.name+'の大技の気配を察して）'];
     const atk=L.filter(m=>!['GUARD','HEAL','SENIORITY'].includes(m[0])); const fin=atk.find(m=>est(x,y,m)>=y.hp);
-    if(fin&&fin!==L[0]&&x.n>1) return [fin,'（ここで決めにいく）'];
+    if(fin&&fin!==L[0]&&n>1) return [fin,'（ここで決めにいく）'];
     return [L[0],''];};
+  const choose=(x,y)=>{ const L=left(x); if(!L.length) return [null,''];
+    const guard=L.find(m=>m[0]==='GUARD'); const yn=plain(y,x,y.n+1)[0]; if(guard&&BIG(yn)&&!y.out&&!(x.hp<=x.maxhp*0.45&&L.some(m=>m[0]==='HEAL'))) return [guard,'（'+y.name+'の大技の気配を察して）'];
+    return plain(x,y,x.n);};
   const act=(x,y,tick)=>{ x.n++; const [mv,tag]=choose(x,y);
     const outNow=!mv&&!x.out; if(!mv) x.out=true;
     let d=0,line=''; const b0=baseDmg(x,y); const T=mv?mv[4]:0; const k=key+tick+x.i; let H=0;
@@ -879,7 +882,7 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
     else { x.used[mv[1]]=1; const kind=mv[0]; const tp=Array.isArray(mv[6])?pickT(mv[6],k+'|'+mv[1]):(mv[6]||null);
       if(kind==='STRIKE'){ d=Math.round(b0*(1+0.15*T)); line=tp||pickT(['{A}の【{N}】！ {F}の重みが{B}を襲う。','{A}、{F}を誇示しながら【{N}】。'],k); }
       if(kind==='MULTI'){ H=1+Math.floor(T/2); d=H*Math.max(1,Math.round(b0*0.45)); line=tp||(H===1?'{A}の【{N}】！ {F}が駆けつけ、単発の一撃。':pickT(['{A}の【{N}】！ {F}を総動員して{H}連撃。','{A}の【{N}】！ {F}が押し寄せ、{B}に{H}連撃。'],k)); }
-      if(kind==='GUARD'){ x.guard=Math.min(0.6,0.1*T+0.1); d=Math.round(b0*0.5); const pc=Math.round(x.guard*100); line=tp?tp.replace('{P}',pc):mv[1]==='保護動物の構え'?'{A}は【{N}】。{F}として手厚く守られ、次の攻撃を'+pc+'%軽減しつつ、{B}に軽く一撃。':pickT(['{A}は【{N}】。{F}の経験で次の攻撃を'+pc+'%軽減しつつ、{B}に軽く一撃。','{A}、【{N}】をとる。{F}の重みで次の被害を'+pc+'%軽減し、構えたまま{B}を小突く。'],k); }
+      if(kind==='GUARD'){ x.gnew=Math.min(0.6,0.1*T+0.1); d=Math.round(b0*0.5); const pc=Math.round(x.gnew*100); line=tp?tp.replace('{P}',pc):mv[1]==='保護動物の構え'?'{A}は【{N}】。{F}として手厚く守られ、次の攻撃を'+pc+'%軽減しつつ、{B}に軽く一撃。':pickT(['{A}は【{N}】。{F}の経験で次の攻撃を'+pc+'%軽減しつつ、{B}に軽く一撃。','{A}、【{N}】をとる。{F}の重みで次の被害を'+pc+'%軽減し、構えたまま{B}を小突く。'],k); }
       if(kind==='HEAL'){ const h=Math.round(x.maxhp*0.04*Math.max(1,T)); x.hp=Math.min(x.maxhp,x.hp+h); d=Math.round(b0*0.5); line=tp?tp.replace('{R}',h):'{A}の【{N}】。{F}の粘りでHPを'+h+'回復し、ついでに{B}を小突く。'; }
       if(kind==='SLOW'){ y.g-=Math.round(10*T); d=Math.round(b0*0.7); line=tp||pickT(['{A}の【{N}】。{F}の土地に{B}が迷い込み、行動が遅れる。そこへ一撃。','{A}、【{N}】。{F}の広さに{B}が立ち往生したところを殴る。'],k); }
       if(kind==='BIND'){ y.g-=Math.round(12*T); d=Math.round(b0*0.5); line=tp||'{A}の【{N}】！ {F}で{B}をぐるりと囲んで締め上げる。{B}の動きが鈍った。'; }
@@ -890,7 +893,7 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
         else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+='……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
       if(kind==='NAME'){ const ma=F[x.i][4], mb=F[y.i][4]; const r=Math.max(0.5,Math.min(2,ma/Math.max(1,mb))); d=Math.round(b0*r);
         line=pickT(['{A}の【{N}】！ '+(ma<=2?'たった':'')+ma+'音の名前を全力で叩きつける','{A}の【{N}】！ 名前を一音ずつ区切って、'+(ma<=2?'たった':'')+ma+'音ぶん叩きつける','{A}の【{N}】！ 自分の名前を'+(ma<=2?'たった':'')+ma+'音、大声で名乗りながら殴る'],k+'|nm')+(r>=1?'。':'が、'+mb+'音の{B}には効きが薄い。'); }
-      if(kind==='SENIORITY'){ senUsed=true;
+      if(kind==='SENIORITY'){
         if(y.year===null){ d=0; line=pickT(['{A}は【{N}】を主張した（{F}）。しかし{B}は年齢不詳。先輩風は空を切った。','{A}は【{N}】を主張した（{F}）。しかし{B}の記事には年が書かれていない。先輩風は空を切った。'],k+'|sn'); }
         else if(x.year<y.year){ x.atkb+=3; x.g+=30; d=Math.round(b0*0.5); line=pickT(['{A}の【{N}】。{F}の{A}が、'+ys(y.year)+'の{B}に先輩風を吹かせて小突く。'+fmt(y.year-x.year)+'年の差で攻撃力が上がった。','{A}の【{N}】。{F}の{A}が、'+fmt(y.year-x.year)+'年後輩の{B}に「昔はね」と語りかけながら小突く。攻撃力が上がった。','{A}の【{N}】。「'+ys(y.year)+'？ まだ若いですね」——{F}の{A}が先輩の顔で小突く。'+fmt(y.year-x.year)+'年の差で攻撃力が上がった。'],k+'|sn'); }
         else { d=0; line=pickT(['{A}は【{N}】を主張した（{F}）。しかし{B}のほうが'+fmt(x.year-y.year)+'年先輩だった。何も起きない。','{A}は【{N}】を主張した（{F}）。ところが{B}は'+fmt(x.year-y.year)+'年も先輩だった。何も起きない。'],k+'|sn'); } }
@@ -908,7 +911,7 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
   let tick; const used={[ai]:[],[bi]:[]};
   for(tick=1;tick<=15;tick++){ const bA=A.g,bB=B.g; A.g+=A.rate; B.g+=B.rate; const actors=[A,B].filter(x=>x.g>=100); if(!actors.length) continue;
     let groups; if(actors.length===2){const l=(100-bA)*B.rate, r=(100-bB)*A.rate; groups=l<r?[[A],[B]]:l>r?[[B],[A]]:[[A,B]];} else groups=[actors];
-    for(const g of groups){ if(A.hp===0||B.hp===0) break; const res=g.map(x=>{const y=x===A?B:A; x.g-=100; return [x,y,act(x,y,tick)];});
+    for(const g of groups){ if(A.hp===0||B.hp===0) break; const res=g.map(x=>{const y=x===A?B:A; x.g-=100; return [x,y,act(x,y,tick)];}); g.forEach(x=>{ if(x.gnew){ x.guard=x.gnew; x.gnew=0; } });
       for(const [x,y,r] of res){ y.hp=Math.max(0,y.hp-r.d); log.push({t:tick,side:x===A?0:1,s:r.line,d:r.d,hp:[A.hp,B.hp],mv:r.mv}); if(r.mv) used[x.i].push(r.mv[1]); } }
     if(A.hp===0||B.hp===0) break; }
   let w=null,kind; if(A.hp===0&&B.hp===0) kind='相打ち'; else if(B.hp===0){kind='KO';w=ai;} else if(A.hp===0){kind='KO';w=bi;} else {kind='判定'; const l=A.hp*B.maxhp,r=B.hp*A.maxhp; w=l>r?ai:r>l?bi:null;}
@@ -945,13 +948,20 @@ const exN=(i,k)=>{ const L=EXL[k]; if(!L) return ''; const m=(POOL[i]||F[i][7]||
 const isH=(i,j)=>!!(CL[i]&&CL[j]&&CL[i][1]==='ヒト'&&CL[j][1]==='ヒト');
 function rounds(i,j){ const out=[]; const hh=isH(i,j); const add=k=>{ if(hh&&k==='P1343') return; if(k==='h'&&!((QT[i]||{}).h>0&&(QT[j]||{}).h>0)) return; const a=dimv(i,k), b=dimv(j,k); if(a!==null&&b!==null&&a!==b) out.push({k,a,b}); };
   PHYS.forEach(add); PCNT.forEach(add); if(F[i][8]!==null&&F[j][8]!==null&&F[i][8]!==F[j][8]) out.push({k:'yr',a:-F[i][8],b:-F[j][8]}); if(!hh) METAD.forEach(add); return out; }
+/* 比べ合いで比べる項目（奇数本）と、その勝者 */
+function kbQ(ai,bi){ const K0=F[ai][2]+'/'+F[bi][2], R=rounds(ai,bi); const pri=x=>PHYS.includes(x.k)?0:PCNT.includes(x.k)?1:x.k==='yr'?2:3;
+  const pick=[...R].sort((x,y)=>pri(x)-pri(y)||(hash(K0+x.k)%7)-(hash(K0+y.k)%7)).slice(0,5);
+  return pick.slice(0,pick.length%2?pick.length:pick.length-1); }
+const kbW=(ai,bi)=>{ const Q=kbQ(ai,bi); const sa=Q.filter(x=>x.a>x.b).length; return sa*2>Q.length?ai:bi; };
+/* 桁違いの差（瞬殺の演出に使う）と、その勝者 */
+const gapOf=(ai,bi)=>rounds(ai,bi).filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
 function matchType(ai,bi,an){ const r=an.r;
   if(r.riv) return 'innen';
   const cs=CL[ai], cb=CL[bi], R=rounds(ai,bi), nPhys=R.filter(x=>PHYS.includes(x.k)).length, nReal=R.filter(x=>!METAD.includes(x.k)).length;
   const same=cs&&cb&&cs[0]===cb[0];
-  const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
-  if(gap) return 'shunsatsu';
-  if(R.length>=3&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';
+  const gap=gapOf(ai,bi);
+  if(gap&&r.w===(gap.a>gap.b?ai:bi)) return 'shunsatsu';
+  if(R.length>=3&&r.w!==null&&kbW(ai,bi)===r.w&&(nPhys>=2||nReal>=2||(nReal>=1&&hash('kb'+QK(ai,bi))%3===0)||(same&&cs[1]!=='ヒト'&&nReal>=1)||(same&&cs[1]==='ヒト'&&nReal>=2))) return 'kurabe';
   if(r.w!==null&&r.kind==='KO'){ const w=r.w===ai?0:1; if(r.hp[w]/r.max[w]>=0.6) return 'shunsatsu'; }
   if((Math.max(realN(ai),realN(bi))<=1&&Math.min(realN(ai),realN(bi))===0)||(r.kind==='判定'&&Math.abs(r.hp[0]/r.max[0]-r.hp[1]/r.max[1])<0.12)) return 'doro';
   return 'normal'; }
@@ -1037,8 +1047,8 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     an.r={...r,log}; return an; }
 
   /* ---------- 瞬殺 ---------- */
-  if(type==='shunsatsu'){ const R=rounds(ai,bi); const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
-    if(gap){ const w=gap.a>gap.b?ai:bi, W=F[w][0], L=w===ai?B:A, hp=[r.max[0],r.max[1]]; hp[w===ai?1:0]=0;
+  if(type==='shunsatsu'){ const gap=gapOf(ai,bi);
+    if(gap&&r.w===(gap.a>gap.b?ai:bi)){ const w=gap.a>gap.b?ai:bi, W=F[w][0], L=w===ai?B:A, hp=[r.max[0],r.max[1]]; hp[w===ai?1:0]=0;
       const rt=gap.r>=1e8?jn(gap.r)+'倍':ratioTxt(gap.r), vw=fmtR(gap.k,Math.max(gap.a,gap.b)), vl=fmtR(gap.k,Math.min(gap.a,gap.b)), lab=RLAB[gap.k];
       const o={W,L,vw,vl,lab,rt,n:Math.max(gap.a,gap.b),m:Math.min(gap.a,gap.b)};
       const log=[sys('【瞬殺】試合開始のゴングが鳴る。')];
@@ -1059,9 +1069,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
     an.r={...r,log}; an.dec=an.dec.filter(d=>d.who===r.w); return an; }
 
   /* ---------- 比べ合い ---------- */
-  if(type==='kurabe'){ const R=rounds(ai,bi); const pri=x=>PHYS.includes(x.k)?0:PCNT.includes(x.k)?1:x.k==='yr'?2:3;
-    const pick=[...R].sort((x,y)=>pri(x)-pri(y)||(hash(K0+x.k)%7)-(hash(K0+y.k)%7)).slice(0,5);
-    const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n); an.kq=Q.map(x=>({...x,ia:ai,ib:bi})); let sa=0,sb=0; const hp=[r.max[0],r.max[1]]; const need=Math.ceil(n/2)+1;
+  if(type==='kurabe'){ const Q=kbQ(ai,bi), n=Q.length; an.kq=Q.map(x=>({...x,ia:ai,ib:bi})); let sa=0,sb=0; const hp=[r.max[0],r.max[1]]; const need=Math.ceil(n/2)+1;
     const step=[Math.ceil(r.max[0]/need),Math.ceil(r.max[1]/need)];
     const log=[sys(P(['【比べ合い】本日、殴り合いは行わない。両者の数字を、厳正に比べる。','【比べ合い】両者、拳を収める。ここからは数字の格闘技だ。','【比べ合い】ジャッジ陣が入場する。手にしているのは物差しと電卓である。'])),
       sys(P(['{n}本勝負。上回ったほうが1本を取る。それ以上でも以下でもない。','{n}本勝負。勝敗は、すでにWikipediaに書いてある。'],{n}))];
@@ -1100,7 +1108,7 @@ function stage(ai,bi,an){ const type=matchType(ai,bi,an); const r=an.r; const A=
       log.push({...last,side:-1,d:0,s:'15カウント終了。両者、まだ立っている。'});
       log.push({...last,side:-1,d:0,s:P(['ジャッジ陣、協議に入る。……協議は長引いている。','ジャッジ陣、協議に入る。一人が「もう引き分けでいいのでは」と言い、却下された。'])});
       let w=r.w;
-      if(va!==null&&vb!==null&&va!==vb){ w=va>vb?ai:bi; const W=F[w][0], L=w===ai?B:A; const fa=c[0]==='m0'?va+'音':unitv(c[0],va), fb=c[0]==='m0'?vb+'音':unitv(c[0],vb);
+      if(va!==null&&vb!==null&&va!==vb&&(r.w===null||r.w===(va>vb?ai:bi))){ w=va>vb?ai:bi; const W=F[w][0], L=w===ai?B:A; const fa=c[0]==='m0'?va+'音':unitv(c[0],va), fb=c[0]==='m0'?vb+'音':unitv(c[0],vb);
         log.push({...last,side:-1,d:0,s:'ジャッジ陣は苦渋の決断として、勝敗を「'+c[1]+'」で決めると発表した。'+A+'、'+fa+'。'+B+'、'+fb+'。'+c[2]+'、'+W+'の勝ち。'});
         log.push({...last,side:-1,d:0,s:P(['{L}陣営から抗議の声が上がったが、受理されなかった。','{L}、判定に一礼する。納得はしていない。','{W}、勝ち名乗りを受ける。本人が一番驚いている。'],{W,L})});
         an.tail='泥仕合の末、判定基準は「'+c[1]+'」。'; }

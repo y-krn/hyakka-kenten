@@ -2559,6 +2559,58 @@ repall("document.addEventListener('visibilitychange',()=>{ if(!document.hidden) 
 repall("WikipediaはWikimedia Foundationの登録商標です。</span>", "WikipediaはWikimedia Foundationの登録商標です。</span>\n    <span class=\"fsns\">公式X：<a href=\"https://x.com/hyakkakenten\" target=\"_blank\" rel=\"noopener\">@hyakkakenten</a></span>")
 repall(".morebox{margin-top:8px}", ".fsns{margin-top:4px}.fsns a{color:inherit;font-weight:700}\n.morebox{margin-top:8px}")
 
+# ---- 136. 試合の計算の小さな不公平を直す（2026-11-23）
+#   ・年功序列：両者で1回を奪い合う共有の印（senUsed）をやめ、それぞれが自分の技として1回ずつ使える。
+#     年下が先に使って空振りすると、年上の側まで使えなくなっていた
+#   ・構え：相手の「残っている技の先頭」ではなく、相手が実際に次に選ぶ技を読んで構える
+#   ・同時に動いたとき：その場で構えた分は、同時に飛んできた攻撃には効かせない（記事番号の小さいA側だけ得をしていた）
+repall("let senUsed=false; const summoned=[];", "const summoned=[];")
+repall("const left=x=>x.moves.filter(m=>!x.used[m[1]]&&!(m[0]==='SENIORITY'&&senUsed));", "const left=x=>x.moves.filter(m=>!x.used[m[1]]);")
+repall("if(kind==='SENIORITY'){ senUsed=true;", "if(kind==='SENIORITY'){")
+repall("""  const choose=(x,y)=>{ const L=left(x); if(!L.length) return [null,''];
+    const heal=L.find(m=>m[0]==='HEAL'); if(heal&&x.hp<=x.maxhp*0.45) return [heal,'（追い込まれて）'];
+    const guard=L.find(m=>m[0]==='GUARD'); const yn=left(y)[0]; if(guard&&BIG(yn)&&!y.out) return [guard,'（'+y.name+'の大技の気配を察して）'];
+    const atk=L.filter(m=>!['GUARD','HEAL','SENIORITY'].includes(m[0])); const fin=atk.find(m=>est(x,y,m)>=y.hp);
+    if(fin&&fin!==L[0]&&x.n>1) return [fin,'（ここで決めにいく）'];
+    return [L[0],''];};""",
+"""  /* 構えを考えない場合に選ぶ技（相手の次の一手を読むのにも使う。n は何回目の行動か） */
+  const plain=(x,y,n)=>{ const L=left(x); if(!L.length) return [null,''];
+    const heal=L.find(m=>m[0]==='HEAL'); if(heal&&x.hp<=x.maxhp*0.45) return [heal,'（追い込まれて）'];
+    const atk=L.filter(m=>!['GUARD','HEAL','SENIORITY'].includes(m[0])); const fin=atk.find(m=>est(x,y,m)>=y.hp);
+    if(fin&&fin!==L[0]&&n>1) return [fin,'（ここで決めにいく）'];
+    return [L[0],''];};
+  const choose=(x,y)=>{ const L=left(x); if(!L.length) return [null,''];
+    const guard=L.find(m=>m[0]==='GUARD'); const yn=plain(y,x,y.n+1)[0]; if(guard&&BIG(yn)&&!y.out&&!(x.hp<=x.maxhp*0.45&&L.some(m=>m[0]==='HEAL'))) return [guard,'（'+y.name+'の大技の気配を察して）'];
+    return plain(x,y,x.n);};""")
+repall("if(kind==='GUARD'){ x.guard=Math.min(0.6,0.1*T+0.1);", "if(kind==='GUARD'){ x.gnew=Math.min(0.6,0.1*T+0.1);")
+repall("const pc=Math.round(x.guard*100);", "const pc=Math.round(x.gnew*100);")
+repall("if(A.hp===0||B.hp===0) break; const res=g.map(x=>{const y=x===A?B:A; x.g-=100; return [x,y,act(x,y,tick)];});",
+       "if(A.hp===0||B.hp===0) break; const res=g.map(x=>{const y=x===A?B:A; x.g-=100; return [x,y,act(x,y,tick)];}); g.forEach(x=>{ if(x.gnew){ x.guard=x.gnew; x.gnew=0; } });")
+
+# ---- 137. 勝敗は殴り合いの計算だけで決める。演出（瞬殺・比べ合い・泥仕合の判定）は、その結果と食い違わないときだけ使う（2026-11-23）
+#   これまでは、比べ合いなら数字の勝ち数、泥仕合の判定なら文字数や名前の音の数、桁違いの差なら瞬殺で、
+#   殴り合いの結果を書き換えていた（全試合の約4.5%）。技も含めて強さなので、技を使った計算の勝者を勝者にする
+repall("""  if(type==='kurabe'){ const R=rounds(ai,bi); const pri=x=>PHYS.includes(x.k)?0:PCNT.includes(x.k)?1:x.k==='yr'?2:3;
+    const pick=[...R].sort((x,y)=>pri(x)-pri(y)||(hash(K0+x.k)%7)-(hash(K0+y.k)%7)).slice(0,5);
+    const n=pick.length%2?pick.length:pick.length-1; const Q=pick.slice(0,n);""",
+"""  if(type==='kurabe'){ const Q=kbQ(ai,bi), n=Q.length;""")
+repall("function matchType(ai,bi,an){ const r=an.r;", """/* 比べ合いで比べる項目（奇数本）と、その勝者 */
+function kbQ(ai,bi){ const K0=F[ai][2]+'/'+F[bi][2], R=rounds(ai,bi); const pri=x=>PHYS.includes(x.k)?0:PCNT.includes(x.k)?1:x.k==='yr'?2:3;
+  const pick=[...R].sort((x,y)=>pri(x)-pri(y)||(hash(K0+x.k)%7)-(hash(K0+y.k)%7)).slice(0,5);
+  return pick.slice(0,pick.length%2?pick.length:pick.length-1); }
+const kbW=(ai,bi)=>{ const Q=kbQ(ai,bi); const sa=Q.filter(x=>x.a>x.b).length; return sa*2>Q.length?ai:bi; };
+/* 桁違いの差（瞬殺の演出に使う）と、その勝者 */
+const gapOf=(ai,bi)=>rounds(ai,bi).filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
+function matchType(ai,bi,an){ const r=an.r;""")
+repall("""  const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];
+  if(gap) return 'shunsatsu';
+  if(R.length>=3&&(""", """  const gap=gapOf(ai,bi);
+  if(gap&&r.w===(gap.a>gap.b?ai:bi)) return 'shunsatsu';
+  if(R.length>=3&&r.w!==null&&kbW(ai,bi)===r.w&&(""")
+repall("if(type==='shunsatsu'){ const R=rounds(ai,bi); const gap=R.filter(x=>PHYS.includes(x.k)||x.k==='_pv').map(x=>({...x,r:Math.max(x.a,x.b)/Math.min(x.a,x.b)})).filter(x=>x.r>=(x.k==='_pv'?1200:1e4)).sort((x,y)=>y.r-x.r)[0];\n    if(gap){",
+       "if(type==='shunsatsu'){ const gap=gapOf(ai,bi);\n    if(gap&&r.w===(gap.a>gap.b?ai:bi)){")
+repall("if(va!==null&&vb!==null&&va!==vb){ w=va>vb?ai:bi;", "if(va!==null&&vb!==null&&va!==vb&&(r.w===null||r.w===(va>vb?ai:bi))){ w=va>vb?ai:bi;")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
