@@ -275,6 +275,8 @@ ol.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap
 @keyframes achIn{0%{transform:translate(-50%,30px) scale(.6);opacity:0}8%{transform:translate(-50%,0) scale(1.08);opacity:1}14%{transform:translate(-50%,0) scale(1)}88%{opacity:1}100%{opacity:0;transform:translate(-50%,10px)}}
 .dexdlg li small.plf{font-size:10.5px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plnew{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 10px;padding:6px 10px;border:2px solid #111;border-radius:6px;background:#d9ffd6;box-shadow:2px 2px 0 #111;font-size:14px}.plnew i{font-style:normal;font-size:11px;font-weight:700;color:#0a5c0a;width:100%}#ring .result .plnew,#ring .result .plnew b{color:#111;-webkit-text-stroke:0;text-shadow:none}.plnew b{font-family:var(--f-display);font-weight:400;font-size:17px}.plnew small{font-size:12px;color:#333}
+.cols{display:grid;gap:6px;margin-top:16px;max-width:420px}.cols .you{justify-self:start;margin-bottom:2px}
+.colb{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;background-image:linear-gradient(var(--hl),var(--hl));background-repeat:no-repeat;background-size:var(--p,0%) 3px;background-position:0 100%}.colb .dexp{font-size:12px;color:var(--muted);font-weight:400}
 .morebox{margin-top:8px}.morebox .moreh{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 6px}
 details.more{border-top:1px solid var(--line)}details.more:last-child{border-bottom:1px solid var(--line)}
 details.more>summary{list-style:none;cursor:pointer;padding:12px 2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
@@ -1140,7 +1142,8 @@ let rec={battles:0,upsets:0,best:0};
 try{ const s=JSON.parse(localStorage.getItem(REC_KEY)||'null'); if(s) rec={...rec,...s}; }catch(_){}
 const saveRec=()=>{ try{ localStorage.setItem(REC_KEY,JSON.stringify(rec)); }catch(_){} };
 function renderRec(){ const A=(typeof ALL!=='undefined'&&ALL)?`<div class="all">みんなで <b>${(ALL.plays+ALL.throne).toLocaleString()}</b>試合</div>`:'';
-  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span class="st"><b>${rec.battles}</b><small>観戦した試合</small></span><span class="st"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div><div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div><div class="dexrow"><button type="button" class="btn small" id="plbtn">選手図鑑を見る</button><span class="dexp" id="plp"></span></div><div class="dexrow"><button type="button" class="btn small" id="achbtn">称号を見る</button><span class="dexp" id="achp"></span></div>`; dexBind(); plBind(); achBind(); }
+  $('#record').innerHTML=A+`<div class="mine"><span class="you">あなた</span><span class="st"><b>${rec.battles}</b><small>観戦した試合</small></span><span class="st"><b>${rec.upsets}</b><small>見た番狂わせ</small></span><span class="st"><b>${rec.best}</b><small>見た最長の連勝</small></span></div><div class="cols"><span class="you">コレクション</span><button type="button" class="btn small colb" id="dexbtn"><span>技図鑑</span><span class="dexp" id="dexp"></span></button><button type="button" class="btn small colb" id="plbtn"><span>選手図鑑</span><span class="dexp" id="plp"></span></button><button type="button" class="btn small colb" id="achbtn"><span>称号</span><span class="dexp" id="achp"></span></button></div>`; dexBind(); plBind(); achBind(); }
+const colP=p=>{ const m=String(p.textContent).match(/(\d+)／(\d+)/), b=p.closest('.colb'); if(m&&b) b.style.setProperty('--p',(+m[1]/Math.max(1,+m[2])*100).toFixed(1)+'%'); };
 const PL_KEY='hk-pldex';
 function plGet(){ try{ const d=JSON.parse(localStorage.getItem(PL_KEY)||'{}'); return d&&typeof d==='object'?d:{}; }catch(_){ return {}; } }
 let PLCAT=null; const plCat=()=>PLCAT||(PLCAT=fetch('data/playerdex.json?v=1').then(r=>r.ok?r.json():[]).catch(()=>[]));
@@ -1148,7 +1151,7 @@ const plKey=i=>{ const P=POOL[i]||[]; const j=P.find(m=>m[1]==='本業'), c=P.fi
 async function plRec(list){ const cat=await plCat(), has=new Set(cat.map(x=>x[0])), d=plGet(), nw=[];
   for(const i of list){ if(i==null||i<0||!F[i]) continue; const k=plKey(i); if(!k||!has.has(k)) continue; const x=d[k]||(d[k]={n:0,f:F[i][0]}); if(!x.n) nw.push([k.slice(2),F[i][0]]); x.n++; x.l=F[i][0]; }
   try{ localStorage.setItem(PL_KEY,JSON.stringify(d)); }catch(_){} plBind(); return nw; }
-function plBind(){ const b=$('#plbtn'); if(!b) return; b.onclick=plOpen; plCat().then(c=>{ const d=plGet(), p=$('#plp'); if(p) p.textContent=c.filter(x=>d[x[0]]).length+'／'+c.length+'種類'; }); }
+function plBind(){ const b=$('#plbtn'); if(!b) return; b.onclick=plOpen; plCat().then(c=>{ const d=plGet(), p=$('#plp'); if(p) p.textContent=c.filter(x=>d[x[0]]).length+'／'+c.length, colP(p); }); }
 function plOpen(){ plCat().then(c=>{ const d=plGet(); let dl=$('#pldlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='pldlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','選手図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
     const G=[['j','人物（職業）'],['c','もの・こと（分類）']], T=['ふつう','めずらしい','激レア'];
     let Fl={g:'',s:'got'}; try{ Fl={...Fl,...JSON.parse(localStorage.getItem('hk-plf')||'{}')}; }catch(_){}
@@ -1189,7 +1192,7 @@ async function achCheck(loud){ const st=await achState(), a=achGet(), now=new Da
   for(const [id,nm,,t] of ACHS) if(!a.got[id]&&t(st)){ a.got[id]=now; nw.push(nm); }
   if(nw.length){ achPut(a); if(loud) achToast(nw); } achBind(); }
 function achToast(L){ const t=document.createElement('div'); t.className='achtoast'; t.innerHTML='<small>称号ゲット！</small>'+L.map(n=>'<b>「'+esc(n)+'」</b>').join(''); document.body.append(t); setTimeout(()=>t.remove(),3800); }
-function achBind(){ const b=$('#achbtn'); if(!b) return; b.onclick=achOpen; const a=achGet(), p=$('#achp'); if(p) p.textContent=Object.keys(a.got).filter(k=>ACHS.some(x=>x[0]===k)).length+'／'+ACHS.length; }
+function achBind(){ const b=$('#achbtn'); if(!b) return; b.onclick=achOpen; const a=achGet(), p=$('#achp'); if(p) p.textContent=Object.keys(a.got).filter(k=>ACHS.some(x=>x[0]===k)).length+'／'+ACHS.length, colP(p); }
 function achOpen(){ const a=achGet(); let dl=$('#achdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='achdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','称号'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
   const got=ACHS.filter(x=>a.got[x[0]]).length;
   dl.innerHTML=`<div class="dexh"><h2>称号</h2><button type="button" class="btn small" id="achclose">閉じる</button></div><div class="dexsum"><b>${got}</b>／${ACHS.length}</div><div class="dexbar"><i style="width:${(got/ACHS.length*100).toFixed(1)}%"></i></div>
@@ -1200,7 +1203,7 @@ const DEX_KEY='hk-mvdex';
 function dexGet(){ try{ const d=JSON.parse(localStorage.getItem(DEX_KEY)||'{}'); return d&&typeof d==='object'?d:{}; }catch(_){ return {}; } }
 function dexSee(nm){ if(!nm) return false; const d=dexGet(); const nw=!d[nm]; d[nm]=(d[nm]||0)+1; try{ localStorage.setItem(DEX_KEY,JSON.stringify(d)); }catch(_){} if(nw) setTimeout(dexBind,0); return nw; }
 let DEXCAT=null; const dexCat=()=>DEXCAT||(DEXCAT=fetch('data/movedex.json?v=2').then(r=>r.ok?r.json():[]).catch(()=>[]));
-function dexBind(){ const b=$('#dexbtn'); if(!b) return; b.onclick=dexOpen; dexCat().then(c=>{ const d=dexGet(), n=c.filter(x=>d[x[0]]).length, p=$('#dexp'); if(p) p.textContent=n+'／'+c.length+'種類'; }); }
+function dexBind(){ const b=$('#dexbtn'); if(!b) return; b.onclick=dexOpen; dexCat().then(c=>{ const d=dexGet(), n=c.filter(x=>d[x[0]]).length, p=$('#dexp'); if(p) (p.textContent=n+'／'+c.length,colP(p)); }); }
 function dexOpen(){ dexCat().then(c=>{ const d=dexGet(); let dl=$('#dexdlg'); if(!dl){ dl=document.createElement('dialog'); dl.id='dexdlg'; dl.className='dexdlg'; dl.setAttribute('aria-label','技図鑑'); document.body.append(dl); dl.addEventListener('click',e=>{ if(e.target===dl) dl.close(); }); }
     const K=[['STRIKE','打撃'],['SUMMON','召喚'],['MULTI','連撃'],['GUARD','守り'],['HEAL','回復'],['BIND','縛る'],['SLOW','鈍らせる'],['HASTE','速さ'],['*','そのほか']], T=['ふつう','めずらしい','激レア'];
     const kOf=x=>K.some(y=>y[0]===x[1])?x[1]:'*';

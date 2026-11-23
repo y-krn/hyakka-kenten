@@ -2662,6 +2662,19 @@ repall(".morebox{margin-top:8px}", r""".dexdlg li small.plf{font-size:10.5px;col
 .plnew{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 10px;padding:6px 10px;border:2px solid #111;border-radius:6px;background:#d9ffd6;box-shadow:2px 2px 0 #111;font-size:14px}.plnew i{font-style:normal;font-size:11px;font-weight:700;color:#0a5c0a;width:100%}#ring .result .plnew,#ring .result .plnew b{color:#111;-webkit-text-stroke:0;text-shadow:none}.plnew b{font-family:var(--f-display);font-weight:400;font-size:17px}.plnew small{font-size:12px;color:#333}
 .morebox{margin-top:8px}""")
 
+# ---- 132. 自分の記録の下を整理する：技図鑑・選手図鑑・称号を「コレクション」にまとめ、同じ幅の補助ボタンを縦に積む（2026-11-23）
+#   ・ボタンは「技図鑑」「選手図鑑」「称号」。集まり具合（56／381 など）はボタンの右端に、進み具合はボタンの下の細い線で見せる
+#   ・UIの決まり：対等な選択肢が3つ以上なので、同じ見た目（btn small）・幅いっぱいで縦に積む
+repall('<div class="dexrow"><button type="button" class="btn small" id="dexbtn">技図鑑を見る</button><span class="dexp" id="dexp"></span></div><div class="dexrow"><button type="button" class="btn small" id="plbtn">選手図鑑を見る</button><span class="dexp" id="plp"></span></div><div class="dexrow"><button type="button" class="btn small" id="achbtn">称号を見る</button><span class="dexp" id="achp"></span></div>',
+  '<div class="cols"><span class="you">コレクション</span><button type="button" class="btn small colb" id="dexbtn"><span>技図鑑</span><span class="dexp" id="dexp"></span></button><button type="button" class="btn small colb" id="plbtn"><span>選手図鑑</span><span class="dexp" id="plp"></span></button><button type="button" class="btn small colb" id="achbtn"><span>称号</span><span class="dexp" id="achp"></span></button></div>')
+repall("p.textContent=n+'／'+c.length+'種類'", "(p.textContent=n+'／'+c.length,colP(p))")
+repall("if(p) p.textContent=c.filter(x=>d[x[0]]).length+'／'+c.length+'種類'", "if(p) p.textContent=c.filter(x=>d[x[0]]).length+'／'+c.length, colP(p)")
+repall("+'／'+ACHS.length; }", "+'／'+ACHS.length, colP(p); }")
+repall("const PL_KEY='hk-pldex';", "const colP=p=>{ const m=String(p.textContent).match(/(\\d+)／(\\d+)/), b=p.closest('.colb'); if(m&&b) b.style.setProperty('--p',(+m[1]/Math.max(1,+m[2])*100).toFixed(1)+'%'); };\nconst PL_KEY='hk-pldex';")
+repall(".morebox{margin-top:8px}", r""".cols{display:grid;gap:6px;margin-top:16px;max-width:420px}.cols .you{justify-self:start;margin-bottom:2px}
+.colb{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;background-image:linear-gradient(var(--hl),var(--hl));background-repeat:no-repeat;background-size:var(--p,0%) 3px;background-position:0 100%}.colb .dexp{font-size:12px;color:var(--muted);font-weight:400}
+.morebox{margin-top:8px}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
