@@ -164,7 +164,8 @@ async function challenge(env, req, ctx) {
   const gauntlet = [];
   let v, result, stop = null;
   for (const g of await guardsOf(env, c)) {
-    if (g.title === B.title) continue;   // 自分の記事が助っ人にいるときは、その試合はなし
+    if (g.title === B.title) continue;
+    if (stop) { gauntlet.push({ reignNo: g.reignNo, title: g.title, display: g.display, result: null }); continue; }   // 負けたあとの助っ人とは戦わない（何連戦だったかを示すために残す）   // 自分の記事が助っ人にいるときは、その試合はなし
     const gi = await E.loadOne(g.title); if (gi < 0 || E.info(gi).blocked) continue;   // 収録から外れた助っ人は休み
     const gv = E.verdict(gi, bi), gr = gv.w === B.title ? 'win' : gv.w === null ? 'draw' : 'lose';
     gauntlet.push({ reignNo: g.reignNo, title: g.title, display: g.display, result: gr, how: gv.how });

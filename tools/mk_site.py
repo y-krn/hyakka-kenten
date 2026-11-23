@@ -2701,23 +2701,24 @@ repall("document.addEventListener('visibilitychange',()=>{ if(!document.hidden) 
 repall('<div class="meta thn">勝てば、あなたの記事が次の王者。同じ組み合わせで挑めるのは1回だけです。</div>',
   '<div class="meta thn">${d.guards&&d.guards.length?`防衛を重ねた王者には、歴代王者がつきます。挑むと<b>${d.guards.map(g=>esc(g.display)).join(\' → \')} → ${esc(c.display)}</b>の${d.guards.length+1}連戦。全員に勝てば、あなたの記事が次の王者。`:\'勝てば、あなたの記事が次の王者。\'}同じ組み合わせで挑めるのは1回だけです。</div>')
 repall("async function doChallenge(){", r"""/* 連戦の並び（助っ人を古い順に。負けた助っ人までで終わり。全員に勝っていれば最後に王者） */
-const gauntletList=d=>{ const G=(d.gauntlet||[]).map(g=>({title:g.title,display:g.display,reignNo:g.reignNo,guard:true,result:g.result})); const lost=G.findIndex(g=>g.result!=='win');
+const gauntletList=d=>{ const G=(d.gauntlet||[]).map(g=>({title:g.title,display:g.display,reignNo:g.reignNo,guard:true,result:g.result})); const lost=G.findIndex(g=>g.result&&g.result!=='win');
   return lost>=0?G.slice(0,lost+1):G.concat([{title:d.champ.title,display:d.champ.display,guard:false}]); };
-const boutOf=d=>{ const L=gauntletList(d); return L.length>1?{i:0,list:L}:null; };
+const boutOf=d=>{ const L=gauntletList(d); return L.length>1?{i:0,list:L,n:(d.gauntlet||[]).length+1}:null; };
 const boutMore=c=>!!(c&&c.mode&&c.mode.bout&&c.mode.bout.i<c.mode.bout.list.length-1&&c.an&&c.an.r&&c.an.r.w===c.ai);
-const gLost=d=>(d.gauntlet||[]).find(g=>g.result!=='win');
+const gLost=d=>(d.gauntlet||[]).find(g=>g.result&&g.result!=='win');
 async function doChallenge(){""")
 repall("d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:",
-  "gLost(d)?`${esc(d.challenger.display)}は${d.gauntlet.length+(gLost(d)?0:1)}連戦のうち${d.gauntlet.indexOf(gLost(d))+1}戦目で、前の王者${esc(gLost(d).display)}${gLost(d).result==='draw'?'と引き分け':'に敗れました'}。王者${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。`:d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:")
+  "gLost(d)?`${esc(d.challenger.display)}は${d.gauntlet.length+1}連戦のうち${d.gauntlet.indexOf(gLost(d))+1}戦目で、前の王者${esc(gLost(d).display)}${gLost(d).result==='draw'?'と引き分け':'に敗れました'}。王者${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。`:d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:")
 repall("try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(d.champ.title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}",
   "try{ const a=await loadTitle(d.challenger.title), b=await loadTitle(gauntletList(d)[0].title); if(a>=0&&b>=0){ TH_HOLD={msg,at:Date.now()}; MODE={res:d,no:d.reignNo||(THRONE?THRONE.reignNo:1),bout:boutOf(d)}; await kbClosed(); startBattle([a,b]); shown=true; } }catch(_){}")
 repall("loadTitle(x.champ.title)", "loadTitle(gauntletList(x)[0].title)")
 repall("MODE={res:x,no:x.reignNo,replay:true};", "MODE={res:x,no:x.reignNo,replay:true,bout:boutOf(x)};")
-repall("  return `<div class=\"ringhead th\">${m.replay?", "  if(m.bout){ const B=m.bout, g=B.list[B.i]; return `<div class=\"ringhead th\">${m.replay?'王座戦の記録':'王座戦'} 連戦${B.i+1}/${B.list.length} ／ ${g.guard?'前の王者（第'+g.reignNo+'代）'+esc(g.display):'第'+m.no+'代王者 '+esc(g.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }\n  return `<div class=\"ringhead th\">${m.replay?")
-repall("if(M.replay) title='【記録】'+title; }", "if(M.replay) title='【記録】'+title; }\n  if(M&&M.bout){ const B=M.bout, g=B.list[B.i]; if(g.guard){ title=`連戦${B.i+1}/${B.list.length}：前の王者${g.display}${w===null?'と引き分け':w===current.ai?'に勝利！':'に敗れる'}`+(w===current.ai?'':'。王座には届かず'); if(M.replay) title='【記録】'+title; } }")
+repall("  return `<div class=\"ringhead th\">${m.replay?", "  if(m.bout){ const B=m.bout, g=B.list[B.i]; return `<div class=\"ringhead th\">${m.replay?'王座戦の記録':'王座戦'} 連戦${B.i+1}/${B.n||B.list.length} ／ ${g.guard?'前の王者（第'+g.reignNo+'代）'+esc(g.display):'第'+m.no+'代王者 '+esc(g.display)} に ${esc(m.res.challenger.display)} が挑む</div>`; }\n  return `<div class=\"ringhead th\">${m.replay?")
+repall("if(M.replay) title='【記録】'+title; }", "if(M.replay) title='【記録】'+title; }\n  if(M&&M.bout){ const B=M.bout, g=B.list[B.i]; if(g.guard){ title=`連戦${B.i+1}/${B.n||B.list.length}：前の王者${g.display}${w===null?'と引き分け':w===current.ai?'に勝利！':'に敗れる'}`+(w===current.ai?'':'。王座には届かず'); if(M.replay) title='【記録】'+title; } }")
 repall("今日の一戦の戦績表へ</button></div>`:M?`", "今日の一戦の戦績表へ</button></div>`:boutMore(current)?`<button type=\"button\" class=\"btn big\" id=\"nextbout\">次の試合へ（${M.bout.list[M.bout.i+1].guard?'前の王者 ':'王者 '}${esc(M.bout.list[M.bout.i+1].display)}）</button>`:M?`")
 repall("if(M){ $('#thr').onclick=", "if($('#nextbout')) $('#nextbout').onclick=async()=>{ const B=M.bout, nx=B.list[B.i+1]; const b=await loadTitle(nx.title); if(b<0) return; MODE={...M,bout:{...B,i:B.i+1}}; startBattle([current.ai,b]); };\n  if(M&&$('#thr')){ $('#thr').onclick=")
 repall("if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg;", "if(current.mode&&TH_HOLD&&!boutMore(current)){ const h=TH_HOLD.msg;")
+repall("share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?", "share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'&&!(M.bout&&M.bout.list[M.bout.i].guard)?")   # 連戦の途中（助っ人に勝った試合）では「第◯代王者に」と書かない
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
