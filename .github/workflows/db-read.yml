@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -63,3 +63,8 @@ jobs:
         run: |
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT c.id, c.title AS ch, r.title AS champ, c.result FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.result <> 'late' ORDER BY c.id" > /tmp/ch.json
           node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/ch.json','utf8'));console.log('CHJSON'+JSON.stringify(j[0].results))"
+      - name: 読み取りの多い問い合わせ（直近1日と7日。D1 が記録している、問い合わせごとの読んだ行数）
+        if: inputs.what == '読み取りの多い問い合わせ'
+        run: |
+          npx wrangler d1 insights hyakka-kenten --timePeriod=1d --sort-type=sum --sort-by=reads --limit=15 --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('CHJSON'+JSON.stringify(j.map(x=>({q:x.query.slice(0,300),n:x.numberOfTimesRun,read:x.totalRowsRead,avg:x.avgRowsRead}))))})"
+          npx wrangler d1 insights hyakka-kenten --timePeriod=7d --sort-type=sum --sort-by=reads --limit=15 --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('CHJSON'+JSON.stringify(j.map(x=>({q:x.query.slice(0,300),n:x.numberOfTimesRun,read:x.totalRowsRead,avg:x.avgRowsRead}))))})"
