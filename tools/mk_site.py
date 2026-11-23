@@ -2754,7 +2754,8 @@ repall("if(va!==null&&vb!==null&&va!==vb){ w=va>vb?ai:bi;", "if(va!==null&&vb!==
 #   見出しは記録どおり（例：新王者誕生）なのに、決め手が相手の技になって、ちぐはぐに見えていた
 repall("  if(decW.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5倍がなければ、結果は違っていた');",
        """  if(decW.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5倍がなければ、結果は違っていた');
-  if(M&&M.replay){ const x=M.res, recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; if(recW!==(w===null?null:F[w][1])) lines.length=0; }""")
+  const recMis=!!(M&&M.replay&&(()=>{ const x=M.res, recW=x.result==='win'||x.result==='late'?x.challenger.title:x.result==='lose'?x.champ.title:null; return recW!==(w===null?null:F[w][1]); })()); if(recMis) lines.length=0;""")
+repall("${an.type==='kurabe'?'':lines.length?", "${an.type==='kurabe'||recMis?'':lines.length?")
 repall("の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>", "の勝ちとして扱われていますが、いまの計算で再生すると結果が異なるため、決め手は出していません。</div>")
 
 # 確認画面の枠と、使わなくなった表示を消す
