@@ -2,7 +2,6 @@
 #   プレビュー版は本番と別のデータベースを使うので、王座戦などをプレビューで気兼ねなく試せる
 #   ・作る：データベースを作り、ID を表示する（1回だけ）
 #   ・初期化：preview ブランチの schema.sql で表を作り直す（中身は消える）
-#   ・王座の試験用データ：防衛を重ねた王者と歴代王者を並べる（王座戦の連戦を試すため）
 name: プレビュー用データベース
 on:
   workflow_dispatch:
@@ -10,7 +9,7 @@ on:
       what:
         description: 何をするか
         type: choice
-        options: [作る, 初期化, 王座の試験用データ]
+        options: [作る, 初期化]
 jobs:
   db:
     runs-on: ubuntu-latest
@@ -46,6 +45,3 @@ jobs:
           cat /tmp/drop.sql; test -s /tmp/drop.sql && npx wrangler d1 execute hyakka-kenten-preview --remote --file /tmp/drop.sql || true
           npx wrangler d1 execute hyakka-kenten-preview --remote --file schema.sql
           npx wrangler d1 execute hyakka-kenten-preview --remote --command "ALTER TABLE visits ADD COLUMN land TEXT" || true   # 本番では fixes で足した列
-      - name: 王座の試験用データ
-        if: inputs.what == '王座の試験用データ'
-        run: npx wrangler d1 execute hyakka-kenten-preview --remote --file fixes-preview/throne-seed.sql
