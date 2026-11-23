@@ -2672,7 +2672,7 @@ repall("if(p) p.textContent=c.filter(x=>d[x[0]]).length+'／'+c.length+'種類'"
 repall("+'／'+ACHS.length; }", "+'／'+ACHS.length, colP(p); }")
 repall("const PL_KEY='hk-pldex';", "const colP=p=>{ const m=String(p.textContent).match(/(\\d+)／(\\d+)/), b=p.closest('.colb'); if(m&&b) b.style.setProperty('--p',(+m[1]/Math.max(1,+m[2])*100).toFixed(1)+'%'); };\nconst PL_KEY='hk-pldex';")
 repall(".morebox{margin-top:8px}", r""".cols{display:grid;gap:6px;margin-top:16px;max-width:420px}.cols .you{justify-self:start;margin-bottom:2px}
-.colb{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;background-image:linear-gradient(var(--hl),var(--hl));background-repeat:no-repeat;background-size:var(--p,0%) 3px;background-position:0 100%}.colb .dexp{font-size:12px;color:var(--muted);font-weight:400}
+.colb{width:100%;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:10px;background-image:linear-gradient(var(--hl),var(--hl));background-repeat:no-repeat;background-size:var(--p,0%) 3px;background-position:0 100%}.colb .dexp{font-size:12px;color:var(--muted);font-weight:400}
 .morebox{margin-top:8px}""")
 
 # 確認画面の枠と、使わなくなった表示を消す
