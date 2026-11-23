@@ -10,8 +10,8 @@ if (!d.changes) { console.log('今日は王座の交代がありませんでし�
 const md = (+d.day.slice(5, 7)) + '月' + (+d.day.slice(8, 10)) + '日';
 const head = d.changes >= 10 ? `王座が${d.changes}回入れ替わる大乱戦。` : d.changes >= 3 ? `王座が${d.changes}回入れ替わる混戦。` : `王座の交代は${d.changes}回。`;
 const lines = [`【今日の王座戦 ${md}】${head}`, `挑戦は${d.challenges}回。`];
-const same = d.best && d.best.display === d.champ.display;   // いちばん粘ったのが、いまの王者
-if (d.best && d.best.defenses > 0 && !same) lines.push(`いちばん粘ったのは${d.best.display}（防衛${d.best.defenses}回）。`);
+const same = d.best && d.best.display === d.champ.display && d.best.defenses === d.champ.defenses;   // いちばん粘ったのが、いまの王者（同じ記事が前に王者だったときの防衛は別に書く）
+if (d.best && d.best.defenses > 0 && !same) lines.push(`いちばん粘ったのは${d.best.display}（防衛${d.best.defenses}回${d.best.display === d.champ.display ? '。いまは王座を取り返したところ' : ''}）。`);
 lines.push(`いまの王者は第${d.champ.reignNo}代 ${d.champ.display}${d.champ.defenses > 0 ? `（防衛${d.champ.defenses}回）` : ''}。`, '#百科拳典');
 while (lines.length > 2 && xlen(lines.join('\n') + '\n' + DISC) > 280 - 24) lines.splice(lines.length - 2, 1);   // 長すぎるときは途中の行から削る
 const text = lines.join('\n') + '\n' + DISC, url = SITE + '/';
