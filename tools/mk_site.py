@@ -2720,6 +2720,10 @@ repall("if(M){ $('#thr').onclick=", "if($('#nextbout')) $('#nextbout').onclick=a
 repall("if(current.mode&&TH_HOLD){ const h=TH_HOLD.msg;", "if(current.mode&&TH_HOLD&&!boutMore(current)){ const h=TH_HOLD.msg;")
 repall("share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'?", "share=share.replace('【百科拳典】','【百科拳典 王座戦】')+(x.result==='win'&&!(M.bout&&M.bout.list[M.bout.i].guard)?")   # 連戦の途中（助っ人に勝った試合）では「第◯代王者に」と書かない
 
+# ---- 135. フッターに公式Xへのリンクを置く（2026-11-23）
+repall("WikipediaはWikimedia Foundationの登録商標です。</span>", "WikipediaはWikimedia Foundationの登録商標です。</span>\n    <span class=\"fsns\">公式X：<a href=\"https://x.com/hyakkakenten\" target=\"_blank\" rel=\"noopener\">@hyakkakenten</a></span>")
+repall(".morebox{margin-top:8px}", ".fsns{margin-top:4px}.fsns a{color:inherit;font-weight:700}\n.morebox{margin-top:8px}")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
