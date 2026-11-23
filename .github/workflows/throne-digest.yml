@@ -1,0 +1,30 @@
+# 王座戦の夜のまとめ通知
+#  - 毎晩 20時52分ごろ（日本時間）。その日に王座の交代があったときだけ、ntfy に「今日の王座戦」を送る
+#  - 王座交代のたびの通知は、長く守った王者が倒れたとき（在位6時間以上か防衛5回以上）だけにした。短い交代はこのまとめに入る
+#  必要な設定: Secrets の NTFY_TOPIC
+name: 王座戦の夜のまとめ
+on:
+  schedule:
+    - cron: '52 11 * * *'   # 11:52（UTC）＝ 日本時間 20:52
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 試すときの日付（YYYY-MM-DD。空なら今日）
+        default: ''
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/og/digest.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: まとめを送る
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DAY: ${{ inputs.day }}
+        run: node tools/og/digest.mjs

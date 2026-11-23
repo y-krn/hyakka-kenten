@@ -1,6 +1,6 @@
 // 王座戦の共有画像を作って、サーバーに預ける（GitHub Actions から動かす）
 //   環境変数: SITE（既定 https://hyakkakenten.com）, ADMIN_TOKEN, CHROME（使うブラウザ。省略時はインストール済みの Chrome）
-//            NTFY_TOPIC（任意。王座交代・節目の防衛のとき、Xの投稿画面を開く通知を ntfy に送る）
+//            NTFY_TOPIC（任意。長く守った王者が倒れたとき・節目の防衛のとき、Xの投稿画面を開く通知を ntfy に送る）
 //            NOTIFY_TEST（任意。1 なら画像は作らず、いちばん新しい王座交代の通知を試しに送る）
 import { chromium } from 'playwright-core';
 import { gunzipSync } from 'node:zlib';
@@ -21,8 +21,12 @@ function withDisc(lines) {   // 断り書きは必ず付ける。長すぎると
   while (lines.length > 1 && xlen(lines.join('\n') + '\n' + DISC) > 280 - 24) lines.splice(lines.length - 2, 1);
   return lines.join('\n') + '\n' + DISC;
 }
+const BIG_HOURS = 6, BIG_DEF = 5;   // すぐ知らせる王座交代の目安
 function postText(m) {
   const url = SITE + '/?c=' + m.id;
+  // 王座交代は、長く守った王者が倒れたときだけすぐ知らせる（在位6時間以上か、防衛5回以上）。短い交代は夜のまとめ通知（digest.mjs）に回す
+  const held = m.since && m.at ? (Date.parse(m.at) - Date.parse(m.since)) / 3600e3 : 0;
+  if (m.result === 'win' && held < BIG_HOURS && m.defenses < BIG_DEF) return null;
   if (m.result === 'win') return { title: `王座交代：第${m.reignNo + 1}代王者 ${m.ch.name}`, url,
     text: withDisc([`【王座交代】${m.ch.name}が王者${m.cp.name}を下し、第${m.reignNo + 1}代王者に。（${m.how}）`, `${m.cp.name}は防衛${m.defenses}回で陥落。`, '#百科拳典']) };
   if (m.result === 'lose' && m.defenses > 0 && m.defenses % 5 === 0) return { title: `${m.cp.name}、${m.defenses}度目の防衛`, url,
@@ -46,7 +50,7 @@ if (process.env.NOTIFY_TEST === '1') {   // 通知の試し送り：いちばん
   const t = await fetch(SITE + '/api/throne').then(r => r.json());
   const last = t.recent.find(x => x.result === 'win'); if (!last) { console.log('王座交代の記録がありません'); process.exit(0); }
   const x = await fetch(SITE + '/api/challenge/' + last.id).then(r => r.json());
-  await notify({ id: x.id, reignNo: x.reignNo, result: 'win', how: x.how, defenses: x.champ.defenses, ch: { name: x.challenger.display }, cp: { name: x.champ.display } });
+  await notify({ id: x.id, reignNo: x.reignNo, result: 'win', how: x.how, defenses: Math.max(x.champ.defenses, BIG_DEF), ch: { name: x.challenger.display }, cp: { name: x.champ.display } });   // 試し送りは目安にかかわらず送る
   process.exit(0);
 }
 let pend = await pending();
