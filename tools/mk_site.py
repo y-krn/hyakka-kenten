@@ -2659,7 +2659,7 @@ function plOpen(){ plCat().then(c=>{ const d=plGet(); let dl=$('#pldlg'); if(!dl
 repall("function showResult(){", r"""function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>{ if(!nw.length) return; const box=$('#ring .result'); if(!box||box.querySelector('.plnew')) return;
     box.insertAdjacentHTML('afterbegin','<div class="plnew"><i>選手図鑑に初登録</i>'+nw.map(([k,n])=>'<b>'+esc(k)+'</b><small>（'+esc(n)+'）</small>').join('')+'</div>'); }).catch(()=>{}); }catch(_){}""")
 repall(".morebox{margin-top:8px}", r""".dexdlg li small.plf{font-size:10.5px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.plnew{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 10px;padding:6px 10px;border:2px solid #111;border-radius:6px;background:#d9ffd6;box-shadow:2px 2px 0 #111;font-size:14px}.plnew i{font-style:normal;font-size:11px;font-weight:700;color:#0a5c0a;width:100%}.plnew b{font-family:var(--f-display);font-weight:400;font-size:17px}.plnew small{font-size:12px;color:#333}
+.plnew{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 10px;padding:6px 10px;border:2px solid #111;border-radius:6px;background:#d9ffd6;box-shadow:2px 2px 0 #111;font-size:14px}.plnew i{font-style:normal;font-size:11px;font-weight:700;color:#0a5c0a;width:100%}#ring .result .plnew,#ring .result .plnew b{color:#111;-webkit-text-stroke:0;text-shadow:none}.plnew b{font-family:var(--f-display);font-weight:400;font-size:17px}.plnew small{font-size:12px;color:#333}
 .morebox{margin-top:8px}""")
 
 # 確認画面の枠と、使わなくなった表示を消す
