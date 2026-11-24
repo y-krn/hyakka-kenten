@@ -15,8 +15,14 @@ const base = `FROM ${DATASET} WHERE timestamp > NOW() - INTERVAL '${DAYS}' DAY`;
 const rows = [
   ...(await sql(`SELECT ${DAY} AS d, blob1 AS ev, blob2 AS k, blob3 AS dev, blob4 AS src, blob5 AS x, SUM(_sample_interval * double1) AS n ${base} AND blob1 = 'visit' GROUP BY d, ev, k, dev, src, x FORMAT JSON`)),
   ...(await sql(`SELECT ${DAY} AS d, 'ref' AS ev, blob6 AS k, blob3 AS dev, blob4 AS src, '' AS x, SUM(_sample_interval * double1) AS n ${base} AND blob1 = 'visit' AND blob6 <> '' GROUP BY d, k, dev, src FORMAT JSON`)),
-  ...(await sql(`SELECT ${DAY} AS d, blob1 AS ev, blob2 AS k, blob3 AS dev, blob4 AS src, '' AS x, SUM(_sample_interval * double1) AS n ${base} AND blob1 IN ('play', 'reach', 'btn') GROUP BY d, ev, k, dev, src FORMAT JSON`)),
+  ...(await sql(`SELECT ${DAY} AS d, blob1 AS ev, blob2 AS k, blob3 AS dev, blob4 AS src, '' AS x, SUM(_sample_interval * double1) AS n ${base} AND blob1 = 'btn' GROUP BY d, ev, k, dev, src FORMAT JSON`)),
 ];
+// 対戦：1件に内訳と節目が入っている（double2〜6 内訳、double7〜10 その日の1・2・4・10試合目）
+const PK = ['t', 'm', 'f', 'd', 'free'], RK = ['1', '2', '4', '10'];
+for (const r of await sql(`SELECT ${DAY} AS d, blob3 AS dev, blob4 AS src, ${[2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `SUM(_sample_interval * double${i}) AS v${i}`).join(', ')} ${base} AND blob1 = 'play' GROUP BY d, dev, src FORMAT JSON`)) {
+  PK.forEach((k, i) => { const n = r['v' + (i + 2)]; if (n > 0) rows.push({ d: r.d, ev: 'play', k, dev: r.dev, src: r.src, x: '', n }); });
+  RK.forEach((k, i) => { const n = r['v' + (i + 7)]; if (n > 0) rows.push({ d: r.d, ev: 'reach', k, dev: r.dev, src: r.src, x: '', n }); });
+}
 const q = v => "'" + String(v ?? '').replace(/'/g, "''").slice(0, 80) + "'";
 const days = new Set(), L = [];
 for (const r of rows) {
