@@ -1969,10 +1969,14 @@ function presAdd(){ try{ const c=current; if(!c||!c.an||!c.an.r) return; const w
 function addPlay(){ if(current&&current.orig&&current.orig.k==='dg') return; presAdd(); setPend(pend()+1); { const c=current||{}, k=c.today?'t':c.orig&&c.orig.k==='mine'?'m':c.orig&&c.orig.k==='fam'?'f':''; if(k){ const o=pendK(); o[k]=(o[k]||0)+1; setPendK(o); } } if(ALL){ ALL.plays++; renderRec(); } }
 function setAll(d){ if(d&&d.count){ ALL={plays:d.count.plays+pend(),throne:d.count.throne}; renderRec(); } }
 function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) return; const o=pendK(), k={}; let left=n; for(const x of ['t','m','f','d']){ const v=Math.min(left,Math.max(0,o[x]|0)); if(v){ k[x]=v; left-=v; } }
-  const pr=presGet().slice(0,n); const body=JSON.stringify({n,k,r:pr,client:clientId()}); let ok=false;
+  const pr=presGet().slice(0,n), today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  let dn={d:today,n:0}; try{ const x=JSON.parse(localStorage.getItem('hk-dayn')||'null'); if(x&&x.d===today) dn=x; }catch(_){}
+  const rs=[1,2,4,10].filter(v=>dn.n<v&&dn.n+n>=v), mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches?1:0; }catch(_){ return 0; } })();
+  let src='other'; try{ src=EVSRC; }catch(_){}
+  const body=JSON.stringify({n,k,r:pr,client:clientId(),rs,mob,s:src}); let ok=false;
   try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
     else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
-  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }
+  if(ok){ try{ localStorage.setItem('hk-dayn',JSON.stringify({d:today,n:dn.n+n})); }catch(_){} presSet(presGet().slice(pr.length)); setPend(pend()-n); const o2=pendK(); for(const x in k) o2[x]=Math.max(0,(o2[x]|0)-k[x]); setPendK(o2); } }
 setInterval(()=>flushPlays(false),120000);
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPlays(true); });
 addEventListener('pagehide',()=>flushPlays(true));
@@ -1981,7 +1985,8 @@ const LAND=(()=>{ try{ const q=new URLSearchParams(location.search); return q.ha
 function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-vday')===day) return;
     const fresh=!localStorage.getItem('hk-cid'); let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
     const mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
-    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({client:clientId(),ref,mob,fresh,land:LAND}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-vday',day); }).catch(()=>{}); }catch(_){} }
+    const prev=localStorage.getItem('hk-vday'), dd=prev?Math.round((Date.parse(day)-Date.parse(prev))/864e5):0, ret=fresh?'new':dd===1?'d1':dd>=2&&dd<=7?'w':'long';
+    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({ref,mob,fresh,ret,land:LAND}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-vday',day); }).catch(()=>{}); }catch(_){} }
 { const bot=(()=>{ try{ return !!navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|embedly|python|curl|wget/i.test(navigator.userAgent||''); }catch(_){ return true; } })();
   if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchstart'].forEach(e=>removeEventListener(e,go,true)); sendVisit(); };
     ['pointerdown','scroll','keydown','touchstart'].forEach(e=>addEventListener(e,go,{capture:true,passive:true})); } }

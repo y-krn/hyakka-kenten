@@ -2826,6 +2826,22 @@ function evFlush(beacon){ try{ if(!EVN||NOSTAT||!API) return; }catch(_){ return;
 addEventListener('pagehide',()=>evFlush(true)); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') evFlush(true); });
 setInterval(()=>evFlush(false),120000);""")
 
+# ---- 143. 来訪と対戦数を、ブラウザの番号なしで数える（必要な分だけ残す。2026-11-25）
+#   ・来訪：ブラウザの番号を送らず、「初めて／前日も来た／1週間以内／久しぶり」の印だけを送る（前回送った日から、ブラウザの中で判断する）
+#   ・対戦数：今日の1・2・4・10試合目に届いたら、その節目を送る（番号なしで「遊んだ人の数」と「何試合遊んだか」を数えるため）
+#     ブラウザの番号は、回数の上限を数えるためだけに今までどおり送る（サーバーは25時間で消す）
+repall("""    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({client:clientId(),ref,mob,fresh,land:LAND}),keepalive:true})""",
+       """    const prev=localStorage.getItem('hk-vday'), dd=prev?Math.round((Date.parse(day)-Date.parse(prev))/864e5):0, ret=fresh?'new':dd===1?'d1':dd>=2&&dd<=7?'w':'long';
+    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({ref,mob,fresh,ret,land:LAND}),keepalive:true})""")
+repall("""  const pr=presGet().slice(0,n); const body=JSON.stringify({n,k,r:pr,client:clientId()}); let ok=false;""",
+       """  const pr=presGet().slice(0,n), today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  let dn={d:today,n:0}; try{ const x=JSON.parse(localStorage.getItem('hk-dayn')||'null'); if(x&&x.d===today) dn=x; }catch(_){}
+  const rs=[1,2,4,10].filter(v=>dn.n<v&&dn.n+n>=v), mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches?1:0; }catch(_){ return 0; } })();
+  let src='other'; try{ src=EVSRC; }catch(_){}
+  const body=JSON.stringify({n,k,r:pr,client:clientId(),rs,mob,s:src}); let ok=false;""")
+repall("""  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n);""",
+       """  if(ok){ try{ localStorage.setItem('hk-dayn',JSON.stringify({d:today,n:dn.n+n})); }catch(_){} presSet(presGet().slice(pr.length)); setPend(pend()-n);""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

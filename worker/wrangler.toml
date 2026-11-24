@@ -25,3 +25,7 @@ database_id = "REPLACE_WITH_D1_DATABASE_ID"
 [[analytics_engine_datasets]]
 binding = "EV"
 dataset = "hyakka_ev"
+
+# 毎晩の片付け（日本時間 3:17）。古い記録の番号やIPを消す（src/index.js の cleanup）
+[triggers]
+crons = ["17 18 * * *"]

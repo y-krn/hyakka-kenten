@@ -56,3 +56,7 @@ CREATE TABLE IF NOT EXISTS pref_month (month TEXT NOT NULL, pref TEXT NOT NULL, 
 CREATE TABLE IF NOT EXISTS pref_ev (day TEXT NOT NULL, pref TEXT NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, pref, k));
 -- 今日の一戦の共有画像（日付ごとに1枚。GitHub Actions が毎日0時すぎに作って預ける）
 CREATE TABLE IF NOT EXISTS today_og (day TEXT PRIMARY KEY, a TEXT NOT NULL, b TEXT NOT NULL, img BLOB NOT NULL, at TEXT NOT NULL);
+-- 遊ばれ方の日ごとの合計（誰のものかは持たない）。Workers Analytics Engine の記録を、毎晩まとめて写す（tools/stats/rollup.mjs）
+--   ev：visit 来訪（k＝初めて new／前日も d1／1週間以内 w／久しぶり long、x＝入口）・ref 来た元のサイト（k＝サイト名）・play 対戦（k＝t 今日の一戦／m 代表戦／f 図鑑から／d ダンジョン／free）・reach その日の節目（k＝1・2・4・10試合目）・btn ボタン（k＝ボタンの名前）
+--   dev：m スマホ／d パソコン、src：来た元の種類（mugen・x・search・direct・other）
+CREATE TABLE IF NOT EXISTS daily_stats (day TEXT NOT NULL, ev TEXT NOT NULL, k TEXT NOT NULL, dev TEXT NOT NULL DEFAULT '', src TEXT NOT NULL DEFAULT '', x TEXT NOT NULL DEFAULT '', n INTEGER NOT NULL, PRIMARY KEY (day, ev, k, dev, src, x));
