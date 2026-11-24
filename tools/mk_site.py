@@ -2758,6 +2758,45 @@ repall("  if(decW.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5�
 repall("${an.type==='kurabe'?'':lines.length?", "${an.type==='kurabe'||recMis?'':lines.length?")
 repall("の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>", "の勝ちとして扱われていますが、いまの計算で再生すると結果が異なるため、決め手は出していません。</div>")
 
+# ---- 139. 王座戦：前回来たときからの動きと、自分の挑戦のその後を出す（また来たくなる理由を作る。2026-11-24）
+#   ・前回（30分以上前）に王座の欄を見たときから、王座が何回替わったか
+#   ・自分の挑戦で王者になった記事（14日以内）が、いまも王者か、誰に倒されたか
+#   記録はこのブラウザの中だけ（hk-thseen：前回見た代、hk-mych：自分の挑戦の直近30件）。サーバーには何も足さない
+repall("""  const msg=d.result==='win'?`<span class="msg win">""", """  myChAdd(d);
+  const msg=d.result==='win'?`<span class="msg win">""")
+repall("let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;", """let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;
+/* 王座戦：前回からの動きと、自分の挑戦のその後 */
+const lsJ=(k,v)=>{ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||'null'); localStorage.setItem(k,JSON.stringify(v)); }catch(_){ return null; } };
+function myChAdd(d){ if(!d||!d.id||!d.challenger) return; const L=(lsJ('hk-mych')||[]).filter(x=>x.id!==d.id); L.unshift({id:d.id,t:d.challenger.display,r:d.result,at:Date.now()}); lsJ('hk-mych',L.slice(0,30)); }
+let THB=null, THB_RUN=false;
+async function thBack(d){ if(THB_RUN||!d||!d.reignNo) return; THB_RUN=true;
+  const now=Date.now(), seen=lsJ('hk-thseen'), lines=[]; let mineNow=false;
+  lsJ('hk-thseen',{no:d.reignNo,at:now});
+  if(seen&&seen.no&&now-seen.at>1800000){ const n=d.reignNo-seen.no; lines.push(n>0?`前回のあと、王座は<b>${n}</b>回替わりました。`:'前回のあと、王座は替わっていません。'); }
+  const mine=(lsJ('hk-mych')||[]).find(x=>x.r==='win'&&now-x.at<14*864e5);
+  if(mine&&API){ try{ const R=(await fetch(API+'/api/hall').then(r=>r.json())).reigns||[]; const g=R.find(x=>x.cid===mine.id);
+    if(g&&!g.ended_at){ mineNow=true; lines.push(`あなたが送り出した<b>${esc(g.display)}</b>は、いまも王者です（防衛${g.defenses}回）。`); }
+    else if(g){ const nx=R.find(x=>x.cid===g.lostcid); lines.push(`あなたが送り出した<b>${esc(g.display)}</b>は、${nx?'<b>'+esc(nx.display)+'</b>に':''}倒されました（防衛${g.defenses}回）。`); } }catch(_){} }
+  if(!lines.length) return; THB={lines,btn:!mineNow}; thBackShow(); }
+function thBackShow(){ const el=$('#throne'); if(!THB||!el||el.hidden||el.querySelector('.thback')) return; const h=el.querySelector('.sechead'); if(!h) return;
+  const b=document.createElement('div'); b.className='thback'; b.innerHTML=THB.lines.map(x=>'<p>'+x+'</p>').join('')+(THB.btn?'<button type="button" class="btn small">いまの王者に挑む</button>':'');
+  h.after(b); const k=b.querySelector('button'); if(k) k.onclick=()=>{ const x=$('#thx'); if(x) x.open=true; const t=$('#chT'); if(t){ t.scrollIntoView({block:'center'}); t.focus({preventScroll:true}); } }; }""")
+repall("""  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall();""",
+       """  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall(); thBackShow(); if(!new URLSearchParams(location.search).get('c')) thBack(d);""")
+repall("</style>", r""".thback{margin:10px 0 4px;padding:8px 12px;border-left:4px solid var(--ink);background:var(--paper);font-size:14px}
+.thback p{margin:0 0 4px}.thback .btn{margin-top:4px}
+</style>""")
+
+# ---- 140. 今日の一戦：見終わった人みんなに明日の一戦を少しだけ見せ、毎日の観戦の連続日数を出す（また来たくなる理由を作る。2026-11-24）
+#   これまで明日の予告は、予想を当てた人だけだった
+repall("function tdStreak(o){", "function tdDays(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.done) n++; else if(k===0) continue; else break; } return n; }   /* 今日の一戦を見た日の連続日数（今日まだなら昨日まで） */\nfunction tdStreak(o){")
+repall("""      ${me.hit?'<div class="tdtmr" id="tdtmr">明日の一戦を少しだけ…</div>':''}""",
+       """      ${tdDays(o)>1?`<div class="tddays">今日の一戦、<b>${tdDays(o)}</b>日連続で観戦中</div>`:''}<div class="tdtmr" id="tdtmr">明日の一戦を少しだけ…</div>""")
+repall("""e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は明日のお楽しみ`:'';""",
+       """e.innerHTML=x?`${me.hit?'当てたあなたに、':''}明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は0時に発表`:'';""")
+repall("</style>", r""".tddays{font-size:13px;margin-top:6px}
+</style>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

@@ -537,6 +537,9 @@ input,select,textarea{font-size:16px!important}.go,.fgo{align-items:stretch}.go>
 .sb.B.fxfast::after{animation-name:fastLinesB}
 @keyframes fastLines{0%{opacity:0;transform:translateX(-30px)}15%,75%{opacity:1}100%{opacity:0;transform:translateX(30px)}}@keyframes fastLinesB{0%{opacity:0;transform:translateX(30px)}15%,75%{opacity:1}100%{opacity:0;transform:translateX(-30px)}}
 @media (prefers-reduced-motion: reduce){.fxhaste,.sb.fxfast::after{animation:none}}
+.thback{margin:10px 0 4px;padding:8px 12px;border-left:4px solid var(--ink);background:var(--paper);font-size:14px}
+.thback p{margin:0 0 4px}.thback .btn{margin-top:4px}
+.tddays{font-size:13px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -1860,6 +1863,7 @@ const tdLoad=()=>{ try{ return JSON.parse(localStorage.getItem(TD_K)||'{}')||{};
 const tdSave=o=>{ try{ const ks=Object.keys(o).sort(); while(ks.length>60) delete o[ks.shift()]; localStorage.setItem(TD_K,JSON.stringify(o)); }catch(_){} };
 const jstDay=(off=0)=>new Date(Date.now()+9*3600e3-off*864e5).toISOString().slice(0,10);
 const mdJ=d=>(+d.slice(5,7))+'月'+(+d.slice(8,10))+'日';
+function tdDays(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.done) n++; else if(k===0) continue; else break; } return n; }   /* 今日の一戦を見た日の連続日数（今日まだなら昨日まで） */
 function tdStreak(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.hit) n++; else if(k===0&&!(x&&x.done)) continue; else break; } return n; }
 // 組み合わせ：日付から決める。人気の記事（POPULAR）と、収録記事からランダムに選んだ記事
 let HOLDS=null; function holdsGet(){ return HOLDS||(HOLDS=API?fetch(API+'/api/holds').then(r=>r.ok?r.json():{}).then(o=>Array.isArray(o.titles)?o.titles:[]).catch(()=>[]):Promise.resolve([])); }
@@ -1913,14 +1917,14 @@ function todayDraw(){ const box=$('#today'); if(!box||!TD) return; const {day,a,
     const st=tdStreak(o);
     const ttl=me.hit?tdTitle(st):'';
     act=`<div class="tdres">結果：${res}${me.p!==undefined&&me.p!==null?`<br>あなたの予想は<b class="${me.hit?'hit':''}">${me.hit?'当たり！':'外れ'}</b>${me.hit&&st>1?`（${st}日連続）`:''}`:''}${ttl?`<br><span class="tdttl">称号「${esc(ttl)}」</span>`:''}</div>
-      ${me.hit?'<div class="tdtmr" id="tdtmr">明日の一戦を少しだけ…</div>':''}
+      ${tdDays(o)>1?`<div class="tddays">今日の一戦、<b>${tdDays(o)}</b>日連続で観戦中</div>`:''}<div class="tdtmr" id="tdtmr">明日の一戦を少しだけ…</div>
       <div class="tdrow"><button type="button" class="btn small" id="tdre">もう一度見る</button><a class="btn small" id="tdsh" target="_blank" rel="noopener">Xで共有</a></div>`; }
   else if(me.p===0||me.p===1||me.p===null) act=`<div class="tdrow">あなたの予想：<b>${me.p===null?'なし':esc(me.p===0?nm(a):nm(b))}</b><button type="button" class="btn" id="tdgo">観戦する</button></div>`;
   else act=`<div class="tdq">どっちが勝つ？ 予想してから観戦しよう</div><div class="tdbtn"><button type="button" class="btn pa" data-p="0">${esc(nm(a))}</button><button type="button" class="btn pb" data-p="1">${esc(nm(b))}</button></div><div class="tdrow"><button type="button" class="mlink" id="tdno">予想せずに観戦する</button></div>`;
   box.innerHTML=`<div class="sechead"><h2>今日の一戦</h2><span>${mdJ(day)}の対戦</span></div>
     <div class="tdvs"><div class="tA"><b>${esc(nm(a))}</b><small class="tdk" id="tdka">${esc(TDH[F[a][1]]||kind(a)||cats(a))}</small></div><span class="tvx">vs</span><div class="tB"><b>${esc(nm(b))}</b><small class="tdk" id="tdkb">${esc(TDH[F[b][1]]||kind(b)||cats(b))}</small></div></div>${act}${Object.values(o).some(x=>x&&x.done)?tdCal(o):''}`;
   tdHint(a,'#tdka'); tdHint(b,'#tdkb');
-  if($('#tdtmr')) tdTomorrow().then(x=>{ const e=$('#tdtmr'); if(!e) return; e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は明日のお楽しみ`:''; if(!x) e.remove(); });
+  if($('#tdtmr')) tdTomorrow().then(x=>{ const e=$('#tdtmr'); if(!e) return; e.innerHTML=x?`${me.hit?'当てたあなたに、':''}明日の一戦を少しだけ：<b>${esc(x.a)}</b> が登場予定。相手は0時に発表`:''; if(!x) e.remove(); });
   box.hidden=false;
   const go=()=>{ if(isChamp(a)||isChamp(b)){ todayDraw(); return; } TODAYF={day}; startBattle([a,b]); };
   box.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{ const o=tdLoad(); o[day]={p:+x.dataset.p}; tdSave(o); todayDraw(); go(); });
@@ -2026,7 +2030,7 @@ function renderThrone(d,msg){ const el=$('#throne'); if(!d){ el.hidden=true; ret
   <div class="msg" id="chM">${msg||''}</div>
   <details><summary>最近の挑戦</summary><ol>${d.recent.map(x=>`<li><a class="rp" href="?c=${x.id}" data-c="${x.id}">${esc(x.display)}${x.cdisplay?' 対 '+esc(x.cdisplay):''}</a> <span class="who">（${esc(x.name)}・${esc(dt(x.at))}）</span> … ${RES[x.result]||''}</li>`).join('')||'<li>まだ挑戦はありません</li>'}</ol></details>
 </details>`;
-  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall();
+  $('#thx').addEventListener('toggle',e=>{ THOPEN=e.target.open; }); $('#hallopen').onclick=()=>openHall(); thBackShow(); if(!new URLSearchParams(location.search).get('c')) thBack(d);
   const inp=$('#chT'), dl=$('#sgT'); inp.addEventListener('focus',()=>liftInput(inp)); let tm=null, sq=0;
   const chk=()=>{ $('#chf button').disabled=!CHOPT.has(inp.value.trim()); };
   inp.addEventListener('change',chk);
@@ -2083,7 +2087,23 @@ async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; if(TH
   const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）|名無しの挑戦者)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':''):($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
-let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;   // TH_HOLD：試合のあとに出す結果 {msg, at}
+let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;
+/* 王座戦：前回からの動きと、自分の挑戦のその後 */
+const lsJ=(k,v)=>{ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||'null'); localStorage.setItem(k,JSON.stringify(v)); }catch(_){ return null; } };
+function myChAdd(d){ if(!d||!d.id||!d.challenger) return; const L=(lsJ('hk-mych')||[]).filter(x=>x.id!==d.id); L.unshift({id:d.id,t:d.challenger.display,r:d.result,at:Date.now()}); lsJ('hk-mych',L.slice(0,30)); }
+let THB=null, THB_RUN=false;
+async function thBack(d){ if(THB_RUN||!d||!d.reignNo) return; THB_RUN=true;
+  const now=Date.now(), seen=lsJ('hk-thseen'), lines=[]; let mineNow=false;
+  lsJ('hk-thseen',{no:d.reignNo,at:now});
+  if(seen&&seen.no&&now-seen.at>1800000){ const n=d.reignNo-seen.no; lines.push(n>0?`前回のあと、王座は<b>${n}</b>回替わりました。`:'前回のあと、王座は替わっていません。'); }
+  const mine=(lsJ('hk-mych')||[]).find(x=>x.r==='win'&&now-x.at<14*864e5);
+  if(mine&&API){ try{ const R=(await fetch(API+'/api/hall').then(r=>r.json())).reigns||[]; const g=R.find(x=>x.cid===mine.id);
+    if(g&&!g.ended_at){ mineNow=true; lines.push(`あなたが送り出した<b>${esc(g.display)}</b>は、いまも王者です（防衛${g.defenses}回）。`); }
+    else if(g){ const nx=R.find(x=>x.cid===g.lostcid); lines.push(`あなたが送り出した<b>${esc(g.display)}</b>は、${nx?'<b>'+esc(nx.display)+'</b>に':''}倒されました（防衛${g.defenses}回）。`); } }catch(_){} }
+  if(!lines.length) return; THB={lines,btn:!mineNow}; thBackShow(); }
+function thBackShow(){ const el=$('#throne'); if(!THB||!el||el.hidden||el.querySelector('.thback')) return; const h=el.querySelector('.sechead'); if(!h) return;
+  const b=document.createElement('div'); b.className='thback'; b.innerHTML=THB.lines.map(x=>'<p>'+x+'</p>').join('')+(THB.btn?'<button type="button" class="btn small">いまの王者に挑む</button>':'');
+  h.after(b); const k=b.querySelector('button'); if(k) k.onclick=()=>{ const x=$('#thx'); if(x) x.open=true; const t=$('#chT'); if(t){ t.scrollIntoView({block:'center'}); t.focus({preventScroll:true}); } }; }   // TH_HOLD：試合のあとに出す結果 {msg, at}
 function thTick(force){ if(document.hidden||(!TH_SEEN&&!force)||Date.now()-TH_ACT>600000) return; if(!force&&Date.now()-TH_LAST<120000) return; TH_LAST=Date.now(); refreshThrone(); }
 ['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{ const idle=Date.now()-TH_ACT>600000; TH_ACT=Date.now(); if(idle) thTick(true); },{passive:true}));
 try{ new IntersectionObserver(es=>{ TH_SEEN=es.some(e=>e.isIntersecting); if(TH_SEEN) thTick(); }).observe($('#throne')); }catch(_){}
@@ -2103,6 +2123,7 @@ async function doChallenge(){ const t=$('#chT').value.trim(), name=$('#chN').val
   if(d.error){ m.className='msg err'; m.textContent=d.error;
     if(d.known&&d.known.id){ const a=document.createElement('a'); a.href='?c='+d.known.id; a.textContent=' その試合を見る'; a.className='rp'; a.onclick=e=>{ e.preventDefault(); replayChallenge(d.known.id); }; m.appendChild(a); }
     return; }
+  myChAdd(d);
   const msg=d.result==='win'?`<span class="msg win">${esc(d.challenger.display)}が${esc(d.champ.display)}を倒し、新王者になりました！（${esc(d.how||'')}）</span>`:
     d.result==='late'?`${esc(d.challenger.display)}は勝ちましたが、ひと足先に別の挑戦者が${esc(d.champ.display)}を倒していました。いまの王者は${esc(d.now?d.now.display:'別の記事')}です。`+reBtn(d):d.gone?`${esc(d.challenger.display)}は${esc(d.champ.display)}${d.result==='draw'?'と引き分け':'に敗れました'}。ただ、この直前に${esc(d.champ.display)}は別の挑戦者に倒されていたため、防衛には数えません。いまの王者は${esc(d.now?d.now.display:'別の記事')}です。`+reBtn(d):
     d.result==='draw'?`${esc(d.challenger.display)}は引き分け。王者${esc(d.champ.display)}の防衛です。`:`${esc(d.champ.display)}の防衛（${d.champ.defenses}回目）。${esc(d.challenger.display)}は敗れました。`;
