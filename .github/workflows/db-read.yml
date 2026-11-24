@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ, ボタンの回数, ボタンの回数（プレビュー）, 記録の生データ（プレビュー）]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -69,14 +69,3 @@ jobs:
         run: |
           npx wrangler d1 insights hyakka-kenten --timePeriod=1d --sort-type=sum --sort-by=reads --limit=15 --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('CHJSON'+JSON.stringify(j.map(x=>({q:x.query.slice(0,300),n:x.numberOfTimesRun,read:x.totalRowsRead,avg:x.avgRowsRead}))))})"
           npx wrangler d1 insights hyakka-kenten --timePeriod=7d --sort-type=sum --sort-by=reads --limit=15 --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('CHJSON'+JSON.stringify(j.map(x=>({q:x.query.slice(0,300),n:x.numberOfTimesRun,read:x.totalRowsRead,avg:x.avgRowsRead}))))})"
-      - name: ボタンの回数（直近7日。Workers Analytics Engine。名前・スマホかどうか・来た元の種類ごと）
-        if: startsWith(inputs.what, 'ボタンの回数')
-        run: |
-          ds=hyakka_ev; [ "${{ inputs.what }}" = "ボタンの回数（プレビュー）" ] && ds=hyakka_ev_preview
-          q="SELECT blob1 AS name, blob2 AS dev, blob3 AS src, SUM(_sample_interval * double1) AS n FROM $ds WHERE timestamp > NOW() - INTERVAL '7' DAY GROUP BY name, dev, src ORDER BY n DESC LIMIT 300 FORMAT JSON"
-          curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/analytics_engine/sql" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" --data "$q" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{ try{ const j=JSON.parse(s); console.log('CHJSON'+JSON.stringify(j.data||j)); }catch(e){ console.log('読めませんでした', s.slice(0,500)); } })"
-      - name: 記録の生データ（プレビュー。Analytics Engine の直近の記録を1件ずつ。誰のものかを結び付けられる値はもともと入っていない）
-        if: inputs.what == '記録の生データ（プレビュー）'
-        run: |
-          q="SELECT timestamp, _sample_interval AS si, blob1, blob2, blob3, blob4, blob5, blob6, double1 FROM hyakka_ev_preview WHERE timestamp > NOW() - INTERVAL '2' DAY ORDER BY timestamp DESC LIMIT 60 FORMAT JSON"
-          curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/analytics_engine/sql" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" --data "$q" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{ try{ const j=JSON.parse(s); console.log('CHJSON'+JSON.stringify(j.data||j)); }catch(e){ console.log('読めませんでした', s.slice(0,500)); } })"
