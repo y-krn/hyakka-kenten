@@ -1972,7 +1972,7 @@ function flushPlays(beacon){ const n=Math.min(30,pend()); if(!n||!API||NOSTAT) r
   const pr=presGet().slice(0,n), today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   let dn={d:today,n:0}; try{ const x=JSON.parse(localStorage.getItem('hk-dayn')||'null'); if(x&&x.d===today) dn=x; }catch(_){}
   const rs=[1,2,4,10].filter(v=>dn.n<v&&dn.n+n>=v), mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches?1:0; }catch(_){ return 0; } })();
-  let src='other'; try{ src=EVSRC; }catch(_){}
+  let src='other'; try{ src=sessionStorage.getItem('hk-src')||'other'; }catch(_){}
   const body=JSON.stringify({n,k,r:pr,client:clientId(),rs,mob,s:src}); let ok=false;
   try{ if(beacon&&navigator.sendBeacon) ok=navigator.sendBeacon(API+'/api/plays',new Blob([body],{type:'text/plain'}));
     else { fetch(API+'/api/plays',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); ok=true; } }catch(_){}
@@ -1981,6 +1981,9 @@ setInterval(()=>flushPlays(false),120000);
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPlays(true); });
 addEventListener('pagehide',()=>flushPlays(true));
 // ブラウザごとの番号（個人を表すものではない乱数。挑戦回数の上限を、同じ回線の他人と分けて数えるためだけに使う）
+/* 来た元の種類（このタブで最初に開いたときの来た元。対戦数を送るときに使う。タブを閉じると消える） */
+try{ if(!sessionStorage.getItem('hk-src')){ let h=''; try{ h=document.referrer?new URL(document.referrer).hostname.toLowerCase():''; }catch(_){} if(h===location.hostname) h='';
+  sessionStorage.setItem('hk-src',!h?'direct':/freegame-mugen\.jp$/.test(h)?'mugen':/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\./.test(h)?'search':'other'); } }catch(_){}
 const LAND=(()=>{ try{ const q=new URLSearchParams(location.search); return q.has('pref')?'pref':q.has('today')?'today':q.has('c')?'c':q.has('hall')?'hall':(q.has('a')&&q.has('b'))?'battle':[...q.keys()].filter(k=>!['nostat','v'].includes(k)).length?'other':'top'; }catch(_){ return 'other'; } })();   // 入ってきたときのURLで決める（あとで書き換わる前）
 function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-vday')===day) return;
     const fresh=!localStorage.getItem('hk-cid'); let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
@@ -2093,26 +2096,6 @@ async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; if(TH
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）|名無しの挑戦者)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':''):($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
 let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;
-/* ---------- ボタンが押された回数（名前だけ。誰が押したかは送らない） ---------- */
-const EVQ={}; let EVN=0;
-const EVSRC=(()=>{ try{ let s=sessionStorage.getItem('hk-src'); if(s) return s; let h=''; try{ h=document.referrer?new URL(document.referrer).hostname:''; }catch(_){}
-  s=!h||h===location.hostname?'direct':/freegame-mugen\.jp$/.test(h)?'mugen':/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\./.test(h)?'search':'other'; sessionStorage.setItem('hk-src',s); return s; }catch(_){ return 'other'; } })();
-function evName(t){ const host=t.parentElement&&t.parentElement.closest('[id]'), sec=host?host.id:'top';
-  let k=(t.dataset&&t.dataset.ev)||t.id;
-  if(!k){ const d=t.tagName==='SUMMARY'&&t.closest('details'), h=t.getAttribute&&t.getAttribute('href')||'';
-    if(d){ const x=d.id?d:d.querySelector('[id]'); k=(x?x.id:sec)+'/open'; }
-    else if(t.tagName==='A'&&t.hostname&&t.hostname!==location.hostname) k='out:'+t.hostname.replace(/^www\./,'');
-    else if(t.tagName==='A'&&h.startsWith('#')&&h.length>1) k='nav:'+h.slice(1);
-    else if(t.tagName==='A'&&/^[a-z0-9_-]+\.html$/i.test(h)) k='page:'+h.replace(/\.html$/i,'');
-    else { const c=[...t.classList].filter(x=>!/^(btn|big|small|on|sel|active)$/.test(x)); k=sec+'/'+(c[0]||t.tagName.toLowerCase()); } }
-  return String(k).toLowerCase().replace(/[^a-z0-9_.:\/-]/g,'').slice(0,48); }
-document.addEventListener('click',e=>{ if(NOSTAT) return; const t=e.target.closest&&e.target.closest('button,a,summary,[role=button]'); if(!t) return;
-  const k=evName(t); if(!k) return; EVQ[k]=(EVQ[k]||0)+1; EVN++; if(EVN>=40) evFlush(false); },true);
-function evFlush(beacon){ try{ if(!EVN||NOSTAT||!API) return; }catch(_){ return; } const body=JSON.stringify({e:EVQ,m:matchMedia('(pointer:coarse)').matches?1:0,s:EVSRC});
-  try{ if(beacon&&navigator.sendBeacon) navigator.sendBeacon(API+'/api/ev',new Blob([body],{type:'text/plain'})); else fetch(API+'/api/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); }catch(_){}
-  for(const k in EVQ) delete EVQ[k]; EVN=0; }
-addEventListener('pagehide',()=>evFlush(true)); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') evFlush(true); });
-setInterval(()=>evFlush(false),120000);
 /* 王座戦：前回からの動きと、自分の挑戦のその後 */
 const lsJ=(k,v)=>{ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||'null'); localStorage.setItem(k,JSON.stringify(v)); }catch(_){ return null; } };
 function myChAdd(d){ if(!d||!d.id||!d.challenger) return; const L=(lsJ('hk-mych')||[]).filter(x=>x.id!==d.id); L.unshift({id:d.id,t:d.challenger.display,r:d.result,at:Date.now()}); lsJ('hk-mych',L.slice(0,30)); }

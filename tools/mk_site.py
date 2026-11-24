@@ -2801,31 +2801,6 @@ repall("</style>", r""".tddays{font-size:13px;margin-top:6px}
 repall("""<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a></span>""",
        """<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a>　<a href="privacy.html">データの扱い</a></span>""")
 
-# ---- 142. ボタンが押された回数を数える（どのボタンがよく使われているかを知るため。2026-11-24）
-#   名前は、ボタンの id か、置かれている場所（id のある親）と種類から作る。押した文字（記事名など）は送らない
-#   ページの中でためて、ページを閉じる・隠すとき（と2分ごと）にまとめて送る。誰が押したかは送らない
-repall("""let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;""", r"""let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;
-/* ---------- ボタンが押された回数（名前だけ。誰が押したかは送らない） ---------- */
-const EVQ={}; let EVN=0;
-const EVSRC=(()=>{ try{ let s=sessionStorage.getItem('hk-src'); if(s) return s; let h=''; try{ h=document.referrer?new URL(document.referrer).hostname:''; }catch(_){}
-  s=!h||h===location.hostname?'direct':/freegame-mugen\.jp$/.test(h)?'mugen':/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\./.test(h)?'search':'other'; sessionStorage.setItem('hk-src',s); return s; }catch(_){ return 'other'; } })();
-function evName(t){ const host=t.parentElement&&t.parentElement.closest('[id]'), sec=host?host.id:'top';
-  let k=(t.dataset&&t.dataset.ev)||t.id;
-  if(!k){ const d=t.tagName==='SUMMARY'&&t.closest('details'), h=t.getAttribute&&t.getAttribute('href')||'';
-    if(d){ const x=d.id?d:d.querySelector('[id]'); k=(x?x.id:sec)+'/open'; }
-    else if(t.tagName==='A'&&t.hostname&&t.hostname!==location.hostname) k='out:'+t.hostname.replace(/^www\./,'');
-    else if(t.tagName==='A'&&h.startsWith('#')&&h.length>1) k='nav:'+h.slice(1);
-    else if(t.tagName==='A'&&/^[a-z0-9_-]+\.html$/i.test(h)) k='page:'+h.replace(/\.html$/i,'');
-    else { const c=[...t.classList].filter(x=>!/^(btn|big|small|on|sel|active)$/.test(x)); k=sec+'/'+(c[0]||t.tagName.toLowerCase()); } }
-  return String(k).toLowerCase().replace(/[^a-z0-9_.:\/-]/g,'').slice(0,48); }
-document.addEventListener('click',e=>{ if(NOSTAT) return; const t=e.target.closest&&e.target.closest('button,a,summary,[role=button]'); if(!t) return;
-  const k=evName(t); if(!k) return; EVQ[k]=(EVQ[k]||0)+1; EVN++; if(EVN>=40) evFlush(false); },true);
-function evFlush(beacon){ try{ if(!EVN||NOSTAT||!API) return; }catch(_){ return; } const body=JSON.stringify({e:EVQ,m:matchMedia('(pointer:coarse)').matches?1:0,s:EVSRC});
-  try{ if(beacon&&navigator.sendBeacon) navigator.sendBeacon(API+'/api/ev',new Blob([body],{type:'text/plain'})); else fetch(API+'/api/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); }catch(_){}
-  for(const k in EVQ) delete EVQ[k]; EVN=0; }
-addEventListener('pagehide',()=>evFlush(true)); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') evFlush(true); });
-setInterval(()=>evFlush(false),120000);""")
-
 # ---- 143. 来訪と対戦数を、ブラウザの番号なしで数える（必要な分だけ残す。2026-11-25）
 #   ・来訪：ブラウザの番号を送らず、「初めて／前日も来た／1週間以内／久しぶり」の印だけを送る（前回送った日から、ブラウザの中で判断する）
 #   ・対戦数：今日の1・2・4・10試合目に届いたら、その節目を送る（番号なしで「遊んだ人の数」と「何試合遊んだか」を数えるため）
@@ -2837,10 +2812,14 @@ repall("""  const pr=presGet().slice(0,n); const body=JSON.stringify({n,k,r:pr,c
        """  const pr=presGet().slice(0,n), today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   let dn={d:today,n:0}; try{ const x=JSON.parse(localStorage.getItem('hk-dayn')||'null'); if(x&&x.d===today) dn=x; }catch(_){}
   const rs=[1,2,4,10].filter(v=>dn.n<v&&dn.n+n>=v), mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches?1:0; }catch(_){ return 0; } })();
-  let src='other'; try{ src=EVSRC; }catch(_){}
+  let src='other'; try{ src=sessionStorage.getItem('hk-src')||'other'; }catch(_){}
   const body=JSON.stringify({n,k,r:pr,client:clientId(),rs,mob,s:src}); let ok=false;""")
 repall("""  if(ok){ presSet(presGet().slice(pr.length)); setPend(pend()-n);""",
        """  if(ok){ try{ localStorage.setItem('hk-dayn',JSON.stringify({d:today,n:dn.n+n})); }catch(_){} presSet(presGet().slice(pr.length)); setPend(pend()-n);""")
+repall("""const LAND=(()=>{""", """/* 来た元の種類（このタブで最初に開いたときの来た元。対戦数を送るときに使う。タブを閉じると消える） */
+try{ if(!sessionStorage.getItem('hk-src')){ let h=''; try{ h=document.referrer?new URL(document.referrer).hostname.toLowerCase():''; }catch(_){} if(h===location.hostname) h='';
+  sessionStorage.setItem('hk-src',!h?'direct':/freegame-mugen\\.jp$/.test(h)?'mugen':/(^|\\.)(t\\.co|x\\.com|twitter\\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\\./.test(h)?'search':'other'); } }catch(_){}
+const LAND=(()=>{""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')

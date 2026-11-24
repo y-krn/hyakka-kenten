@@ -279,7 +279,7 @@ async function prefBoardApi(env, req) {
 // ---------- 遊ばれ方の記録（日ごとの合計だけ） ----------
 // 誰の記録かを結び付けられる値（ブラウザの番号・IPアドレス）は付けず、受け取った時点で日ごとの合計（daily_stats）に足す
 //   ev：visit 来訪（k＝new 初めて／d1 前日も／w 1週間以内／long 久しぶり、x＝入口）・ref 来た元のサイト（k＝サイト名）
-//       play 対戦（k＝t 今日の一戦／m 代表戦／f 図鑑から／d ダンジョン／free）・reach その日の節目（k＝1・2・4・10試合目）・btn ボタン（k＝名前）
+//       play 対戦（k＝t 今日の一戦／m 代表戦／f 図鑑から／d ダンジョン／free）・reach その日の節目（k＝1・2・4・10試合目）
 //   dev：m スマホ／d パソコン、src：来た元の種類（mugen・x・search・direct・other）
 const jstDay = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
 function bump(env, ev, k, dev, src, x, n) {
@@ -288,22 +288,6 @@ function bump(env, ev, k, dev, src, x, n) {
 }
 async function bumpAll(env, list) { if (list.length) { try { await env.DB.batch(list); } catch (_) {} } }   // 表がまだないときなどは数えずに進む
 const srcOf = h => !h ? 'direct' : /freegame-mugen\.jp$/.test(h) ? 'mugen' : /(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h) ? 'x' : /(google|bing|yahoo|duckduckgo)\./.test(h) ? 'search' : 'other';
-// ---------- ボタンが押された回数 ----------
-// ページの中でためた回数を、まとめて受け取る。誰が押したかは受け取らない（番号もIPも書かない）。日ごとの合計に足すだけ
-async function events(env, req) {
-  let b; try { b = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
-  const e = b && typeof b.e === 'object' && b.e ? b.e : {};
-  const dev = b.m ? 'm' : 'd', src = ['mugen', 'x', 'search', 'direct', 'other'].includes(b.s) ? b.s : 'other';
-  let k = 0; const L = [];
-  for (const [name, c] of Object.entries(e)) {
-    if (k >= 60) break;
-    const n = Math.min(200, Math.max(0, Math.floor(Number(c) || 0)));
-    if (!n || !/^[a-z0-9_.:\/-]{1,48}$/.test(name)) continue;
-    L.push(bump(env, 'btn', name, dev, src, '', n)); k++;
-  }
-  await bumpAll(env, L);
-  return json(env, req, { ok: true });
-}
 async function visit(env, req) {
   // 1日1回、ブラウザが送ってくる。ブラウザの番号は受け取っても使わない（古いページから届く分）
   let body; try { body = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
@@ -619,7 +603,6 @@ export default {
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       const tp = u.pathname.match(/^\/api\/og\/today\/(\d{4}-\d\d-\d\d)$/); if (tp && req.method === 'PUT') return await todayOgPut(env, req, tp[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
-      if (u.pathname === '/api/ev' && req.method === 'POST') return await events(env, req);
       if (u.pathname === '/api/pref/ev' && req.method === 'POST') return await prefEvApi(env, req);
       if (u.pathname === '/api/pref' && req.method === 'GET') return await prefBoardApi(env, req);
       if (u.pathname === '/api/visit' && req.method === 'POST') return await visit(env, req);
