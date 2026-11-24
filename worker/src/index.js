@@ -270,6 +270,22 @@ async function prefBoardApi(env, req) {
 
 // ページを開いたブラウザを数える。ブラウザごとの乱数番号を変換したもの（plays の client と同じ）で、同じ日の2回目からは数えない
 //   Cloudflare Web Analytics は iPhone の Safari などで数え漏れるので、ゲームの側でも数える。Cookie・個人を表す情報は使わない
+// ---------- ボタンが押された回数 ----------
+// ページの中でためた回数を、まとめて受け取る。誰が押したかは受け取らない（番号もIPも書かない）。書き先は Workers Analytics Engine（3か月で自動的に消える）
+async function events(env, req) {
+  if (!env.EV) return json(env, req, { ok: true });
+  let b; try { b = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
+  const e = b && typeof b.e === 'object' && b.e ? b.e : {};
+  const dev = b.m ? 'm' : 'd', src = ['mugen', 'x', 'search', 'direct', 'other'].includes(b.s) ? b.s : 'other';
+  let k = 0;
+  for (const [name, c] of Object.entries(e)) {
+    if (k >= 60) break;
+    const n = Math.min(200, Math.max(0, Math.floor(Number(c) || 0)));
+    if (!n || !/^[a-z0-9_.:\/-]{1,48}$/.test(name)) continue;
+    env.EV.writeDataPoint({ indexes: [name], blobs: [name, dev, src], doubles: [n] }); k++;
+  }
+  return json(env, req, { ok: true });
+}
 async function visit(env, req) {
   let body; try { body = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
   if (!/^[a-z0-9]{16,40}$/.test(String(body.client || ''))) return json(env, req, { error: 'bad' }, 400);
@@ -570,6 +586,7 @@ export default {
       const op = u.pathname.match(/^\/api\/og\/(\d{1,9})$/); if (op && req.method === 'PUT') return await ogPut(env, req, +op[1]);
       const tp = u.pathname.match(/^\/api\/og\/today\/(\d{4}-\d\d-\d\d)$/); if (tp && req.method === 'PUT') return await todayOgPut(env, req, tp[1]);
       if (u.pathname === '/api/plays' && req.method === 'POST') return await plays(env, req);
+      if (u.pathname === '/api/ev' && req.method === 'POST') return await events(env, req);
       if (u.pathname === '/api/pref/ev' && req.method === 'POST') return await prefEvApi(env, req);
       if (u.pathname === '/api/pref' && req.method === 'GET') return await prefBoardApi(env, req);
       if (u.pathname === '/api/visit' && req.method === 'POST') return await visit(env, req);

@@ -20,3 +20,8 @@ ALLOWED_ORIGINS = "https://hyakkakenten.com,https://y-krn.github.io,http://local
 binding = "DB"
 database_name = "hyakka-kenten"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# ボタンが押された回数（Workers Analytics Engine）。押されたボタンの名前・スマホかどうか・来た元の種類だけを書く。誰が押したかは書かない。3か月で自動的に消える
+[[analytics_engine_datasets]]
+binding = "EV"
+dataset = "hyakka_ev"

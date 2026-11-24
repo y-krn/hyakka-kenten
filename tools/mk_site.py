@@ -2801,6 +2801,28 @@ repall("</style>", r""".tddays{font-size:13px;margin-top:6px}
 repall("""<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a></span>""",
        """<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a>　<a href="privacy.html">データの扱い</a></span>""")
 
+# ---- 142. ボタンが押された回数を数える（どのボタンがよく使われているかを知るため。2026-11-24）
+#   名前は、ボタンの id か、置かれている場所（id のある親）と種類から作る。押した文字（記事名など）は送らない
+#   ページの中でためて、ページを閉じる・隠すとき（と2分ごと）にまとめて送る。誰が押したかは送らない
+repall("""let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;""", r"""let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;
+/* ---------- ボタンが押された回数（名前だけ。誰が押したかは送らない） ---------- */
+const EVQ={}; let EVN=0;
+const EVSRC=(()=>{ try{ let s=sessionStorage.getItem('hk-src'); if(s) return s; let h=''; try{ h=document.referrer?new URL(document.referrer).hostname:''; }catch(_){}
+  s=!h||h===location.hostname?'direct':/freegame-mugen\.jp$/.test(h)?'mugen':/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\./.test(h)?'search':'other'; sessionStorage.setItem('hk-src',s); return s; }catch(_){ return 'other'; } })();
+function evName(t){ const host=t.parentElement&&t.parentElement.closest('[id]'), sec=host?host.id:'top';
+  let k=(t.dataset&&t.dataset.ev)||t.id;
+  if(!k){ if(t.tagName==='SUMMARY') k=sec+'/open';
+    else if(t.tagName==='A'&&t.hostname&&t.hostname!==location.hostname) k='out:'+t.hostname.replace(/^www\./,'');
+    else { const c=[...t.classList].filter(x=>!/^(btn|big|small|on|sel|active)$/.test(x)); k=sec+'/'+(c[0]||t.tagName.toLowerCase()); } }
+  return String(k).toLowerCase().replace(/[^a-z0-9_.:\/-]/g,'').slice(0,48); }
+document.addEventListener('click',e=>{ if(NOSTAT) return; const t=e.target.closest&&e.target.closest('button,a,summary,[role=button]'); if(!t) return;
+  const k=evName(t); if(!k) return; EVQ[k]=(EVQ[k]||0)+1; EVN++; if(EVN>=40) evFlush(false); },true);
+function evFlush(beacon){ try{ if(!EVN||NOSTAT||!API) return; }catch(_){ return; } const body=JSON.stringify({e:EVQ,m:matchMedia('(pointer:coarse)').matches?1:0,s:EVSRC});
+  try{ if(beacon&&navigator.sendBeacon) navigator.sendBeacon(API+'/api/ev',new Blob([body],{type:'text/plain'})); else fetch(API+'/api/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body,keepalive:true}).catch(()=>{}); }catch(_){}
+  for(const k in EVQ) delete EVQ[k]; EVN=0; }
+addEventListener('pagehide',()=>evFlush(true)); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') evFlush(true); });
+setInterval(()=>evFlush(false),120000);""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
