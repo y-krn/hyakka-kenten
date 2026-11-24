@@ -34,4 +34,4 @@ jobs:
         working-directory: worker
         run: |
           npx wrangler d1 execute "$DB" --remote --file ../rollup.sql
-          npx wrangler d1 execute "$DB" --remote --json --command "SELECT day, ev, SUM(n) AS n FROM daily_stats GROUP BY day, ev ORDER BY day DESC, ev LIMIT 60" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{ const r=JSON.parse(s)[0].results; console.log('CHJSON'+JSON.stringify(r)); })"
+          npx wrangler d1 execute "$DB" --remote --json --command "SELECT day, ev, k, dev, src, x, n FROM daily_stats ORDER BY day DESC, ev, k LIMIT 80" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{ const r=JSON.parse(s)[0].results; console.log('CHJSON'+JSON.stringify(r)); })"
