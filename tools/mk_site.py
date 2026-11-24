@@ -2797,6 +2797,10 @@ repall("""e.innerHTML=x?`当てたあなたに、明日の一戦を少しだけ�
 repall("</style>", r""".tddays{font-size:13px;margin-top:6px}
 </style>""")
 
+# ---- 141. フッターに「データの扱い」のページ（privacy.html）へのリンクを足す（2026-11-24）
+repall("""<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a></span>""",
+       """<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a>　<a href="privacy.html">データの扱い</a></span>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

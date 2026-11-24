@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>データの扱い ― 百科拳典</title>
+<meta name="description" content="百科拳典（ひゃっかけんてん）が、遊ぶ人のブラウザに保存するもの、サーバーに送るもの、その使い道。">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<meta name="theme-color" content="#0e288c">
+<style>
+:root{--bg:#f3f4f1;--paper:#ffffff;--ink:#1b2130;--muted:#5d6475;--line:#d9dcd6;--f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root{--bg:#13161d;--paper:#1b1f29;--ink:#e8eaf0;--muted:#9aa1b2;--line:#2e3442}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.8}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+.back{font-size:14px}
+a{color:inherit}
+h1{font-size:24px;margin:16px 0 4px}
+.lead{color:var(--muted);font-size:14px;margin:0 0 20px}
+section{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:14px 0}
+h2{font-size:17px;margin:0 0 6px}
+ul{margin:0;padding-left:1.3em}
+li{margin:2px 0}
+p{margin:6px 0}
+.note{font-size:13px;color:var(--muted)}
+footer{font-size:12px;color:var(--muted);margin-top:24px}
+</style></head>
+<body><main>
+<a class="back" href="./">← 百科拳典に戻る</a>
+<h1>データの扱い</h1>
+<p class="lead">百科拳典は個人が作っているゲームです。遊ぶ人のブラウザに保存するもの、このサイトのサーバーに送るもの、その使い道をまとめました。広告や、外部の会社のアクセス解析は使っていません。</p>
+
+<section>
+<h2>ブラウザの中に保存するもの</h2>
+<p>遊んだ記録を次に来たときにも使えるように、ブラウザの保存領域（localStorage）に保存します。Cookieは使っていません。</p>
+<ul>
+<li>技図鑑・選手図鑑・称号の記録</li>
+<li>今日の一戦の予想と戦績</li>
+<li>王座戦で入れた名前と、自分の挑戦の記録</li>
+<li>このブラウザを見分けるための番号（でたらめに作った文字列）</li>
+</ul>
+<p class="note">図鑑や戦績は、このサイトのサーバーには送りません。名前とブラウザの番号は、下の「サーバーに送るもの」のときに使います。</p>
+</section>
+
+<section>
+<h2>このサイトのサーバーに送るもの</h2>
+<p>サーバーは、Cloudflare（クラウドサービス）の上で運営しています。</p>
+<ul>
+<li>来たこと（1日1回）：日付、スマホかどうか、初めてかどうか、どのページから入ったか、来た元のサイトの名前（URLの残りの部分は送りません）</li>
+<li>遊んだ対戦の数と種類</li>
+<li>王座戦の挑戦：挑戦した記事、入れた名前（任意）、結果</li>
+<li>「違う点を知らせる」で送った内容</li>
+</ul>
+<p>あわせて、ブラウザの番号とIPアドレスを使います。どちらも、そのままでは保存しません。元に戻せない形に変換してから保存します。</p>
+</section>
+
+<section>
+<h2>使い道</h2>
+<ul>
+<li>何人が来て、どれくらい遊んだかを数え、ゲームをよくするため</li>
+<li>王座戦の記録を残し、試合を見られるようにするため</li>
+<li>同じ人が短い時間に挑戦を繰り返しすぎないようにするなど、不正を防ぐため</li>
+</ul>
+<p>王座戦で入れた名前は、王座戦の記録として誰でも見られる形で表示されます。ほかの情報を、誰かに売ったり渡したりすることはありません。</p>
+</section>
+
+<section>
+<h2>ほかのサイトに直接届くもの</h2>
+<p>ゲームを動かすために、ブラウザが次のサイトと直接やりとりします。そのとき、それぞれのサイトにはIPアドレスやブラウザの種類が届きます。</p>
+<ul>
+<li>Wikipedia（日本語版）：入力した記事名の候補探し、記事のひとこと説明、百科ダンジョンのリンクの取得</li>
+<li>Google Fonts：画面の文字（フォント）の読み込み</li>
+<li>X：「Xで共有」を押したときだけ、投稿画面を開きます</li>
+</ul>
+</section>
+
+<section>
+<h2>保存したものを消すには</h2>
+<p>ブラウザの設定で、このサイト（hyakkakenten.com）のデータを消してください。図鑑や戦績などの記録と、ブラウザの番号が消えます。サーバーに残っている記録は変換した形なので、あなたのものだと特定して消すことはできません。</p>
+</section>
+
+<section>
+<h2>連絡先</h2>
+<p>公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a></p>
+<p class="note">この内容は、ゲームの変更にあわせて書き直すことがあります。</p>
+</section>
+
+<footer>2026年11月24日　作成</footer>
+</main></body></html>
