@@ -21,11 +21,7 @@ binding = "DB"
 database_name = "hyakka-kenten"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 
-# ボタンが押された回数（Workers Analytics Engine）。押されたボタンの名前・スマホかどうか・来た元の種類だけを書く。誰が押したかは書かない。3か月で自動的に消える
-[[analytics_engine_datasets]]
-binding = "EV"
-dataset = "hyakka_ev"
 
-# 毎晩の片付け（日本時間 3:17）。古い記録の番号やIPを消す（src/index.js の cleanup）
+# 1時間ごとの片付け（毎時7分）。期限の来た番号・IP・記録を消す（src/index.js の cleanup）
 [triggers]
-crons = ["17 18 * * *"]
+crons = ["7 * * * *"]

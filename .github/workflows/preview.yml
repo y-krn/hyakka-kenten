@@ -27,7 +27,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - name: D1のIDを設定（プレビュー専用のデータベース）
-        run: sed -i "s/REPLACE_WITH_D1_DATABASE_ID/4ad2e00e-41a9-4c25-926e-e068a61c78a3/; s/database_name = \"hyakka-kenten\"/database_name = \"hyakka-kenten-preview\"/; s/dataset = \"hyakka_ev\"/dataset = \"hyakka_ev_preview\"/" wrangler.toml
+        run: sed -i "s/REPLACE_WITH_D1_DATABASE_ID/4ad2e00e-41a9-4c25-926e-e068a61c78a3/; s/database_name = \"hyakka-kenten\"/database_name = \"hyakka-kenten-preview\"/" wrangler.toml
       - name: 配るファイルを public/ に集める
         run: |
           mkdir -p public

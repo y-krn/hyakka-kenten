@@ -1,7 +1,7 @@
 -- 今までの来訪（visits）と対戦数（plays）の1件ずつの記録を、日ごとの合計（daily_stats）にまとめる。1回だけ使う
---   CUTOFF（日本時間の日付）より前の日だけをまとめる。CUTOFF の日からは Analytics Engine の記録を写す（rollup.mjs）
+--   CUTOFF（日本時間の日付）より前の日だけをまとめる。CUTOFF の日からは、サーバーが受け取った時点で足している
 --   まとめたあと、合計が元の記録と一致することを確かめてから、元の記録を消す（別の手順。承認を得てから）
--- 来た元の種類（rollup と同じ分け方）
+-- 来た元の種類（サーバーの srcOf と同じ分け方）
 CREATE TEMP VIEW IF NOT EXISTS v_src AS SELECT v.*, CASE
   WHEN v.ref IS NULL OR v.ref = '' THEN 'direct'
   WHEN v.ref = 'freegame-mugen.jp' OR v.ref LIKE '%.freegame-mugen.jp' THEN 'mugen'

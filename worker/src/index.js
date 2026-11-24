@@ -13,7 +13,7 @@
 //   GET  /og/t/日付.jpg          … 今日の一戦の共有画像（毎日0時すぎに GitHub Actions が作る）
 //   PUT  /api/og/today/日付?a=&b= … 今日の一戦の共有画像を預ける（管理用）
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
-//   POST /api/admin/cleanup     … 毎晩の片付けを手で動かす（同じく ADMIN_TOKEN）
+//   POST /api/admin/cleanup     … 1時間ごとの片付けを手で動かす（同じく ADMIN_TOKEN）
 //   GET  /sitemap.xml           … 検索エンジン向けの一覧（トップ・王座戦の試合の記録・仲間さがしの一門・県の応援の入口）。1日覚えておく
 //   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
 //   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
@@ -219,8 +219,10 @@ async function plays(env, req) {
   catch (_) { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl), st]); } }   // 内訳の列がまだないとき
   try { await prefCount(env, req, body.r, add); } catch (_) {}   // 県対抗（表がまだないときなどは数えずに進む）
   { const dev = body.mob ? 'm' : 'd', src = ['mugen', 'x', 'search', 'direct', 'other'].includes(body.s) ? body.s : 'other';
-    const rs = Array.isArray(body.rs) ? body.rs : [];
-    evPoint(env, 'play', 'all', dev, src, '', '', add, [K.t, K.m, K.f, K.d, left, ...[1, 2, 4, 10].map(v => rs.includes(v) ? 1 : 0)]); }
+    const rs = Array.isArray(body.rs) ? body.rs : [], L = [];
+    for (const [x, v] of [['t', K.t], ['m', K.m], ['f', K.f], ['d', K.d], ['free', left]]) if (v > 0) L.push(bump(env, 'play', x, dev, src, '', v));
+    for (const v of [1, 2, 4, 10]) if (rs.includes(v)) L.push(bump(env, 'reach', v, dev, src, '', 1));
+    await bumpAll(env, L); }
   return json(env, req, { ok: true, added: add });
 }
 
@@ -274,30 +276,32 @@ async function prefBoardApi(env, req) {
 
 // ページを開いたブラウザを数える。ブラウザごとの乱数番号を変換したもの（plays の client と同じ）で、同じ日の2回目からは数えない
 //   Cloudflare Web Analytics は iPhone の Safari などで数え漏れるので、ゲームの側でも数える。Cookie・個人を表す情報は使わない
-// ---------- 遊ばれ方の記録（Workers Analytics Engine） ----------
-// 誰のものかを結び付けられる値（ブラウザの番号・IPアドレス）は書かない。3か月で自動的に消える。長く見る数字は、毎晩、日ごとの合計にしてデータベースに写す
-//   blob1 種類（btn・visit・play）、blob2 名前、blob3 スマホ m／パソコン d、blob4 来た元の種類、blob5・blob6 種類ごとの補足、double1 回数
-//   play は1件に、double1 対戦数・double2〜6 内訳（今日の一戦・代表戦・図鑑から・ダンジョン・自由対戦）・double7〜10 その日の1・2・4・10試合目に届いたか（1／0）
-//   区分け（index）は「種類:名前」。同じ区分けの記録を同じ瞬間にいくつも書くと間引かれるので、1回の受け取りで同じ区分けは1件だけ書く
-function evPoint(env, type, key, dev, src, x1, x2, n, more) {
-  if (!env.EV) return;
-  try { env.EV.writeDataPoint({ indexes: [type + ':' + key], blobs: [type, String(key), dev, src, String(x1 || ''), String(x2 || '')], doubles: [n, ...(more || [])] }); } catch (_) {}
+// ---------- 遊ばれ方の記録（日ごとの合計だけ） ----------
+// 誰の記録かを結び付けられる値（ブラウザの番号・IPアドレス）は付けず、受け取った時点で日ごとの合計（daily_stats）に足す
+//   ev：visit 来訪（k＝new 初めて／d1 前日も／w 1週間以内／long 久しぶり、x＝入口）・ref 来た元のサイト（k＝サイト名）
+//       play 対戦（k＝t 今日の一戦／m 代表戦／f 図鑑から／d ダンジョン／free）・reach その日の節目（k＝1・2・4・10試合目）・btn ボタン（k＝名前）
+//   dev：m スマホ／d パソコン、src：来た元の種類（mugen・x・search・direct・other）
+const jstDay = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+function bump(env, ev, k, dev, src, x, n) {
+  return env.DB.prepare('INSERT INTO daily_stats (day, ev, k, dev, src, x, n) VALUES (?,?,?,?,?,?,?) ON CONFLICT(day, ev, k, dev, src, x) DO UPDATE SET n = n + excluded.n')
+    .bind(jstDay(), ev, String(k).slice(0, 80), dev, src, x || '', n);
 }
+async function bumpAll(env, list) { if (list.length) { try { await env.DB.batch(list); } catch (_) {} } }   // 表がまだないときなどは数えずに進む
 const srcOf = h => !h ? 'direct' : /freegame-mugen\.jp$/.test(h) ? 'mugen' : /(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h) ? 'x' : /(google|bing|yahoo|duckduckgo)\./.test(h) ? 'search' : 'other';
 // ---------- ボタンが押された回数 ----------
-// ページの中でためた回数を、まとめて受け取る。誰が押したかは受け取らない（番号もIPも書かない）。書き先は Workers Analytics Engine（3か月で自動的に消える）
+// ページの中でためた回数を、まとめて受け取る。誰が押したかは受け取らない（番号もIPも書かない）。日ごとの合計に足すだけ
 async function events(env, req) {
-  if (!env.EV) return json(env, req, { ok: true });
   let b; try { b = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
   const e = b && typeof b.e === 'object' && b.e ? b.e : {};
   const dev = b.m ? 'm' : 'd', src = ['mugen', 'x', 'search', 'direct', 'other'].includes(b.s) ? b.s : 'other';
-  let k = 0;
+  let k = 0; const L = [];
   for (const [name, c] of Object.entries(e)) {
     if (k >= 60) break;
     const n = Math.min(200, Math.max(0, Math.floor(Number(c) || 0)));
     if (!n || !/^[a-z0-9_.:\/-]{1,48}$/.test(name)) continue;
-    evPoint(env, 'btn', name, dev, src, '', '', n); k++;
+    L.push(bump(env, 'btn', name, dev, src, '', n)); k++;
   }
+  await bumpAll(env, L);
   return json(env, req, { ok: true });
 }
 async function visit(env, req) {
@@ -306,7 +310,8 @@ async function visit(env, req) {
   const ref = /^[a-z0-9.-]{1,80}$/.test(String(body.ref || '')) ? String(body.ref) : '';   // 来た元のサイトの名前だけ（URLの残りは受け取らない）
   const land = ['top', 'today', 'pref', 'battle', 'c', 'hall', 'other'].includes(body.land) ? body.land : 'other';   // どこから入ったか
   const ret = ['new', 'd1', 'w', 'long'].includes(body.ret) ? body.ret : body.fresh ? 'new' : 'long';   // 初めて／前日も来た／1週間以内／久しぶり
-  evPoint(env, 'visit', ret, body.mob ? 'm' : 'd', srcOf(ref), land, ref, 1);
+  const dev = body.mob ? 'm' : 'd', src = srcOf(ref);
+  await bumpAll(env, [bump(env, 'visit', ret, dev, src, land, 1), ...(ref ? [bump(env, 'ref', ref, dev, src, '', 1)] : [])]);
   return json(env, req, { ok: true });
 }
 
@@ -577,15 +582,15 @@ async function holds(env, req, ctx) {
   return json(env, req, body);
 }
 
-// ---------- 毎晩の片付け（必要な分だけ残す） ----------
-//   ・対戦数の1件ずつの記録（回数の上限を数えるためだけのもの）：25時間で消す
+// ---------- 1時間ごとの片付け（要らなくなったものはすぐ消す） ----------
+//   ・対戦数の1件ずつの記録（10分間の回数の上限を数えるためだけのもの）：1時間で消す
 //   ・王座戦の挑戦に付けた、変換したIPとブラウザの番号：25時間で消す（10分・1日の挑戦回数の上限にだけ使う。記事・名前・結果・日時は残す）
 //   ・報告に付けた、変換したIPとブラウザの番号：30日で消す（同じ記事に違う人から報告が重なったかを数えるのに使う）
 //   ・報告そのもの：対応が終わってから1年で消す
 async function cleanup(env) {
   const ago = h => new Date(Date.now() - h * 3600000).toISOString();
   const r = await env.DB.batch([
-    env.DB.prepare('DELETE FROM plays WHERE at < ?').bind(ago(25)),
+    env.DB.prepare('DELETE FROM plays WHERE at < ?').bind(ago(1)),
     env.DB.prepare("UPDATE challenges SET iphash = '', client = NULL WHERE at < ? AND (iphash <> '' OR client IS NOT NULL)").bind(ago(25)),
     env.DB.prepare("UPDATE reports SET iphash = '', client = NULL WHERE at < ? AND (iphash <> '' OR client IS NOT NULL)").bind(ago(24 * 30)),
     env.DB.prepare("DELETE FROM reports WHERE status <> 'new' AND at < ?").bind(ago(24 * 365)),
@@ -593,7 +598,7 @@ async function cleanup(env) {
   return r.map(x => x.meta && x.meta.changes || 0);
 }
 export default {
-  async scheduled(ev, env, ctx) { ctx.waitUntil(cleanup(env)); },   // 毎晩の片付け（wrangler.toml の triggers）
+  async scheduled(ev, env, ctx) { ctx.waitUntil(cleanup(env)); },   // 1時間ごとの片付け（wrangler.toml の triggers）
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
     if (u.hostname === 'www.hyakkakenten.com') return Response.redirect(SITE + u.pathname + u.search, 301);
