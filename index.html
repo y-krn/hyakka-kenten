@@ -2094,8 +2094,11 @@ const EVSRC=(()=>{ try{ let s=sessionStorage.getItem('hk-src'); if(s) return s; 
   s=!h||h===location.hostname?'direct':/freegame-mugen\.jp$/.test(h)?'mugen':/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\./.test(h)?'search':'other'; sessionStorage.setItem('hk-src',s); return s; }catch(_){ return 'other'; } })();
 function evName(t){ const host=t.parentElement&&t.parentElement.closest('[id]'), sec=host?host.id:'top';
   let k=(t.dataset&&t.dataset.ev)||t.id;
-  if(!k){ if(t.tagName==='SUMMARY') k=sec+'/open';
+  if(!k){ const d=t.tagName==='SUMMARY'&&t.closest('details'), h=t.getAttribute&&t.getAttribute('href')||'';
+    if(d){ const x=d.id?d:d.querySelector('[id]'); k=(x?x.id:sec)+'/open'; }
     else if(t.tagName==='A'&&t.hostname&&t.hostname!==location.hostname) k='out:'+t.hostname.replace(/^www\./,'');
+    else if(t.tagName==='A'&&h.startsWith('#')&&h.length>1) k='nav:'+h.slice(1);
+    else if(t.tagName==='A'&&/^[a-z0-9_-]+\.html$/i.test(h)) k='page:'+h.replace(/\.html$/i,'');
     else { const c=[...t.classList].filter(x=>!/^(btn|big|small|on|sel|active)$/.test(x)); k=sec+'/'+(c[0]||t.tagName.toLowerCase()); } }
   return String(k).toLowerCase().replace(/[^a-z0-9_.:\/-]/g,'').slice(0,48); }
 document.addEventListener('click',e=>{ if(NOSTAT) return; const t=e.target.closest&&e.target.closest('button,a,summary,[role=button]'); if(!t) return;
