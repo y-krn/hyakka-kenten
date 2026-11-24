@@ -472,7 +472,7 @@ async function report(env, req, ctx) {
     const p = fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       topic: env.NTFY_TOPIC, title: (held ? '一時的に外しました：' : '内容の報告：') + who, tags: [held ? 'no_entry' : 'warning'], click: page,
       message: (held ? `違う回線の${people}人から報告があったため、今日の一戦とランダムに出さないようにしました（検索では選べます）。確かめて、問題がなければ戻してください\n` : '')
-        + `理由：${REASON[reason]}\n対戦：${a} 対 ${bb}${text ? '\nひとことあり（管理画面で見る）' : ''}` })   // 利用者が書いた文は、外部の通知サービスに送らない }).catch(() => {});
+        + `理由：${REASON[reason]}\n対戦：${a} 対 ${bb}${text ? '\nひとことあり（管理画面で見る）' : ''}` }) }).catch(() => {});   // 利用者が書いた文は、外部の通知サービスに送らない
     if (ctx) ctx.waitUntil(p); else await p;
   }
   return json(env, req, { ok: true });
