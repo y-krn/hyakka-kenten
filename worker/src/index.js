@@ -219,9 +219,8 @@ async function plays(env, req) {
   catch (_) { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl), st]); } }   // 内訳の列がまだないとき
   try { await prefCount(env, req, body.r, add); } catch (_) {}   // 県対抗（表がまだないときなどは数えずに進む）
   { const dev = body.mob ? 'm' : 'd', src = ['mugen', 'x', 'search', 'direct', 'other'].includes(body.s) ? body.s : 'other';
-    for (const x of ['t', 'm', 'f', 'd']) if (K[x]) evPoint(env, 'play', x, dev, src, '', '', K[x]);
-    if (left > 0) evPoint(env, 'play', 'free', dev, src, '', '', left);
-    for (const r of (Array.isArray(body.rs) ? body.rs : []).slice(0, 4)) if ([1, 2, 4, 10].includes(r)) evPoint(env, 'reach', r, dev, src, '', '', 1); }
+    const rs = Array.isArray(body.rs) ? body.rs : [];
+    evPoint(env, 'play', 'all', dev, src, '', '', add, [K.t, K.m, K.f, K.d, left, ...[1, 2, 4, 10].map(v => rs.includes(v) ? 1 : 0)]); }
   return json(env, req, { ok: true, added: add });
 }
 
@@ -277,10 +276,12 @@ async function prefBoardApi(env, req) {
 //   Cloudflare Web Analytics は iPhone の Safari などで数え漏れるので、ゲームの側でも数える。Cookie・個人を表す情報は使わない
 // ---------- 遊ばれ方の記録（Workers Analytics Engine） ----------
 // 誰のものかを結び付けられる値（ブラウザの番号・IPアドレス）は書かない。3か月で自動的に消える。長く見る数字は、毎晩、日ごとの合計にしてデータベースに写す
-//   blob1 種類（btn・visit・play・reach）、blob2 名前、blob3 スマホ m／パソコン d、blob4 来た元の種類、blob5・blob6 種類ごとの補足、double1 回数
-function evPoint(env, type, key, dev, src, x1, x2, n) {
+//   blob1 種類（btn・visit・play）、blob2 名前、blob3 スマホ m／パソコン d、blob4 来た元の種類、blob5・blob6 種類ごとの補足、double1 回数
+//   play は1件に、double1 対戦数・double2〜6 内訳（今日の一戦・代表戦・図鑑から・ダンジョン・自由対戦）・double7〜10 その日の1・2・4・10試合目に届いたか（1／0）
+//   区分け（index）は「種類:名前」。同じ区分けの記録を同じ瞬間にいくつも書くと間引かれるので、1回の受け取りで同じ区分けは1件だけ書く
+function evPoint(env, type, key, dev, src, x1, x2, n, more) {
   if (!env.EV) return;
-  try { env.EV.writeDataPoint({ indexes: [type], blobs: [type, String(key), dev, src, String(x1 || ''), String(x2 || '')], doubles: [n] }); } catch (_) {}
+  try { env.EV.writeDataPoint({ indexes: [type + ':' + key], blobs: [type, String(key), dev, src, String(x1 || ''), String(x2 || '')], doubles: [n, ...(more || [])] }); } catch (_) {}
 }
 const srcOf = h => !h ? 'direct' : /freegame-mugen\.jp$/.test(h) ? 'mugen' : /(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h) ? 'x' : /(google|bing|yahoo|duckduckgo)\./.test(h) ? 'search' : 'other';
 // ---------- ボタンが押された回数 ----------
