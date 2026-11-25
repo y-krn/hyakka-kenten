@@ -324,14 +324,15 @@ async function ogPending(env, req) {
 // その日（日本時間）の王座戦のまとめ。夜のまとめ通知（GitHub Actions）が使う。名前などは出さない
 async function throneDay(env, req) {
   const d0 = new URL(req.url).searchParams.get('d') || '', day = /^\d{4}-\d\d-\d\d$/.test(d0) ? d0 : new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  const [a, b, c, w] = await env.DB.batch([
+  const [a, b, c, w, k] = await env.DB.batch([
     env.DB.prepare("SELECT COUNT(*) AS n FROM reigns WHERE date(started_at, '+9 hours') = ? AND holder <> '初代'").bind(day),
     env.DB.prepare("SELECT COUNT(*) AS n FROM challenges WHERE date(at, '+9 hours') = ? AND result <> 'late'").bind(day),
     env.DB.prepare("SELECT display, defenses FROM reigns WHERE date(started_at, '+9 hours') = ? OR date(ended_at, '+9 hours') = ? OR (ended_at IS NULL AND date(started_at, '+9 hours') <= ?) ORDER BY defenses DESC, id LIMIT 1").bind(day, day, day),
-    env.DB.prepare("SELECT id FROM challenges WHERE result = 'win' ORDER BY id DESC LIMIT 1")]);
+    env.DB.prepare("SELECT id FROM challenges WHERE result = 'win' ORDER BY id DESC LIMIT 1"),
+    env.DB.prepare("SELECT n FROM stats WHERE k = 'cleanup_at'")]);
   const cur = await current(env);
   return json(env, req, { day, changes: a.results[0].n, challenges: b.results[0].n, best: c.results[0] || null, lastWin: w.results[0] ? w.results[0].id : null,
-    champ: { reignNo: cur.id, display: cur.display, defenses: cur.defenses } });
+    champ: { reignNo: cur.id, display: cur.display, defenses: cur.defenses }, cleanupAt: k.results[0] ? k.results[0].n : null });
 }
 async function ogPut(env, req, id) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
@@ -578,8 +579,9 @@ async function cleanup(env) {
     env.DB.prepare("UPDATE challenges SET iphash = '', client = NULL WHERE at < ? AND (iphash <> '' OR client IS NOT NULL)").bind(ago(25)),
     env.DB.prepare("UPDATE reports SET iphash = '', client = NULL WHERE at < ? AND (iphash <> '' OR client IS NOT NULL)").bind(ago(24 * 30)),
     env.DB.prepare("DELETE FROM reports WHERE status <> 'new' AND at < ?").bind(ago(24 * 365)),
+    env.DB.prepare("INSERT INTO stats (k, n) VALUES ('cleanup_at', ?) ON CONFLICT(k) DO UPDATE SET n = excluded.n").bind(Date.now()),   // 最後に動いた時刻（止まっていないかを夜のまとめ通知で見る）
   ]);
-  return r.map(x => x.meta && x.meta.changes || 0);
+  return r.slice(0, 4).map(x => x.meta && x.meta.changes || 0);
 }
 export default {
   async scheduled(ev, env, ctx) { ctx.waitUntil(cleanup(env)); },   // 1時間ごとの片付け（wrangler.toml の triggers）
