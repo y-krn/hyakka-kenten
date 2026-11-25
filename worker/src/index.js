@@ -97,8 +97,12 @@ async function throneBody(env) {
 
 // 王者の殿堂：全部の王者（殿堂入り・最長在位はページ側で計算）と、集計が要る記録。60秒だけ使い回す（挑戦があったら捨てる）
 const HALL_KEY = 'https://hyakkakenten.com/__cache/hall';
+// 殿堂の中身が変わるのは、王座戦の挑戦があったときと、名前を非表示にしたときだけ。
+// そこで「いちばん新しい挑戦の番号」と「非表示にした回数」を鍵に入れて、変わるまで同じものを使い回す（どのデータセンターでも、変われば鍵が変わる）
 async function hall(env, req, ctx) {
-  try { const hit = await caches.default.match(HALL_KEY); if (hit) return json(env, req, await hit.json()); } catch (_) {}
+  let key = HALL_KEY;
+  try { const v = await env.DB.prepare("SELECT (SELECT MAX(id) FROM challenges) AS c, (SELECT n FROM stats WHERE k = 'hall_v') AS h").first(); key = HALL_KEY + '/' + (v.c || 0) + '-' + (v.h || 0); } catch (_) {}
+  try { const hit = await caches.default.match(key); if (hit) return json(env, req, { ...(await hit.json()), now: now() }); } catch (_) {}
   await current(env);
   const [reigns, killer, most] = await env.DB.batch([
     env.DB.prepare("SELECT id, display, title, holder, started_at, ended_at, defenses, ended_by, (SELECT c.id FROM challenges c WHERE c.result = 'win' AND c.title = reigns.title AND c.reign_id < reigns.id ORDER BY c.id DESC LIMIT 1) AS cid, (SELECT c.id FROM challenges c WHERE c.reign_id = reigns.id AND c.result = 'win' ORDER BY c.id LIMIT 1) AS lostcid FROM reigns ORDER BY id DESC LIMIT 2000"),
@@ -106,7 +110,7 @@ async function hall(env, req, ctx) {
     env.DB.prepare("SELECT r.id, r.display, r.title, COUNT(*) AS n FROM challenges c JOIN reigns r ON r.id = c.reign_id WHERE c.result != 'late' GROUP BY r.id ORDER BY n DESC, r.id ASC LIMIT 3"),
   ]);
   const body = { reigns: reigns.results, killer: killer.results, most: most.results, now: now() };
-  try { const put = caches.default.put(HALL_KEY, new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' } })); if (ctx) ctx.waitUntil(put); } catch (_) {}
+  try { const put = caches.default.put(key, new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' } })); if (ctx) ctx.waitUntil(put); } catch (_) {}   // 1日たてば作り直す（在位中の時間は now で毎回計算する）
   return json(env, req, body);
 }
 
@@ -175,7 +179,7 @@ async function challenge(env, req, ctx) {
     const df = await env.DB.prepare('UPDATE reigns SET defenses = defenses + 1 WHERE id = ? AND ended_at IS NULL').bind(c.id).run();
     if (!df.meta.changes) gone = true;   // 防衛には数えない（記録は「元王者に負けた・引き分けた」として残る）
   }
-  try { await caches.default.delete(TH_KEY); await caches.default.delete(HALL_KEY); } catch (_) {}   // 使い回している王座戦の情報を捨てる（すぐ新しい結果が見えるように）
+  try { await caches.default.delete(TH_KEY); } catch (_) {}   // 王座戦の情報の使い回しを捨てる（殿堂は、新しい挑戦の番号で鍵が変わるので消さなくてよい）   // 使い回している王座戦の情報を捨てる（すぐ新しい結果が見えるように）
   if (ctx) ctx.waitUntil(askImage(env, { id: ins.meta.last_row_id }));   // 共有画像を作ってもらう（失敗しても挑戦には影響しない。1時間ごとの定期実行でも拾う）
   const after = await env.DB.prepare('SELECT defenses FROM reigns WHERE id = ?').bind(c.id).first();   // 同時の挑戦があっても、実際の防衛回数を返す
   let nowC = null;   // ひと足遅れ・王者がもう倒されていたとき：いまの王者を知らせる（そのまま挑み直せるように）
@@ -378,6 +382,7 @@ async function hide(env, req) {
   const b = await req.json();
   if (b.challenge) await env.DB.prepare("UPDATE challenges SET name = '（非表示）' WHERE id = ?").bind(b.challenge).run();
   if (b.reign) await env.DB.prepare("UPDATE reigns SET holder = '（非表示）' WHERE id = ?").bind(b.reign).run();
+  await env.DB.prepare("INSERT INTO stats (k, n) VALUES ('hall_v', 1) ON CONFLICT(k) DO UPDATE SET n = n + 1").run();   // 王者の殿堂の使い回しを作り直させる
   return json(env, req, { ok: true });
 }
 
