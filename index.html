@@ -643,7 +643,7 @@ function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" 
 const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
 async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=fetch('data/a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
-    const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
+    const ds=new DecompressionStream('gzip'); return JSON.parse((await new Response(r.body.pipeThrough(ds)).text()).replace(/"所属先：/g,'"〜の一部：')); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
 const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）
 function redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }
 async function loadTitle(t,rd){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1; if(TIX[t]!==undefined) return TIX[t];
@@ -663,7 +663,7 @@ const QN=i=>+String(F[i][2]).slice(1), lt=(i,j)=>QN(i)<QN(j)||(QN(i)===QN(j)&&i<
 const SUMMON_LINE={
   '本家召喚':'{A}の【{N}】！ 名前の由来、{F}が一瞬だけ駆けつけた。',
   '生みの親召喚':'{A}の【{N}】！ 生みの親の{F}が一瞬だけ駆けつけた。',
-  '親分召喚':'{A}の【{N}】！ 所属先の{F}が丸ごと駆けつけた。',
+  '親分召喚':'{A}の【{N}】！ {F}が丸ごと駆けつけた。',
   'シリーズ召喚':'{A}の【{N}】！ シリーズの{F}が一斉に駆けつけた。',
   '両陣営召喚':'{A}の【{N}】！ 参戦者の{F}が全員駆けつけた。……どちらの味方かは誰にも分からない。'};
 /* ---------- 技の候補と、相手に合わせた選択 ---------- */
@@ -887,10 +887,10 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
       if(kind==='SLOW'){ y.g-=Math.round(10*T); d=Math.round(b0*0.7); line=tp||pickT(['{A}の【{N}】。{F}の土地に{B}が迷い込み、行動が遅れる。そこへ一撃。','{A}、【{N}】。{F}の広さに{B}が立ち往生したところを殴る。'],k); }
       if(kind==='BIND'){ y.g-=Math.round(12*T); d=Math.round(b0*0.5); line=tp||'{A}の【{N}】！ {F}で{B}をぐるりと囲んで締め上げる。{B}の動きが鈍った。'; }
       if(kind==='HASTE'){ x.g+=Math.round(10*T); d=Math.round(b0*0.8); line=tp||'{A}、【{N}】。{F}で駆け抜けながら{B}に体当たり。勢いで次の行動が早まる。'; }
-      if(kind==='SUMMON'){ d=Math.round(b0*1.5)+5; const tg=Array.isArray(mv[7])?mv[7]:[]; summoned.push(...tg); line=tp||SUMMON_LINE[mv[1]]||'{A}の【{N}】！ {F}が駆けつけた。';
+      if(kind==='SUMMON'){ d=Math.round(b0*1.5)+5; const tg=Array.isArray(mv[7])?mv[7]:[]; summoned.push(...tg); const art=mv[1]==='親分召喚'&&/^アーティスト：/.test(mv[3]||''); line=tp||(art?'{A}の【{N}】！ {F}本人が駆けつけた。':SUMMON_LINE[mv[1]])||'{A}の【{N}】！ {F}が駆けつけた。';
         const yq=F[y.i][2];
         if(tg.some(t=>t[2]===yq)) line+='……が、呼ばれたのは対戦相手の{B}本人だった。気まずい。';
-        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+='……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
+        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+=art?'……が、{B}も{F}の作品なので、半分くらいは相手側に立っている。':'……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
       if(kind==='NAME'){ const ma=F[x.i][4], mb=F[y.i][4]; const r=Math.max(0.5,Math.min(2,ma/Math.max(1,mb))); d=Math.round(b0*r);
         line=pickT(['{A}の【{N}】！ '+(ma<=2?'たった':'')+ma+'音の名前を全力で叩きつける','{A}の【{N}】！ 名前を一音ずつ区切って、'+(ma<=2?'たった':'')+ma+'音ぶん叩きつける','{A}の【{N}】！ 自分の名前を'+(ma<=2?'たった':'')+ma+'音、大声で名乗りながら殴る'],k+'|nm')+(r>=1?'。':'が、'+mb+'音の{B}には効きが薄い。'); }
       if(kind==='SENIORITY'){
@@ -1258,7 +1258,7 @@ async function rnd(ex,pop){ for(let k=0;k<12;k++){ let t;
     const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) return i; }
   return ex.includes(0)?1:0; }
 // 情報ボックス風：「所在地：静岡県」を、項目名と中身の2列に分ける
-const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?'<span class="ik">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class="ik">'+esc(t)+'</span>'; };
+const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?'<span class="ik">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class="ik">'+esc(t)+'</span>'; };
 function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="fams" data-fi="${i}"></div>
@@ -1330,7 +1330,7 @@ function startBattle(pair){
       if(/^標高|^高さ/.test(d)&&/m$/.test(us)){ const ref=v>=1000||(v>=100&&me==='東京タワー')?(me==='東京スカイツリー'?['東京タワー（333m）',333]:['東京スカイツリー（634m）',634]):v>=100?['東京タワー（333m）',333]:['大人の身長（約1.7m）',1.7]; out.push(fnTimes(v,ref[1],ref[0])+'。'); }
       else if(/^面積/.test(d)&&/km²/.test(us)) out.push(v>=10000?fnTimes(v,2194,'東京都（約2,194km²）')+'。':'東京ドーム（約0.047km²）'+fnFmt(v/0.0467)+'個ぶん。');
       else if(/^人口/.test(d)) out.push(v>=55000?'満員の東京ドーム（約5万5千人）'+fnFmt(v/55000)+'杯ぶん。':'満員の東京ドーム（約5万5千人）の約'+fnFmt(v/55000*100)+'%。');
-      else if(/^体重/.test(d)){ const kg=/t/.test(mv[2])?v*1000:/kg/.test(mv[2])?v:v/1000; out.push('2Lのペットボトル約'+fnFmt(kg/2)+'本ぶん。'); }
+      else if(/^(体重|質量)/.test(d)){ const kg=/t/.test(mv[2])?v*1000:/kg/.test(mv[2])?v:v/1000; out.push('2Lのペットボトル約'+fnFmt(kg/2)+'本ぶん。'); }
       else if(nm==='長文で殴る') out.push('文庫本にすると約'+fnFmt(v/600)+'ページ（1ページ約600字）。');
       else if(nm==='注目の視線'){ const day=v/365; out.push('1日あたり約'+fnFmt(day)+'回。'+(day>=24?'約'+fnFmt(86400/day)+'秒に1回、誰かが開いている。':'')); }
       else if(nm==='年功序列'&&/年/.test(mv[2])){ const y=new Date().getFullYear()-v; if(y>0) out.push('いまから約'+fnFmt(y)+'年前。'); }
@@ -1459,7 +1459,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
     // 2. それぞれの記事の、対象そのものについての事実（技の候補全体から、中身の分かるものを順番に）
     const pri=m=>{ const t=m[3]||''; if(META_MV.has(m[1])&&m[1]!=='カテゴリ包囲') return 99; if(/^\S*\d[\d,]*件$/.test(t)) return 99;   // 「登録作品13件」のように数だけのものは出さない
       if(/^職業：/.test(t)) return 1; if(/^(生まれた場所|所在地|活動地)：/.test(t)) return 2; if(/^受賞：/.test(t)) return 3; if(/^(主要作品|代表作)/.test(t)) return 4;
-      if(/^所属/.test(t)) return 5; if(/^(生みの親|名前の由来|着想を得たもの|元ネタ)：/.test(t)) return 6; if(PLAIN.some(p=>p[1]===m[1])) return 7; if(/^構成要素：/.test(t)) return 8;
+      if(/^(所属|〜の一部|アーティスト：)/.test(t)) return 5; if(/^(生みの親|名前の由来|着想を得たもの|元ネタ)：/.test(t)) return 6; if(PLAIN.some(p=>p[1]===m[1])) return 7; if(/^構成要素：/.test(t)) return 8;
       if(m[1]==='カテゴリ包囲') return /（.+など）/.test(t)?9:99; if(m[0]==='SENIORITY') return 10; if(/^Wikidataでの分類：ヒト$/.test(t)) return 99; if(m[0]==='NAME'||/：.*対/.test(t)) return 99; return 8.5; };
     const prof=i=>(POOL[i]||[]).map(m=>({m,p:pri(m)})).filter(o=>o.p<99).sort((x,y)=>x.p-y.p).map(o=>{ const t=o.m[3];
       if(o.m[1]==='カテゴリ包囲'){ const c=t.match(/（(.+?)など）/); return c?'カテゴリ：'+c[1]:''; }
@@ -1999,6 +1999,11 @@ async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; if(TH
   const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）|名無しの挑戦者)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':''):($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
+// 重さの呼び方：生き物とキャラクターは「体重」、それ以外は「質量」
+const LIVE_RE=/^ヒト$|^架空の人$|タクソン|^犬種$|^猫種$|^(馬|ヒツジ|牛)の品種$|^イヌ$|動物の個体|宇宙犬|サーカスの象|ポケモン|ウルトラビースト|ヒスイのすがた|キャラクター|登場人物|ゆるキャラ|^架空の人型|ミュータント|ウーキー|サーヴァント|ホムンクルス|プロレス/;
+const massFix=i=>{ if(!POOL[i]||(CL[i]&&LIVE_RE.test(CL[i][1]||''))) return; POOL[i]=POOL[i].map(m=>m&&m[1]==='のしかかり'&&/^体重/.test(String(m[3]||''))?m.map((x,k)=>(k===2||k===3)&&typeof x==='string'?x.replace(/^体重/,'質量'):x):m); };
+for(let i=0;i<F.length;i++) massFix(i);
+{ const reg0=register; register=function(rec){ const i=reg0(rec); if(i>=0) massFix(i); return i; }; }
 let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;   // TH_HOLD：試合のあとに出す結果 {msg, at}
 function thTick(force){ if(document.hidden||(!TH_SEEN&&!force)||Date.now()-TH_ACT>600000) return; if(!force&&Date.now()-TH_LAST<120000) return; TH_LAST=Date.now(); refreshThrone(); }
 ['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{ const idle=Date.now()-TH_ACT>600000; TH_ACT=Date.now(); if(idle) thTick(true); },{passive:true}));

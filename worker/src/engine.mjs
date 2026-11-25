@@ -49,7 +49,7 @@ function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" 
 const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
 async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
-    const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
+    const ds=new DecompressionStream('gzip'); return JSON.parse((await new Response(r.body.pipeThrough(ds)).text()).replace(/"所属先：/g,'"〜の一部：')); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
 const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）
 function redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }
 async function loadTitle(t,rd){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1; if(TIX[t]!==undefined) return TIX[t];
@@ -69,7 +69,7 @@ const QN=i=>+String(F[i][2]).slice(1), lt=(i,j)=>QN(i)<QN(j)||(QN(i)===QN(j)&&i<
 const SUMMON_LINE={
   '本家召喚':'{A}の【{N}】！ 名前の由来、{F}が一瞬だけ駆けつけた。',
   '生みの親召喚':'{A}の【{N}】！ 生みの親の{F}が一瞬だけ駆けつけた。',
-  '親分召喚':'{A}の【{N}】！ 所属先の{F}が丸ごと駆けつけた。',
+  '親分召喚':'{A}の【{N}】！ {F}が丸ごと駆けつけた。',
   'シリーズ召喚':'{A}の【{N}】！ シリーズの{F}が一斉に駆けつけた。',
   '両陣営召喚':'{A}の【{N}】！ 参戦者の{F}が全員駆けつけた。……どちらの味方かは誰にも分からない。'};
 /* ---------- 技の候補と、相手に合わせた選択 ---------- */
@@ -293,10 +293,10 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
       if(kind==='SLOW'){ y.g-=Math.round(10*T); d=Math.round(b0*0.7); line=tp||pickT(['{A}の【{N}】。{F}の土地に{B}が迷い込み、行動が遅れる。そこへ一撃。','{A}、【{N}】。{F}の広さに{B}が立ち往生したところを殴る。'],k); }
       if(kind==='BIND'){ y.g-=Math.round(12*T); d=Math.round(b0*0.5); line=tp||'{A}の【{N}】！ {F}で{B}をぐるりと囲んで締め上げる。{B}の動きが鈍った。'; }
       if(kind==='HASTE'){ x.g+=Math.round(10*T); d=Math.round(b0*0.8); line=tp||'{A}、【{N}】。{F}で駆け抜けながら{B}に体当たり。勢いで次の行動が早まる。'; }
-      if(kind==='SUMMON'){ d=Math.round(b0*1.5)+5; const tg=Array.isArray(mv[7])?mv[7]:[]; summoned.push(...tg); line=tp||SUMMON_LINE[mv[1]]||'{A}の【{N}】！ {F}が駆けつけた。';
+      if(kind==='SUMMON'){ d=Math.round(b0*1.5)+5; const tg=Array.isArray(mv[7])?mv[7]:[]; summoned.push(...tg); const art=mv[1]==='親分召喚'&&/^アーティスト：/.test(mv[3]||''); line=tp||(art?'{A}の【{N}】！ {F}本人が駆けつけた。':SUMMON_LINE[mv[1]])||'{A}の【{N}】！ {F}が駆けつけた。';
         const yq=F[y.i][2];
         if(tg.some(t=>t[2]===yq)) line+='……が、呼ばれたのは対戦相手の{B}本人だった。気まずい。';
-        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+='……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
+        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+=art?'……が、{B}も{F}の作品なので、半分くらいは相手側に立っている。':'……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
       if(kind==='NAME'){ const ma=F[x.i][4], mb=F[y.i][4]; const r=Math.max(0.5,Math.min(2,ma/Math.max(1,mb))); d=Math.round(b0*r);
         line=pickT(['{A}の【{N}】！ '+(ma<=2?'たった':'')+ma+'音の名前を全力で叩きつける','{A}の【{N}】！ 名前を一音ずつ区切って、'+(ma<=2?'たった':'')+ma+'音ぶん叩きつける','{A}の【{N}】！ 自分の名前を'+(ma<=2?'たった':'')+ma+'音、大声で名乗りながら殴る'],k+'|nm')+(r>=1?'。':'が、'+mb+'音の{B}には効きが薄い。'); }
       if(kind==='SENIORITY'){

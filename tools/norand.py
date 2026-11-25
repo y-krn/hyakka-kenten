@@ -28,6 +28,7 @@ SPLIT = re.compile(r'^(.+?)の(ディスコグラフィー?|作品|作品一覧|
 #   （2026-11-23：「攻殻機動隊 S.A.C.シリーズの登場人物」が王座を取った。親の記事がない一覧はすり抜けていたので、親の有無は問わないことにした）
 #   「〜リスト」で終わる記事は人物・用語も多い（フランツ・リスト、連結リスト など）ので、型では外さず、exclude.json に手で足す
 LIST = re.compile(r'一覧(?: \(.+\))?$')
+DISCO = re.compile(r'.+[のー・ ](?:[^の・ ]{1,6}盤)?ディスコグラフィー?$')   # 「◯◯・ディスコグラフィー」「◯◯の国内盤ディスコグラフィー」など（言葉そのものの記事「ディスコグラフィ」は残す）
 LISTC = {'年表', '架空の年表'}
 WORKC = re.compile(r'映画|小説|漫画|楽曲|シングル|アルバム|著作|ゲーム|テレビ|ドラマ|書籍|戯曲|アニメ|番組|絵画|作品$|文学|曲$|写真|彫刻|ラジオ|ウェブシリーズ|フレスコ|トリプティック|定期刊行物')
 files = sorted(glob.glob(os.path.join(D, 'a', '*.json.gz')))
@@ -38,7 +39,7 @@ for f in files:
     for t, r in json.loads(gzip.open(f).read()).items():
         if t in ALLOW: continue
         g = r.get('gen', {})
-        if SPLIT.match(t) or ((LIST.search(t) or (g.get('c') or '') in LISTC) and not WORKC.search(g.get('c') or '')): split.append(t); continue
+        if SPLIT.match(t) or DISCO.match(t) or ((LIST.search(t) or (g.get('c') or '') in LISTC) and not WORKC.search(g.get('c') or '')): split.append(t); continue
         meta = [g.get('c') or ''] + list(g.get('cc', [])) + [x for e in r.get('ext', []) if e[0] != '_m' and isinstance(e[2], list) for x in e[2] if isinstance(x, str)]
         sig = {m for m in meta if META.search(m) and not IGNORE.search(m)}
         # 人物は、手がかりが2つ以上あるときだけ（過去に一度だけ関わった俳優などを外さないため）
