@@ -2821,6 +2821,15 @@ try{ if(!sessionStorage.getItem('hk-src')){ let h=''; try{ h=document.referrer?n
   sessionStorage.setItem('hk-src',!h?'direct':/freegame-mugen\\.jp$/.test(h)?'mugen':/(^|\\.)(t\\.co|x\\.com|twitter\\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\\./.test(h)?'search':'other'); } }catch(_){}
 const LAND=(()=>{""")
 
+# ---- 144. 「所属先」を「〜の一部」に変える（2026-11-25）
+#   元は Wikidata の「〜の一部である（part of）」。組織への所属に限らず、戦争の中の戦い・神話・法律の条文・百名山・株価指数の構成銘柄なども入るため
+#   記事データの文字（「所属先：〇〇」）は、読み込んだときに置き換える（事実の表・脚注・共有の文がまとめて変わる）
+repall("""return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k];""",
+       """return JSON.parse((await new Response(r.body.pipeThrough(ds)).text()).replace(/"所属先：/g,'"〜の一部：')); }).catch(e=>{ delete BUCKET[k];""")
+repall("""  '親分召喚':'{A}の【{N}】！ 所属先の{F}が丸ごと駆けつけた。',""",
+       """  '親分召喚':'{A}の【{N}】！ {F}が丸ごと駆けつけた。',""")
+repall("""      if(/^所属/.test(t)) return 5;""", """      if(/^(所属|〜の一部)/.test(t)) return 5;""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

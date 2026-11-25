@@ -49,7 +49,7 @@ function showSugg(inp,ul,list){ ul.innerHTML=list.map((t,i)=>`<li role="option" 
 const champTitle=()=>THRONE&&THRONE.champ?THRONE.champ.title:null;
 // 振り分けファイルは gzip のまま置いてあるので、ブラウザで展開して読む
 async function bucket(k){ if(!BUCKET[k]) BUCKET[k]=FETCH(DATA_BASE+'a/'+k+'.json.gz?v='+VER).then(async r=>{ if(!r.ok) throw new Error(r.status);
-    const ds=new DecompressionStream('gzip'); return JSON.parse(await new Response(r.body.pipeThrough(ds)).text()); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
+    const ds=new DecompressionStream('gzip'); return JSON.parse((await new Response(r.body.pipeThrough(ds)).text()).replace(/"所属先：/g,'"〜の一部：')); }).catch(e=>{ delete BUCKET[k]; throw e; }); return BUCKET[k]; }
 const REDIR={};   // 転送ページの名前 → 転送先の記事名（問い合わせた結果を覚えておく）
 function redirTo(t){ if(typeof document==='undefined') return Promise.resolve(null);   /* サーバーでは問い合わせない（ブラウザが正式な記事名で送ってくる） */ if(!(t in REDIR)) REDIR[t]=fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',format:'json',origin:'*',redirects:1,titles:t})).then(r=>r.json()).then(j=>{ const q=j.query||{}; const n=((q.normalized||[])[0]||{}).to||t; return ((q.redirects||[]).find(x=>x.from===n)||{}).to||(n!==t?n:null); }).catch(()=>null); return REDIR[t]; }
 async function loadTitle(t,rd){ t=String(t||'').trim(); await Promise.all([fixLoad(),t?fixAuto(t):0]); if(!t||EXCL.has(t)) return -1; if(TIX[t]!==undefined) return TIX[t];
@@ -69,7 +69,7 @@ const QN=i=>+String(F[i][2]).slice(1), lt=(i,j)=>QN(i)<QN(j)||(QN(i)===QN(j)&&i<
 const SUMMON_LINE={
   '本家召喚':'{A}の【{N}】！ 名前の由来、{F}が一瞬だけ駆けつけた。',
   '生みの親召喚':'{A}の【{N}】！ 生みの親の{F}が一瞬だけ駆けつけた。',
-  '親分召喚':'{A}の【{N}】！ 所属先の{F}が丸ごと駆けつけた。',
+  '親分召喚':'{A}の【{N}】！ {F}が丸ごと駆けつけた。',
   'シリーズ召喚':'{A}の【{N}】！ シリーズの{F}が一斉に駆けつけた。',
   '両陣営召喚':'{A}の【{N}】！ 参戦者の{F}が全員駆けつけた。……どちらの味方かは誰にも分からない。'};
 /* ---------- 技の候補と、相手に合わせた選択 ---------- */
