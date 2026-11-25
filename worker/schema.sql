@@ -51,3 +51,8 @@ CREATE TABLE IF NOT EXISTS visits (day TEXT NOT NULL, client TEXT NOT NULL, at T
 CREATE INDEX IF NOT EXISTS visits_at ON visits(at);
 -- 今日の一戦の共有画像（日付ごとに1枚。GitHub Actions が毎日0時すぎに作って預ける）
 CREATE TABLE IF NOT EXISTS today_og (day TEXT PRIMARY KEY, a TEXT NOT NULL, b TEXT NOT NULL, img BLOB NOT NULL, at TEXT NOT NULL);
+-- 遊ばれ方の日ごとの合計（誰のものかは持たない）。サーバーが受け取った時点で足す（src/index.js の bump）
+--   ev：visit 来訪（k＝new 初めて／d1 前日も／w 1週間以内／long 久しぶり、x＝入口）・ref 来た元のサイト（k＝サイト名）
+--       play 対戦（k＝t 今日の一戦／m 代表戦／f 図鑑から／d ダンジョン／free）・reach その日の節目（k＝1・2・4・10試合目）
+--   dev：m スマホ／d パソコン、src：来た元の種類（mugen・x・search・direct・other）
+CREATE TABLE IF NOT EXISTS daily_stats (day TEXT NOT NULL, ev TEXT NOT NULL, k TEXT NOT NULL, dev TEXT NOT NULL DEFAULT '', src TEXT NOT NULL DEFAULT '', x TEXT NOT NULL DEFAULT '', n INTEGER NOT NULL, PRIMARY KEY (day, ev, k, dev, src, x));
