@@ -13,6 +13,7 @@
 //   GET  /og/t/日付.jpg          … 今日の一戦の共有画像（毎日0時すぎに GitHub Actions が作る）
 //   PUT  /api/og/today/日付?a=&b= … 今日の一戦の共有画像を預ける（管理用）
 //   POST /api/admin/hide        … {id} 不適切な名前を非表示にする（ヘッダー Authorization: Bearer ADMIN_TOKEN）
+//   POST /api/admin/cleanup     … 1時間ごとの片付けを手で動かす（同じく ADMIN_TOKEN）
 //   GET  /sitemap.xml           … 検索エンジン向けの一覧（トップ・王座戦の試合の記録・仲間さがしの一門・県の応援の入口）。1日覚えておく
 //   GET  / （?c=番号 / ?a=記事&b=記事） … ゲームの画面。共有カード（OGP）の文字だけ、その試合用に書き換えて返す
 //   それ以外（data/ や画像）は静的ファイルとしてそのまま配る（Workerを通らないので無料枠を使わない）
@@ -216,20 +217,36 @@ async function plays(env, req) {
   try { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client, kt, km, kf, kd) VALUES (?,?,?,?,?,?,?,?)').bind(add, now(), ih, cl, K.t, K.m, K.f, K.d), st]); }
   catch (_) { try { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client, kt, km, kf) VALUES (?,?,?,?,?,?,?)').bind(add, now(), ih, cl, K.t, K.m, K.f), st]); }   // ダンジョンの列がまだないとき
   catch (_) { await env.DB.batch([env.DB.prepare('INSERT INTO plays (n, at, iphash, client) VALUES (?,?,?,?)').bind(add, now(), ih, cl), st]); } }   // 内訳の列がまだないとき
+  { const dev = body.mob ? 'm' : 'd', src = ['mugen', 'x', 'search', 'direct', 'other'].includes(body.s) ? body.s : 'other';
+    const rs = Array.isArray(body.rs) ? body.rs : [], L = [];
+    for (const [x, v] of [['t', K.t], ['m', K.m], ['f', K.f], ['d', K.d], ['free', left]]) if (v > 0) L.push(bump(env, 'play', x, dev, src, '', v));
+    for (const v of [1, 2, 4, 10]) if (rs.includes(v)) L.push(bump(env, 'reach', v, dev, src, '', 1));
+    await bumpAll(env, L); }
   return json(env, req, { ok: true, added: add });
 }
 
 // ページを開いたブラウザを数える。ブラウザごとの乱数番号を変換したもの（plays の client と同じ）で、同じ日の2回目からは数えない
 //   Cloudflare Web Analytics は iPhone の Safari などで数え漏れるので、ゲームの側でも数える。Cookie・個人を表す情報は使わない
+// ---------- 遊ばれ方の記録（日ごとの合計だけ） ----------
+// 誰の記録かを結び付けられる値（ブラウザの番号・IPアドレス）は付けず、受け取った時点で日ごとの合計（daily_stats）に足す
+//   ev：visit 来訪（k＝new 初めて／d1 前日も／w 1週間以内／long 久しぶり、x＝入口）・ref 来た元のサイト（k＝サイト名）
+//       play 対戦（k＝t 今日の一戦／m 代表戦／f 図鑑から／d ダンジョン／free）・reach その日の節目（k＝1・2・4・10試合目）
+//   dev：m スマホ／d パソコン、src：来た元の種類（mugen・x・search・direct・other）
+const jstDay = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+function bump(env, ev, k, dev, src, x, n) {
+  return env.DB.prepare('INSERT INTO daily_stats (day, ev, k, dev, src, x, n) VALUES (?,?,?,?,?,?,?) ON CONFLICT(day, ev, k, dev, src, x) DO UPDATE SET n = n + excluded.n')
+    .bind(jstDay(), ev, String(k).slice(0, 80), dev, src, x || '', n);
+}
+async function bumpAll(env, list) { if (list.length) { try { await env.DB.batch(list); } catch (_) {} } }   // 表がまだないときなどは数えずに進む
+const srcOf = h => !h ? 'direct' : /freegame-mugen\.jp$/.test(h) ? 'mugen' : /(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h) ? 'x' : /(google|bing|yahoo|duckduckgo)\./.test(h) ? 'search' : 'other';
 async function visit(env, req) {
+  // 1日1回、ブラウザが送ってくる。ブラウザの番号は受け取っても使わない（古いページから届く分）
   let body; try { body = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
-  if (!/^[a-z0-9]{16,40}$/.test(String(body.client || ''))) return json(env, req, { error: 'bad' }, 400);
-  const cl = await ipHash(env, { headers: { get: () => 'client:' + body.client } });
-  const ref = /^[a-z0-9.-]{1,80}$/.test(String(body.ref || '')) ? String(body.ref) : null;   // 来た元のサイトの名前だけ（URLの残りは受け取らない）
-  const day = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);   // 日本時間の日付
-  const land = ['top', 'today', 'pref', 'battle', 'c', 'hall', 'other'].includes(body.land) ? body.land : null;   // どこから入ったか
-  try { await env.DB.prepare('INSERT OR IGNORE INTO visits (day, client, at, ref, mob, fresh, land) VALUES (?,?,?,?,?,?,?)').bind(day, cl, now(), ref, body.mob ? 1 : 0, body.fresh ? 1 : 0, land).run(); }
-  catch (_) { await env.DB.prepare('INSERT OR IGNORE INTO visits (day, client, at, ref, mob, fresh) VALUES (?,?,?,?,?,?)').bind(day, cl, now(), ref, body.mob ? 1 : 0, body.fresh ? 1 : 0).run(); }   // land の列がまだないとき
+  const ref = /^[a-z0-9.-]{1,80}$/.test(String(body.ref || '')) ? String(body.ref) : '';   // 来た元のサイトの名前だけ（URLの残りは受け取らない）
+  const land = ['top', 'today', 'pref', 'battle', 'c', 'hall', 'other'].includes(body.land) ? body.land : 'other';   // どこから入ったか
+  const ret = ['new', 'd1', 'w', 'long'].includes(body.ret) ? body.ret : body.fresh ? 'new' : 'long';   // 初めて／前日も来た／1週間以内／久しぶり
+  const dev = body.mob ? 'm' : 'd', src = srcOf(ref);
+  await bumpAll(env, [bump(env, 'visit', ret, dev, src, land, 1), ...(ref ? [bump(env, 'ref', ref, dev, src, '', 1)] : [])]);
   return json(env, req, { ok: true });
 }
 
@@ -258,14 +275,15 @@ async function ogPending(env, req) {
 // その日（日本時間）の王座戦のまとめ。夜のまとめ通知（GitHub Actions）が使う。名前などは出さない
 async function throneDay(env, req) {
   const d0 = new URL(req.url).searchParams.get('d') || '', day = /^\d{4}-\d\d-\d\d$/.test(d0) ? d0 : new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  const [a, b, c, w] = await env.DB.batch([
+  const [a, b, c, w, k] = await env.DB.batch([
     env.DB.prepare("SELECT COUNT(*) AS n FROM reigns WHERE date(started_at, '+9 hours') = ? AND holder <> '初代'").bind(day),
     env.DB.prepare("SELECT COUNT(*) AS n FROM challenges WHERE date(at, '+9 hours') = ? AND result <> 'late'").bind(day),
     env.DB.prepare("SELECT display, defenses FROM reigns WHERE date(started_at, '+9 hours') = ? OR date(ended_at, '+9 hours') = ? OR (ended_at IS NULL AND date(started_at, '+9 hours') <= ?) ORDER BY defenses DESC, id LIMIT 1").bind(day, day, day),
-    env.DB.prepare("SELECT id FROM challenges WHERE result = 'win' ORDER BY id DESC LIMIT 1")]);
+    env.DB.prepare("SELECT id FROM challenges WHERE result = 'win' ORDER BY id DESC LIMIT 1"),
+    env.DB.prepare("SELECT n FROM stats WHERE k = 'cleanup_at'")]);
   const cur = await current(env);
   return json(env, req, { day, changes: a.results[0].n, challenges: b.results[0].n, best: c.results[0] || null, lastWin: w.results[0] ? w.results[0].id : null,
-    champ: { reignNo: cur.id, display: cur.display, defenses: cur.defenses } });
+    champ: { reignNo: cur.id, display: cur.display, defenses: cur.defenses }, cleanupAt: k.results[0] ? k.results[0].n : null });
 }
 async function ogPut(env, req, id) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
@@ -487,7 +505,24 @@ async function holds(env, req, ctx) {
   return json(env, req, body);
 }
 
+// ---------- 1時間ごとの片付け（要らなくなったものはすぐ消す） ----------
+//   ・対戦数の1件ずつの記録（10分間の回数の上限を数えるためだけのもの）：1時間で消す
+//   ・王座戦の挑戦に付けた、変換したIPとブラウザの番号：25時間で消す（10分・1日の挑戦回数の上限にだけ使う。記事・名前・結果・日時は残す）
+//   ・報告に付けた、変換したIPとブラウザの番号：30日で消す（同じ記事に違う人から報告が重なったかを数えるのに使う）
+//   ・報告そのもの：対応が終わってから1年で消す
+async function cleanup(env) {
+  const ago = h => new Date(Date.now() - h * 3600000).toISOString();
+  const r = await env.DB.batch([
+    env.DB.prepare('DELETE FROM plays WHERE at < ?').bind(ago(1)),
+    env.DB.prepare("UPDATE challenges SET iphash = '', client = NULL WHERE at < ? AND (iphash <> '' OR client IS NOT NULL)").bind(ago(25)),
+    env.DB.prepare("UPDATE reports SET iphash = '', client = NULL WHERE at < ? AND (iphash <> '' OR client IS NOT NULL)").bind(ago(24 * 30)),
+    env.DB.prepare("DELETE FROM reports WHERE status <> 'new' AND at < ?").bind(ago(24 * 365)),
+    env.DB.prepare("INSERT INTO stats (k, n) VALUES ('cleanup_at', ?) ON CONFLICT(k) DO UPDATE SET n = excluded.n").bind(Date.now()),   // 最後に動いた時刻（止まっていないかを夜のまとめ通知で見る）
+  ]);
+  return r.slice(0, 4).map(x => x.meta && x.meta.changes || 0);
+}
 export default {
+  async scheduled(ev, env, ctx) { ctx.waitUntil(cleanup(env)); },   // 1時間ごとの片付け（wrangler.toml の triggers）
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
     if (u.hostname === 'www.hyakkakenten.com') return Response.redirect(SITE + u.pathname + u.search, 301);
@@ -512,6 +547,7 @@ export default {
       if (u.pathname === '/api/report' && req.method === 'POST') return await report(env, req, ctx);
       if (u.pathname === '/api/holds' && req.method === 'GET') return await holds(env, req, ctx);
       if (u.pathname === '/api/admin/hide' && req.method === 'POST') return await hide(env, req);
+      if (u.pathname === '/api/admin/cleanup' && req.method === 'POST') { if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403); return json(env, req, { ok: true, changes: await cleanup(env) }); }   // 片付けを手で動かす（確かめる用）
       const m = u.pathname.match(/^\/api\/challenge\/(\d{1,9})$/); if (m && req.method === 'GET') return await getChallenge(env, req, +m[1]);
       return json(env, req, { error: 'not found' }, 404);
     } catch (e) {

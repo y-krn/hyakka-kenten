@@ -1,5 +1,6 @@
 // 週1回のアクセスレポート
 //   ゲームの記録（D1）と、Cloudflare Web Analytics の訪問数を、先週と比べてまとめる。
+//   遊ばれ方は日ごとの合計（daily_stats。誰のものかは持たない）から読む。実行結果のページは誰でも見られるので、報告のひとことと出典は出さない
 //   結果は GitHub Actions の実行結果ページ（Summary）に書き、ntfy に短い通知を送る。
 // 必要な環境変数: CF_TOKEN, CF_ACCOUNT, D1_ID
 // 任意: NTFY_TOPIC（通知先）, RUN_URL（通知をタップしたときに開くページ）, GITHUB_STEP_SUMMARY
@@ -25,15 +26,16 @@ async function q(sql, params = []) {
   return j.result[0].results;
 }
 const W = [iso(start), iso(end)], P = [iso(pstart), iso(start)];
+const jd = d => new Date(+d + JST).toISOString().slice(0, 10), DW = [jd(start), jd(end)], DP = [jd(pstart), jd(start)];   // 日ごとの合計は日本時間の日付
 const one = async (sql, p) => (await q(sql, p))[0] || {};
-const PLAYS = 'SELECT COALESCE(SUM(n),0) AS n, COUNT(DISTINCT COALESCE(client, iphash)) AS u FROM plays WHERE at >= ? AND at < ?';
-const CH = "SELECT COUNT(*) AS n, COUNT(DISTINCT COALESCE(client, iphash)) AS u, COALESCE(SUM(result = 'win'),0) AS w FROM challenges WHERE at >= ? AND at < ? AND result <> 'late'";
+const PLAYS = "SELECT COALESCE(SUM(CASE WHEN ev = 'play' THEN n END), 0) AS n, COALESCE(SUM(CASE WHEN ev = 'reach' AND k = '1' THEN n END), 0) AS u FROM daily_stats WHERE day >= ? AND day < ?";   // u：その日に1戦以上遊んだブラウザの、日ごとの延べ
+const CH = "SELECT COUNT(*) AS n, COALESCE(SUM(result = 'win'),0) AS w FROM challenges WHERE at >= ? AND at < ? AND result <> 'late'";
 const [pw, pp, cw, cp, champ, changes, topCh, daily, tot] = await Promise.all([
-  one(PLAYS, W), one(PLAYS, P), one(CH, W), one(CH, P),
+  one(PLAYS, DW), one(PLAYS, DP), one(CH, W), one(CH, P),
   one('SELECT id, display, holder, defenses, started_at FROM reigns WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1'),
   q('SELECT id, display, holder, ended_by FROM reigns WHERE started_at >= ? AND started_at < ? ORDER BY id', W),
   q("SELECT display, COUNT(*) AS n FROM challenges WHERE at >= ? AND at < ? AND result <> 'late' GROUP BY title ORDER BY n DESC, MIN(id) LIMIT 5", W),
-  q("SELECT date(datetime(at, '+9 hours')) AS d, SUM(n) AS n FROM plays WHERE at >= ? AND at < ? GROUP BY d ORDER BY d", W),
+  q("SELECT day AS d, SUM(n) AS n FROM daily_stats WHERE ev = 'play' AND day >= ? AND day < ? GROUP BY day ORDER BY day", DW),
   one("SELECT (SELECT n FROM stats WHERE k = 'plays') AS plays, (SELECT COUNT(*) FROM challenges WHERE result <> 'late') AS ch, (SELECT COUNT(*) FROM reigns) AS reigns"),
 ]);
 
@@ -74,28 +76,25 @@ if (rum) {
   list('端末', rum.dev, 'deviceType');
 } else L.push(`- 取得できませんでした：${rumNote}`, '  - APIトークンに「Account Analytics：読み取り」の権限があるか確認してください');
 L.push('', '## 遊ばれ方（ゲームの記録）');
-L.push(`- 対戦（王座戦以外）  ${n(pw.n)}戦 ${diff(pw.n, pp.n)}、遊んだブラウザ ${n(pw.u)} ${diff(pw.u, pp.u)}`);
-// 遊び方ごとの内訳（2026年11月5日から数えている。内訳の列がまだなければ出さない）
+L.push(`- 対戦（王座戦以外）  ${n(pw.n)}戦 ${diff(pw.n, pp.n)}、遊んだブラウザ（日ごとの延べ） ${n(pw.u)} ${diff(pw.u, pp.u)}`);
+// 遊び方ごとの内訳（日ごとの合計から）
 try {
-  const KQ = "SELECT COALESCE(SUM(kt),0) AS t, COALESCE(SUM(km),0) AS m, COALESCE(SUM(kf),0) AS f, COUNT(DISTINCT CASE WHEN kt > 0 THEN COALESCE(client, iphash) END) AS tu, COUNT(DISTINCT CASE WHEN km > 0 THEN COALESCE(client, iphash) END) AS mu, COUNT(DISTINCT CASE WHEN kf > 0 THEN COALESCE(client, iphash) END) AS fu FROM plays WHERE at >= ? AND at < ?";
-  const [kw, kp] = await Promise.all([one(KQ, W), one(KQ, P)]);
-  // 百科ダンジョン（2026年11月13日から数えている。列がまだなければ0）
-  const DQ = "SELECT COALESCE(SUM(kd),0) AS d, COUNT(DISTINCT CASE WHEN kd > 0 THEN COALESCE(client, iphash) END) AS du FROM plays WHERE at >= ? AND at < ?";
-  const [dw, dp] = await Promise.all([one(DQ, W), one(DQ, P)]).catch(() => [{ d: 0, du: 0 }, { d: 0, du: 0 }]);
-  const free = pw.n - kw.t - kw.m - kw.f - dw.d, freeP = pp.n - kp.t - kp.m - kp.f - dp.d;
-  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}（${n(kw.tu)}ブラウザ）`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}（${n(kw.mu)}ブラウザ）`, `  - 仲間さがしから ${n(kw.f)}戦 ${diff(kw.f, kp.f)}（${n(kw.fu)}ブラウザ）`, `  - 百科ダンジョン ${n(dw.d)}戦 ${diff(dw.d, dp.d)}（${n(dw.du)}ブラウザ）`, `  - 自由対戦 ${n(free)}戦 ${diff(free, freeP)}`);
-  if (start < new Date('2026-11-12T15:00:00Z')) L.push('  - ※内訳は11月5日夜から数え始めたので、この週と前の週の比べは参考になりません');
+  const KQ = "SELECT " + ['t', 'm', 'f', 'd'].map(x => `COALESCE(SUM(CASE WHEN k = '${x}' THEN n END), 0) AS ${x}`).join(', ') + " FROM daily_stats WHERE ev = 'play' AND day >= ? AND day < ?";
+  const [kw, kp] = await Promise.all([one(KQ, DW), one(KQ, DP)]);
+  L.push(`  - 今日の一戦 ${n(kw.t)}戦 ${diff(kw.t, kp.t)}`, `  - あなたの代表戦 ${n(kw.m)}戦 ${diff(kw.m, kp.m)}`, `  - 仲間さがしから ${n(kw.f)}戦 ${diff(kw.f, kp.f)}`, `  - 百科ダンジョン ${n(kw.d)}戦 ${diff(kw.d, kp.d)}`,
+    `  - 自由対戦 ${n(pw.n - kw.t - kw.m - kw.f - kw.d)}戦 ${diff(pw.n - kw.t - kw.m - kw.f - kw.d, pp.n - kp.t - kp.m - kp.f - kp.d)}`);
   globalThis.KW = kw;
 } catch (_) {}
-// ---------- 開いた人から遊んだ人まで（11月16日から数えている。表がまだなければ出さない） ----------
+// ---------- 開いた人から遊んだ人まで（日ごとの合計から。同じ人が2日来れば2と数える） ----------
 try {
-  const VQ = "SELECT COUNT(DISTINCT client) AS v, COUNT(DISTINCT CASE WHEN fresh = 1 THEN client END) AS nw, COUNT(DISTINCT CASE WHEN mob = 1 THEN client END) AS mb FROM visits WHERE at >= ? AND at < ?";
-  const PL = "SELECT COUNT(*) AS p1, COALESCE(SUM(s >= 2), 0) AS p2, COALESCE(SUM(s >= 5), 0) AS p5 FROM (SELECT v.client, COALESCE((SELECT SUM(n) FROM plays p WHERE p.client = v.client AND p.at >= ? AND p.at < ?), 0) AS s FROM (SELECT DISTINCT client FROM visits WHERE at >= ? AND at < ?) v) WHERE s >= 1";
-  const [vw, vp, fw, refs] = await Promise.all([one(VQ, W), one(VQ, P), one(PL, [...W, ...W]),
-    q("SELECT ref, COUNT(DISTINCT client) AS u FROM visits WHERE at >= ? AND at < ? AND ref IS NOT NULL GROUP BY ref ORDER BY u DESC LIMIT 6", W)]);
+  const VQ = "SELECT COALESCE(SUM(n), 0) AS v, COALESCE(SUM(CASE WHEN k = 'new' THEN n END), 0) AS nw, COALESCE(SUM(CASE WHEN k IN ('d1', 'w') THEN n END), 0) AS rt, COALESCE(SUM(CASE WHEN dev = 'm' THEN n END), 0) AS mb FROM daily_stats WHERE ev = 'visit' AND day >= ? AND day < ?";
+  const RQ = "SELECT " + ['1', '2', '4', '10'].map(x => `COALESCE(SUM(CASE WHEN k = '${x}' THEN n END), 0) AS p${x}`).join(', ') + " FROM daily_stats WHERE ev = 'reach' AND day >= ? AND day < ?";
+  const [vw, vp, fw, refs] = await Promise.all([one(VQ, DW), one(VQ, DP), one(RQ, DW),
+    q("SELECT k AS ref, SUM(n) AS u FROM daily_stats WHERE ev = 'ref' AND day >= ? AND day < ? GROUP BY k ORDER BY u DESC LIMIT 6", DW)]);
   if (vw.v) {
-    L.push(`- 開いたブラウザ ${n(vw.v)} ${diff(vw.v, vp.v)}（初めて ${n(vw.nw)}・スマホ ${n(vw.mb)}）`);
-    L.push(`  - そのうち1戦以上 ${n(fw.p1)}（${Math.round(fw.p1 / vw.v * 100)}%）、2戦以上 ${n(fw.p2)}（${Math.round(fw.p2 / vw.v * 100)}%）、5戦以上 ${n(fw.p5)}（${Math.round(fw.p5 / vw.v * 100)}%）`);
+    const pc = x => Math.round(x / vw.v * 100);
+    L.push(`- 開いたブラウザ（日ごとの延べ） ${n(vw.v)} ${diff(vw.v, vp.v)}（初めて ${n(vw.nw)}・1週間以内にまた来た ${n(vw.rt)}・スマホ ${n(vw.mb)}）`);
+    L.push(`  - その日に1戦以上 ${n(fw.p1)}（${pc(fw.p1)}%）、2戦以上 ${n(fw.p2)}（${pc(fw.p2)}%）、4戦以上 ${n(fw.p4)}（${pc(fw.p4)}%）、10戦以上 ${n(fw.p10)}（${pc(fw.p10)}%）`);
     L.push('  - 来た元：' + (refs.length ? refs.map(r => `${r.ref} ${n(r.u)}`).join('、') + '、ほかは直接・不明' : '直接・不明のみ'));
   }
 } catch (_) {}
@@ -110,7 +109,7 @@ try {
     L.push('  - よく応援された県：' + top.map(r => `${r.pref}（応援${n(r.pb)}・共有${n(r.sh)}・来た${n(r.i)}）`).join('、'));
   }
 } catch (_) {}
-L.push(`- 王座戦の挑戦 ${n(cw.n)}回 ${diff(cw.n, cp.n)}、挑んだブラウザ ${n(cw.u)}、王座奪取 ${n(cw.w)}回`);
+L.push(`- 王座戦の挑戦 ${n(cw.n)}回 ${diff(cw.n, cp.n)}、王座奪取 ${n(cw.w)}回`);
 if (daily.length) L.push('- 日別の対戦（王座戦以外）：' + daily.map(r => `${+r.d.slice(5, 7)}/${+r.d.slice(8)} ${n(r.n)}`).join('、'));
 if (topCh.length) L.push('- よく挑まれた記事：' + topCh.map(r => `${r.display} ${r.n}回`).join('、'));
 L.push('', '## 王座');
@@ -128,10 +127,10 @@ if (reps && reps.length) {
   for (const r of reps) {
     const who = r.target === 'text' ? `実況の文面（${r.a} 対 ${r.b}）` : r.title || r.a;
     const ppl = r.people > 1 ? `（${r.people}人）` : '';
-    if (r.kind === 'num') L.push(`- 数字：${who}｜${r.fk || '—'}｜${r.fv || '—'} → ${r.fix || '（正しい値の記入なし）'}${ppl}${r.url ? ' 出典：' + r.url : ''}${r.text ? ' ひとこと：' + r.text : ''}`);
-    else L.push(`- 内容：${who}｜${RS[r.reason] || 'その他'}${ppl}${r.people >= 2 && r.target !== 'text' ? '｜一時的に外し中' : ''}${r.text ? ' ひとこと：' + r.text : ''}`);
+    if (r.kind === 'num') L.push(`- 数字：${who}｜${r.fk || '—'}｜${r.fv || '—'} → ${r.fix || '（正しい値の記入なし）'}${ppl}${r.url ? '｜出典あり' : ''}${r.text ? '｜ひとことあり' : ''}`);
+    else L.push(`- 内容：${who}｜${RS[r.reason] || 'その他'}${ppl}${r.people >= 2 && r.target !== 'text' ? '｜一時的に外し中' : ''}${r.text ? '｜ひとことあり' : ''}`);
   }
-  L.push('', '直すときは「報告を反映して」と頼めば、出典を確かめて訂正表（data/fix.json）に足します。問題がなかったものは status を ok に');
+  L.push('', '出典・ひとことは、Cloudflare の管理画面の D1（hyakka-kenten）のコンソールで見られます（ここは誰でも見られるので出しません）。', '直すときは「報告を反映して」と頼めば、出典を確かめて訂正表（data/fix.json）に足します。問題がなかったものは status を ok に');
 }
 L.push('', `累計：対戦（王座戦以外） ${n(tot.plays)}戦・王座戦 ${n(tot.ch)}回・歴代王者 ${n(tot.reigns)}代`);
 const md_ = L.join('\n');

@@ -2619,6 +2619,30 @@ repall("  if(decW.some(d=>d.who===-1)) lines.push('<b>因縁</b>：初撃の1.5�
 repall("${an.type==='kurabe'?'':lines.length?", "${an.type==='kurabe'||recMis?'':lines.length?")
 repall("の勝ちとして扱われていますが、いまの計算で再生すると結果が異なります。</div>", "の勝ちとして扱われていますが、いまの計算で再生すると結果が異なるため、決め手は出していません。</div>")
 
+# ---- 141. フッターに「データの扱い」のページ（privacy.html）へのリンクを足す（2026-11-24）
+repall("""<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a></span>""",
+       """<span class="fsns">公式X：<a href="https://x.com/hyakkakenten" target="_blank" rel="noopener">@hyakkakenten</a>　<a href="privacy.html">データの扱い</a></span>""")
+
+# ---- 143. 来訪と対戦数を、ブラウザの番号なしで数える（必要な分だけ残す。2026-11-25）
+#   ・来訪：ブラウザの番号を送らず、「初めて／前日も来た／1週間以内／久しぶり」の印だけを送る（前回送った日から、ブラウザの中で判断する）
+#   ・対戦数：今日の1・2・4・10試合目に届いたら、その節目を送る（番号なしで「遊んだ人の数」と「何試合遊んだか」を数えるため）
+#     ブラウザの番号は、回数の上限を数えるためだけに今までどおり送る（サーバーは25時間で消す）
+repall("""    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({client:clientId(),ref,mob,fresh,land:LAND}),keepalive:true})""",
+       """    const prev=localStorage.getItem('hk-vday'), dd=prev?Math.round((Date.parse(day)-Date.parse(prev))/864e5):0, ret=fresh?'new':dd===1?'d1':dd>=2&&dd<=7?'w':'long';
+    fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({ref,mob,fresh,ret,land:LAND}),keepalive:true})""")
+repall("""  const body=JSON.stringify({n,k,client:clientId()}); let ok=false;""",
+       """  const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  let dn={d:today,n:0}; try{ const x=JSON.parse(localStorage.getItem('hk-dayn')||'null'); if(x&&x.d===today) dn=x; }catch(_){}
+  const rs=[1,2,4,10].filter(v=>dn.n<v&&dn.n+n>=v), mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches?1:0; }catch(_){ return 0; } })();
+  let src='other'; try{ src=sessionStorage.getItem('hk-src')||'other'; }catch(_){}
+  const body=JSON.stringify({n,k,client:clientId(),rs,mob,s:src}); let ok=false;""")
+repall("""  if(ok){ setPend(pend()-n);""",
+       """  if(ok){ try{ localStorage.setItem('hk-dayn',JSON.stringify({d:today,n:dn.n+n})); }catch(_){} setPend(pend()-n);""")
+repall("""const LAND=(()=>{""", """/* 来た元の種類（このタブで最初に開いたときの来た元。対戦数を送るときに使う。タブを閉じると消える） */
+try{ if(!sessionStorage.getItem('hk-src')){ let h=''; try{ h=document.referrer?new URL(document.referrer).hostname.toLowerCase():''; }catch(_){} if(h===location.hostname) h='';
+  sessionStorage.setItem('hk-src',!h?'direct':/freegame-mugen\\.jp$/.test(h)?'mugen':/(^|\\.)(t\\.co|x\\.com|twitter\\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\\./.test(h)?'search':'other'); } }catch(_){}
+const LAND=(()=>{""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

@@ -38,7 +38,7 @@ jobs:
       - name: 配るファイルを public/ に集める
         run: |
           mkdir -p public
-          cp ../index.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
+          cp ../index.html ../privacy.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
           cp -r ../data public/data
       - name: デプロイ
         run: npx wrangler deploy
