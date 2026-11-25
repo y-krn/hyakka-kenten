@@ -1,11 +1,19 @@
 // 王座戦の夜のまとめ通知（GitHub Actions から毎晩動かす）
 //   その日（日本時間）に王座の交代があったときだけ、ntfy に「今日の王座戦」を送る。タップするとXの投稿画面が開く
+//   あわせて、1時間ごとの片付けが止まっていないかも見る（止まっていたら別の通知を送る）
 //   環境変数: SITE（既定 https://hyakkakenten.com）, NTFY_TOPIC（なければ何もしない）, DAY（試すとき：YYYY-MM-DD）
 const SITE = process.env.SITE || 'https://hyakkakenten.com', NTFY = process.env.NTFY_TOPIC;
 const DISC = '※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません';
 const xlen = s => [...s].reduce((n, c) => n + (c.codePointAt(0) < 0x1100 ? 1 : 2), 0);   // Xの文字数の数え方
 const d = await fetch(SITE + '/api/throne/day' + (process.env.DAY ? '?d=' + process.env.DAY : '')).then(r => r.json());
 console.log(JSON.stringify(d));
+// 1時間ごとの片付け（古い番号・IPを消す処理）が止まっていないかを見る。3時間より前で止まっていたら、まとめとは別に知らせる
+if (typeof d.cleanupAt === 'number' && Date.now() - d.cleanupAt > 3 * 3600e3) {
+  const h = Math.round((Date.now() - d.cleanupAt) / 3600e3);
+  console.log(`片付けが${h}時間止まっています`);
+  if (NTFY) await fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    topic: NTFY, title: '百科拳典：片付けが止まっています', message: `古い番号・IPを消す1時間ごとの片付けが、${h}時間動いていません。Cloudflare の管理画面で、Worker の定期実行（Cron）を確かめてください。`, tags: ['warning'] }) });
+}
 if (!d.changes) { console.log('今日は王座の交代がありませんでした。送りません'); process.exit(0); }
 const md = (+d.day.slice(5, 7)) + '月' + (+d.day.slice(8, 10)) + '日';
 const head = d.changes >= 10 ? `王座が${d.changes}回入れ替わる大乱戦。` : d.changes >= 3 ? `王座が${d.changes}回入れ替わる混戦。` : `王座の交代は${d.changes}回。`;
