@@ -2838,6 +2838,21 @@ repall("""        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(
        """        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+=art?'……が、{B}も{F}の作品なので、半分くらいは相手側に立っている。':'……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }""")
 repall("""      if(/^(所属|〜の一部)/.test(t)) return 5;""", """      if(/^(所属|〜の一部|アーティスト：)/.test(t)) return 5;""")
 
+# ---- 146. 重さの呼び方を、ふつうの使い分けに合わせる（2026-11-25）
+#   人・動物・キャラクターは「体重」、それ以外（星・乗り物・機械・道具など）は「質量」。技【のしかかり】の言い回しはそのまま
+#   事実の表では、「高さ333m」などの数値の行も「項目名｜中身」の2列に分ける
+#   対戦の計算（エンジン）は変えない。技の候補を作ったあとで、文字だけ置き換える
+repall("""let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;""",
+       """// 重さの呼び方：生き物とキャラクターは「体重」、それ以外は「質量」
+const LIVE_RE=/^ヒト$|^架空の人$|タクソン|^犬種$|^猫種$|^(馬|ヒツジ|牛)の品種$|^イヌ$|動物の個体|宇宙犬|サーカスの象|ポケモン|ウルトラビースト|ヒスイのすがた|キャラクター|登場人物|ゆるキャラ|^架空の人型|ミュータント|ウーキー|サーヴァント|ホムンクルス|プロレス/;
+const massFix=i=>{ if(!POOL[i]||(CL[i]&&LIVE_RE.test(CL[i][1]||''))) return; POOL[i]=POOL[i].map(m=>m&&m[1]==='のしかかり'&&/^体重/.test(String(m[3]||''))?m.map((x,k)=>(k===2||k===3)&&typeof x==='string'?x.replace(/^体重/,'質量'):x):m); };
+for(let i=0;i<F.length;i++) massFix(i);
+{ const reg0=register; register=function(rec){ const i=reg0(rec); if(i>=0) massFix(i); return i; }; }
+let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;""")
+repall("""      else if(/^体重/.test(d)){""", """      else if(/^(体重|質量)/.test(d)){""")
+repall("""const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?""",
+       """const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

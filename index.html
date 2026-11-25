@@ -1270,7 +1270,7 @@ async function rnd(ex,pop){ for(let k=0;k<12;k++){ let t;
     const i=await loadTitle(t); if(i>=0&&!ex.includes(i)&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) return i; }
   return ex.includes(0)?1:0; }
 // 情報ボックス風：「所在地：静岡県」を、項目名と中身の2列に分ける
-const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?'<span class="ik">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class="ik">'+esc(t)+'</span>'; };
+const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?'<span class="ik">'+esc(t.slice(0,k))+'</span><span>'+esc(t.slice(k+1))+'</span>':'<span class="ik">'+esc(t)+'</span>'; };
 function fighterCard(i){ const f=F[i];
   return `<div class="fname"><strong>${esc(f[0])}</strong><a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(f[1])}" target="_blank" rel="noopener">記事 ↗</a></div>
   <div class="fams" data-fi="${i}"></div>
@@ -1406,7 +1406,7 @@ function startBattle(pair){
       if(/^標高|^高さ/.test(d)&&/m$/.test(us)){ const ref=v>=1000||(v>=100&&me==='東京タワー')?(me==='東京スカイツリー'?['東京タワー（333m）',333]:['東京スカイツリー（634m）',634]):v>=100?['東京タワー（333m）',333]:['大人の身長（約1.7m）',1.7]; out.push(fnTimes(v,ref[1],ref[0])+'。'); }
       else if(/^面積/.test(d)&&/km²/.test(us)) out.push(v>=10000?fnTimes(v,2194,'東京都（約2,194km²）')+'。':'東京ドーム（約0.047km²）'+fnFmt(v/0.0467)+'個ぶん。');
       else if(/^人口/.test(d)) out.push(v>=55000?'満員の東京ドーム（約5万5千人）'+fnFmt(v/55000)+'杯ぶん。':'満員の東京ドーム（約5万5千人）の約'+fnFmt(v/55000*100)+'%。');
-      else if(/^体重/.test(d)){ const kg=/t/.test(mv[2])?v*1000:/kg/.test(mv[2])?v:v/1000; out.push('2Lのペットボトル約'+fnFmt(kg/2)+'本ぶん。'); }
+      else if(/^(体重|質量)/.test(d)){ const kg=/t/.test(mv[2])?v*1000:/kg/.test(mv[2])?v:v/1000; out.push('2Lのペットボトル約'+fnFmt(kg/2)+'本ぶん。'); }
       else if(nm==='長文で殴る') out.push('文庫本にすると約'+fnFmt(v/600)+'ページ（1ページ約600字）。');
       else if(nm==='注目の視線'){ const day=v/365; out.push('1日あたり約'+fnFmt(day)+'回。'+(day>=24?'約'+fnFmt(86400/day)+'秒に1回、誰かが開いている。':'')); }
       else if(nm==='年功序列'&&/年/.test(mv[2])){ const y=new Date().getFullYear()-v; if(y>0) out.push('いまから約'+fnFmt(y)+'年前。'); }
@@ -2095,6 +2095,11 @@ async function refreshThrone(){ if(!API||document.hidden||!THRONE) return; if(TH
   const o=THRONE.champ; if(d.champ.id===o.id&&d.champ.defenses===o.defenses) return;
   const busy=$('#chf button')&&$('#chf button').disabled&&$('#chM')&&/挑戦しています/.test($('#chM').textContent); if(busy) return;
   renderKeep(d,d.champ.id!==o.id?'王者が「'+esc(d.champ.display)+'」に変わりました'+(d.champ.holder&&!/^(初代|（非表示）|名無しの挑戦者)$/.test(d.champ.holder)?'（'+esc(d.champ.holder.replace(/(さん|様|さま)$/,''))+'さんの挑戦）':''):($('#chM')?$('#chM').innerHTML:'')); fixChamp(); }catch(_){} }
+// 重さの呼び方：生き物とキャラクターは「体重」、それ以外は「質量」
+const LIVE_RE=/^ヒト$|^架空の人$|タクソン|^犬種$|^猫種$|^(馬|ヒツジ|牛)の品種$|^イヌ$|動物の個体|宇宙犬|サーカスの象|ポケモン|ウルトラビースト|ヒスイのすがた|キャラクター|登場人物|ゆるキャラ|^架空の人型|ミュータント|ウーキー|サーヴァント|ホムンクルス|プロレス/;
+const massFix=i=>{ if(!POOL[i]||(CL[i]&&LIVE_RE.test(CL[i][1]||''))) return; POOL[i]=POOL[i].map(m=>m&&m[1]==='のしかかり'&&/^体重/.test(String(m[3]||''))?m.map((x,k)=>(k===2||k===3)&&typeof x==='string'?x.replace(/^体重/,'質量'):x):m); };
+for(let i=0;i<F.length;i++) massFix(i);
+{ const reg0=register; register=function(rec){ const i=reg0(rec); if(i>=0) massFix(i); return i; }; }
 let TH_LAST=Date.now(), TH_ACT=Date.now(), TH_SEEN=true, TH_HOLD=null;
 /* 王座戦：前回からの動きと、自分の挑戦のその後 */
 const lsJ=(k,v)=>{ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||'null'); localStorage.setItem(k,JSON.stringify(v)); }catch(_){ return null; } };
