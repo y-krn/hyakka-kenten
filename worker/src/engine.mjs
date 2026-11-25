@@ -293,10 +293,10 @@ function simulate(ai,bi,opt={}){ disamb(ai,bi);
       if(kind==='SLOW'){ y.g-=Math.round(10*T); d=Math.round(b0*0.7); line=tp||pickT(['{A}の【{N}】。{F}の土地に{B}が迷い込み、行動が遅れる。そこへ一撃。','{A}、【{N}】。{F}の広さに{B}が立ち往生したところを殴る。'],k); }
       if(kind==='BIND'){ y.g-=Math.round(12*T); d=Math.round(b0*0.5); line=tp||'{A}の【{N}】！ {F}で{B}をぐるりと囲んで締め上げる。{B}の動きが鈍った。'; }
       if(kind==='HASTE'){ x.g+=Math.round(10*T); d=Math.round(b0*0.8); line=tp||'{A}、【{N}】。{F}で駆け抜けながら{B}に体当たり。勢いで次の行動が早まる。'; }
-      if(kind==='SUMMON'){ d=Math.round(b0*1.5)+5; const tg=Array.isArray(mv[7])?mv[7]:[]; summoned.push(...tg); line=tp||SUMMON_LINE[mv[1]]||'{A}の【{N}】！ {F}が駆けつけた。';
+      if(kind==='SUMMON'){ d=Math.round(b0*1.5)+5; const tg=Array.isArray(mv[7])?mv[7]:[]; summoned.push(...tg); const art=mv[1]==='親分召喚'&&/^アーティスト：/.test(mv[3]||''); line=tp||(art?'{A}の【{N}】！ {F}本人が駆けつけた。':SUMMON_LINE[mv[1]])||'{A}の【{N}】！ {F}が駆けつけた。';
         const yq=F[y.i][2];
         if(tg.some(t=>t[2]===yq)) line+='……が、呼ばれたのは対戦相手の{B}本人だった。気まずい。';
-        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+='……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
+        else if(mv[1]==='親分召喚'&&tg.some(t=>F[y.i][9].includes(t[2]))) line+=art?'……が、{B}も{F}の作品なので、半分くらいは相手側に立っている。':'……が、{B}もその一員なので、半分くらいは相手側に立っている。'; }
       if(kind==='NAME'){ const ma=F[x.i][4], mb=F[y.i][4]; const r=Math.max(0.5,Math.min(2,ma/Math.max(1,mb))); d=Math.round(b0*r);
         line=pickT(['{A}の【{N}】！ '+(ma<=2?'たった':'')+ma+'音の名前を全力で叩きつける','{A}の【{N}】！ 名前を一音ずつ区切って、'+(ma<=2?'たった':'')+ma+'音ぶん叩きつける','{A}の【{N}】！ 自分の名前を'+(ma<=2?'たった':'')+ma+'音、大声で名乗りながら殴る'],k+'|nm')+(r>=1?'。':'が、'+mb+'音の{B}には効きが薄い。'); }
       if(kind==='SENIORITY'){
