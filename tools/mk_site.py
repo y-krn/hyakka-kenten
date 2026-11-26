@@ -2889,6 +2889,8 @@ repall("""${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w]
 repall("""<button type="button" class="btn" id="back">選び直す</button>""",
        """${sh1?'':'<button type="button" class="btn" id="back">選び直す</button>'}""")
 
+repall(""".share output{flex:1;min-width:0;""", """.share output{white-space:pre-line;flex:1;min-width:0;""")   # 共有の文の改行を、画面でもそのまま見せる
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
