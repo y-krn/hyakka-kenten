@@ -2854,17 +2854,17 @@ repall("""const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16
        """const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?""")
 
 # ---- 147. 共有の文に「名場面の1行」を入れる。共有リンクから来た人に「好きな記事で挑む」入口を出す（2026-11-26）
-#   名場面：実況の行に点を付け、審判員の一言・召喚の「……が、気まずい」などのオチを優先して上位3つを選ぶ。「場面を替える」で選び直せる
+#   名場面：実況の行に点を付け、召喚の「……が、気まずい」などのオチのある行、審判員の一言を優先して上位3つを選ぶ。「場面を替える」で選び直せる
 #   Xの文字数に収まらないときは、技の行を「【技名】中身」に縮め、結果も「◯◯の勝ち。」に縮める。今日の一戦は予想の文のまま
 #   入口：自由対戦の共有リンク（?a=&b=）で来た最初の試合だけ、主のボタンを「記事を選ぶ」にし、勝った記事を残して相手の入力欄を開く
 repall("""const LAND=(()=>{""",
        """// 名場面の候補：実況の行に点を付けて、上位3つ（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形
 function scenes(r){ const L=[]; ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').trim(); if(!s) return; let t=s, sh=s, sc=2;
-    if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\\s\\S]*)」$/,'$1')+'」'; sc=5; }
+    if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\\s\\S]*)」$/,'$1')+'」'; sc=4; }
     else if(l.side<0){ sc=4; if(/【因縁】|倍$/.test(s)) sc=-9; t=sh='「'+s+'」'; }
     else { if(l.mv&&l.mv[0]==='SUMMON') sc+=2; if(l.mv&&l.mv[8]) sc+=1; const m=s.match(/^.+?の(【[^】]+】)[！。]\\s*([\\s\\S]+)$/); t='「'+s+'」'; sh=m?m[1]+m[2]:t; }
-    if(/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|議論|編集合戦|所要時間|まばら/.test(s)) sc+=4;
-    const n=[...sh].length; if(n>60) sc-=5; else if(n>45) sc-=1; if(n<14) sc-=3;
+    if(!l.kai&&/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|編集合戦|所要時間|まばら/.test(s)) sc+=4;   // オチのある行（審判員の一言は別に4点）
+    const n=[...sh].length; if(n>60) sc-=5; else if(n>50) sc-=1; if(n<14) sc-=3;
     L.push({t,s:sh,sc,k}); });
   const seen=new Set(); return L.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||a.k-b.k).filter(x=>!seen.has(x.s)&&seen.add(x.s)).slice(0,3); }
 let SH1_DONE=false;   // 共有リンクから来た最初の試合の入口は1回だけ
