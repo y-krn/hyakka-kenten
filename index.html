@@ -2015,7 +2015,7 @@ async function shotCard(o){ const W=1200, H=675, c=document.createElement('canva
   try{ await Promise.race([Promise.all([document.fonts.load('64px "Dela Gothic One"',o.a+o.b+o.res+o.head+'VS勝ち'), document.fonts.load('700 34px "Zen Kaku Gothic New"',(o.line||'')+'※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありませんhyakkakenten.com')]), new Promise(r=>setTimeout(r,2500))]); }catch(_){}
   const rr=(x,y,w,h,r)=>{ g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,r); else g.rect(x,y,w,h); };
   // 文字を幅に収める（1〜2行。入らなければ字を小さくする）
-  const lines=(t,w)=>{ const L=[]; let cur=''; for(const ch of [...t]){ if(g.measureText(cur+ch).width>w&&cur&&!/[、。」』）！？…ー]/.test(ch)){ L.push(cur); cur=ch; } else cur+=ch; } if(cur) L.push(cur); return L; };
+  const lines=(t,w)=>{ const L=[]; let cur=''; for(const ch of (t.match(/[A-Za-z0-9.,'&!?:\-]+ ?|[\s\S]/gu)||[])){ if(g.measureText(cur+ch).width>w&&cur.trim()&&!/^[、。」』）！？…ー]/.test(ch)){ L.push(cur.trimEnd()); cur=ch.trimStart(); } else cur+=ch; } if(cur.trim()) L.push(cur.trimEnd()); return L; };   // 英数字の語は途中で切らない
   const fit=(t,x,cy,w,hmax,font,max,min,col,align)=>{ let sz=max, L; for(;sz>=min;sz-=2){ g.font=font(sz); L=lines(t,w); if(L.length*sz*1.2<=hmax&&L.length<=3) break; } sz=Math.max(sz,min); g.font=font(sz); L=lines(t,w); const lh=sz*1.25, n=Math.min(L.length,3); if(L.length>3) L[2]=L[2].slice(0,-1)+'…';
     g.fillStyle=col; g.textAlign=align||'left'; g.textBaseline='middle'; for(let k=0;k<n;k++) g.fillText(L[k],x,cy-(n-1)*lh/2+k*lh); g.textAlign='left'; };
   // 背景（王座戦の共有画像と同じ青と、集中線）
