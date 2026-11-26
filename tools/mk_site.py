@@ -2854,26 +2854,22 @@ repall("""const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16
        """const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?""")
 
 # ---- 147. 共有の文に「名場面の1行」を入れる。共有リンクから来た人に「好きな記事で挑む」入口を出す（2026-11-26）
-#   名場面：実況の行に点を付け、召喚の「……が、気まずい」などのオチのある行、審判員の一言を優先して上位3つを選ぶ。「場面を替える」で選び直せる
+#   名場面：実況の行に点を付け、いちばん点の高い1行だけを選ぶ（選び直しはしない。一期一会の1行にする）
 #   Xの文字数に収まらないときは、技の行を「【技名】中身」に縮め、結果も「◯◯の勝ち。」に縮める。今日の一戦は予想の文のまま
 #   入口：自由対戦の共有リンク（?a=&b=）で来た最初の試合だけ、主のボタンを「記事を選ぶ」にし、勝った記事を残して相手の入力欄を開く
 repall("""const LAND=(()=>{""",
-       """// 名場面の候補：実況の行に点を付けて、上位3つ（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形、key は文の型
+       """// 名場面：実況の行に点を付けて、いちばん点の高い1行（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形
 //   その試合でしか出ない中身（第三の記事の名前・数字）がある行を優先し、決まり文句の審判員の一言は、ほかにないときだけ使う
-//   この端末で最近共有した型は選ばれにくくする（同じ文が続かないように）
 function scenes(r,ai,bi){ const L=[], nm=[F[ai][0],F[bi][0]], third=[...new Set(((r&&r.summoned)||[]).map(t=>String(t[0]||'').replace(/\\s*\\(.*\\)$/,'')).filter(x=>x&&!nm.includes(x)))];
-  let recent=[]; try{ recent=JSON.parse(localStorage.getItem('hk-shtpl')||'[]'); }catch(_){}
-  const tpl=x=>{ let o=x; for(const n of [...nm,...third].sort((a,b)=>b.length-a.length)) o=o.split(n).join('＊'); return o.replace(/[0-9０-９][0-9,.×⁰¹²³⁴⁵⁶⁷⁸⁹]*/g,'#').replace(/【[^】]+】/g,'【】'); };
   ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').replace(/\\s+[^。]*の構えで[0-9]+軽減。$/,'').trim(); if(!s) return; let t=s, sh=s, sc=2;
     if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\\s\\S]*)」$/,'$1')+'」'; sc=1; }
     else if(l.side<0){ if(/^【|倍$/.test(s)) return; t=sh='「'+s+'」'; }
     else { if(l.mv&&l.mv[0]==='SUMMON') sc+=2; const m=s.match(/^.+?の(【[^】]+】)[！。]\\s*([\\s\\S]+)$/); t='「'+s+'」'; sh=m?m[1]+m[2]:t; }
     if(!l.kai){ if(third.some(n=>s.includes(n))) sc+=3; if(/[0-9０-９]/.test(s)) sc+=1; if(/桁/.test(s)) sc+=2;
       if(/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|編集合戦|所要時間|まばら/.test(s)) sc+=3; }
-    const key=tpl(sh); if(recent.slice(0,10).includes(key)) sc-=4;
     const n=[...sh].length; if(n>60) sc-=5; else if(n>50) sc-=1; if(n<14) sc-=3;
-    L.push({t,s:sh,sc,k,key}); });
-  const seen=new Set(); return L.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||a.k-b.k).filter(x=>!seen.has(x.key)&&seen.add(x.key)).slice(0,3); }
+    L.push({t,s:sh,sc,k}); });
+  return L.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||a.k-b.k).slice(0,1); }
 let SH1_DONE=false;   // 共有リンクから来た最初の試合の入口は1回だけ
 const LAND=(()=>{""")
 repall("""  share=fitPost(share)+'\\n'+DISC;""",
@@ -2886,12 +2882,9 @@ repall("""  share=fitPost(share)+'\\n'+DISC;""",
   share=mkShare();
   const sh1=!TDY&&!M&&!current.orig&&LAND==='battle'&&!SH1_DONE; if(sh1) SH1_DONE=true;""")
 repall("""<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""",
-       """${SC.length>1?'<button type="button" class="btn small" id="scnext">場面を替える</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""")
+       """<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""")
 repall("""  if($('#nshare')) $('#nshare').onclick=""",
-       """  if($('#scnext')) $('#scnext').onclick=()=>{ scI=(scI+1)%SC.length; share=mkShare(); $('#share').textContent=share; const tw=$('#tw'); if(tw) tw.href='https://x.com/intent/tweet?text='+encodeURIComponent(share)+'&url='+encodeURIComponent(SHAREURL); };
-  { const shRec=()=>{ try{ const k=SC[scI]&&SC[scI].key; if(!k) return; const L=JSON.parse(localStorage.getItem('hk-shtpl')||'[]').filter(x=>x!==k); L.unshift(k); localStorage.setItem('hk-shtpl',JSON.stringify(L.slice(0,30))); }catch(_){} };   // 共有した名場面の型を覚える（この端末だけ）
-    ['#tw','#nshare','#copy'].forEach(id=>{ const e=$(id); if(e) e.addEventListener('click',shRec); }); }
-  if($('#mychal')) $('#mychal').onclick=()=>{ const tg=w!==null?w:bi, sd=tg===ai?0:1; sel[sd]=tg; sel[1-sd]=null; renderPick(0); renderPick(1); updateFight(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const x=$('#in'+(1-sd)); if(x) x.focus({preventScroll:true}); },450); };
+       """  if($('#mychal')) $('#mychal').onclick=()=>{ const tg=w!==null?w:bi, sd=tg===ai?0:1; sel[sd]=tg; sel[1-sd]=null; renderPick(0); renderPick(1); updateFight(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const x=$('#in'+(1-sd)); if(x) x.focus({preventScroll:true}); },450); };
   if($('#nshare')) $('#nshare').onclick=""")
 repall("""${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}""",
        """${sh1?`<div class="sub" style="flex-basis:100%">${esc(F[w!==null?w:bi][0])}に、好きな記事で挑もう</div><button type="button" class="btn big" id="mychal">記事を選ぶ</button>`:w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}""")
