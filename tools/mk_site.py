@@ -2859,16 +2859,16 @@ repall("""const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16
 #   入口：自由対戦の共有リンク（?a=&b=）で来た最初の試合だけ、主のボタンを「記事を選ぶ」にし、勝った記事を残して相手の入力欄を開く
 repall("""const LAND=(()=>{""",
        """// 名場面の候補：実況の行に点を付けて、上位3つ（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形、key は文の型
-//   その試合でしか出ない中身（第三の記事の名前・数字・倍率）がある行を優先し、決まり文句の審判員の一言は、ほかにないときだけ使う
+//   その試合でしか出ない中身（第三の記事の名前・数字）がある行を優先し、決まり文句の審判員の一言は、ほかにないときだけ使う
 //   この端末で最近共有した型は選ばれにくくする（同じ文が続かないように）
 function scenes(r,ai,bi){ const L=[], nm=[F[ai][0],F[bi][0]], third=[...new Set(((r&&r.summoned)||[]).map(t=>String(t[0]||'').replace(/\\s*\\(.*\\)$/,'')).filter(x=>x&&!nm.includes(x)))];
   let recent=[]; try{ recent=JSON.parse(localStorage.getItem('hk-shtpl')||'[]'); }catch(_){}
   const tpl=x=>{ let o=x; for(const n of [...nm,...third].sort((a,b)=>b.length-a.length)) o=o.split(n).join('＊'); return o.replace(/[0-9０-９][0-9,.×⁰¹²³⁴⁵⁶⁷⁸⁹]*/g,'#').replace(/【[^】]+】/g,'【】'); };
-  ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').trim(); if(!s) return; let t=s, sh=s, sc=2;
+  ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').replace(/\\s*[^ 。]+の構えで[0-9]+軽減。$/,'').trim(); if(!s) return; let t=s, sh=s, sc=2;
     if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\\s\\S]*)」$/,'$1')+'」'; sc=1; }
     else if(l.side<0){ if(/^【|倍$/.test(s)) return; t=sh='「'+s+'」'; }
     else { if(l.mv&&l.mv[0]==='SUMMON') sc+=2; const m=s.match(/^.+?の(【[^】]+】)[！。]\\s*([\\s\\S]+)$/); t='「'+s+'」'; sh=m?m[1]+m[2]:t; }
-    if(!l.kai){ if(third.some(n=>s.includes(n))) sc+=3; if(/[0-9０-９]/.test(s)) sc+=1; if(/[0-9]倍|桁/.test(s)) sc+=2;
+    if(!l.kai){ if(third.some(n=>s.includes(n))) sc+=3; if(/[0-9０-９]/.test(s)) sc+=1; if(/桁/.test(s)) sc+=2;
       if(/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|編集合戦|所要時間|まばら/.test(s)) sc+=3; }
     const key=tpl(sh); if(recent.slice(0,10).includes(key)) sc-=4;
     const n=[...sh].length; if(n>60) sc-=5; else if(n>50) sc-=1; if(n<14) sc-=3;
