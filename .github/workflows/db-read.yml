@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ, 日ごとの合計の照合]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ, 日ごとの合計の照合, 来た元の推移]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -67,3 +67,7 @@ jobs:
         run: |
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT v.day, v.n AS visits, (SELECT SUM(n) FROM daily_stats d WHERE d.day = v.day AND d.ev = 'visit') AS sum_visit, v.nw AS fresh, (SELECT SUM(n) FROM daily_stats d WHERE d.day = v.day AND d.ev = 'visit' AND d.k = 'new') AS sum_new FROM (SELECT day, COUNT(*) AS n, SUM(fresh) AS nw FROM visits GROUP BY day) v ORDER BY v.day" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('CHJSON'+JSON.stringify(JSON.parse(s)[0].results)))"
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT p.day, p.n AS plays, (SELECT SUM(n) FROM daily_stats d WHERE d.day = p.day AND d.ev = 'play') AS sum_play, p.t, (SELECT SUM(n) FROM daily_stats d WHERE d.day = p.day AND d.ev = 'play' AND d.k = 't') AS sum_t, p.who AS players, (SELECT SUM(n) FROM daily_stats d WHERE d.day = p.day AND d.ev = 'reach' AND d.k = '1') AS sum_reach1 FROM (SELECT date(datetime(at, '+9 hours')) AS day, SUM(n) AS n, SUM(COALESCE(kt, 0)) AS t, COUNT(DISTINCT COALESCE(client, 'ip:' || iphash)) AS who FROM plays GROUP BY day) p ORDER BY p.day" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('CHJSON'+JSON.stringify(JSON.parse(s)[0].results)))"
+      - name: 来た元の推移（日ごと・来た元ごとの来訪と、遊んだ人。日ごとの合計から）
+        if: inputs.what == '来た元の推移'
+        run: |
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT day, src, SUM(CASE WHEN ev = 'visit' THEN n END) AS v, SUM(CASE WHEN ev = 'visit' AND k = 'new' THEN n END) AS nw, SUM(CASE WHEN ev = 'reach' AND k = '1' THEN n END) AS played FROM daily_stats WHERE day >= date('now', '+9 hours', '-14 days') AND ev IN ('visit', 'reach') GROUP BY day, src ORDER BY day, src" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('CHJSON'+JSON.stringify(JSON.parse(s)[0].results)))"
