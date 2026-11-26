@@ -1569,7 +1569,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
     for(const ln of [x.t,x.s]) for(const tail of [body,short]){ const t=vs+'\n'+ln+'\n'+tail; if(xlen(t)<=room) return t+'\n'+DISC; }
     return fitPost(vs+'\n'+x.s+'\n'+short)+'\n'+DISC; };
   share=mkShare();
-  const IMG=TDY?null:shotCard({a:F[ai][0],b:F[bi][0],win:w===null?null:w===ai?0:1,line:SC.length?SC[0].s:'',res:title,head:M?'百科拳典 王座戦':'百科拳典'}).catch(()=>null);   // 共有用の画像は先に作っておく
+  const IMG=TDY?null:shotCard({a:F[ai][0],b:F[bi][0],win:w===null?null:w===ai?0:1,line:'',res:title,head:M?'百科拳典 王座戦':'百科拳典'}).catch(()=>null);   // 共有用の画像は先に作っておく
   const sh1=!TDY&&!M&&!current.orig&&LAND==='battle'&&!SH1_DONE; if(sh1) SH1_DONE=true;
   const SHAREURL=TDY?location.origin+'/?today=1'+(TD&&TD.day?'&d='+TD.day:''):PRF?location.origin+'/?pref='+encodeURIComponent(PRF.p):battleURL();
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));

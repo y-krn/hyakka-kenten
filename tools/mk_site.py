@@ -2899,7 +2899,7 @@ repall("""navigator.share({title:'百科拳典',text:$('#share').textContent,url
        """navigator.share({text:$('#share').textContent+'\\n'+SHAREURL})""")
 repall("""navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)})""",
        """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# ---- 149. 結果を画像で共有する（2026-11-27）
-#   ブラウザの中で 1200×675 の画像を作る（サーバーは使わない）。2つの記事・名場面の1行・結果を大きく載せ、サイト名と注意書きも入れる
+#   ブラウザの中で 1200×675 の画像を作る（サーバーは使わない）。2つの記事と結果を大きく載せ、サイト名と注意書きも入れる。名場面は画像に入れず、本文だけに書く（画像にすると冷めるため）
 #   スマホ（画像を渡せる端末）は「画像で共有」で共有の画面へ、それ以外は「画像を保存」。今日の一戦は結果を伏せる共有なので出さない
 #   iPhone は押してから共有の画面を開くまでに時間がかかると断られるので、画像は結果を出した時点で先に作っておく
 repall("""let SH1_DONE=false;""",
@@ -2936,7 +2936,7 @@ let SH1_DONE=false;""")
 repall("""  share=mkShare();
 """,
        """  share=mkShare();
-  const IMG=TDY?null:shotCard({a:F[ai][0],b:F[bi][0],win:w===null?null:w===ai?0:1,line:SC.length?SC[0].s:'',res:title,head:M?'百科拳典 王座戦':'百科拳典'}).catch(()=>null);   // 共有用の画像は先に作っておく
+  const IMG=TDY?null:shotCard({a:F[ai][0],b:F[bi][0],win:w===null?null:w===ai?0:1,line:'',res:title,head:M?'百科拳典 王座戦':'百科拳典'}).catch(()=>null);   // 共有用の画像は先に作っておく
 """)
 repall("""<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""",
        """${IMG?`<button type="button" class="btn small" id="shimg">${CAN_FILE?'画像で共有':'画像を保存'}</button>`:''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""")
