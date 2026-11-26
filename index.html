@@ -1625,7 +1625,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
   { const shRec=()=>{ try{ const k=SC[scI]&&SC[scI].key; if(!k) return; const L=JSON.parse(localStorage.getItem('hk-shtpl')||'[]').filter(x=>x!==k); L.unshift(k); localStorage.setItem('hk-shtpl',JSON.stringify(L.slice(0,30))); }catch(_){} };   // 共有した名場面の型を覚える（この端末だけ）
     ['#tw','#nshare','#copy'].forEach(id=>{ const e=$(id); if(e) e.addEventListener('click',shRec); }); }
   if($('#mychal')) $('#mychal').onclick=()=>{ const tg=w!==null?w:bi, sd=tg===ai?0:1; sel[sd]=tg; sel[1-sd]=null; renderPick(0); renderPick(1); updateFight(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const x=$('#in'+(1-sd)); if(x) x.focus({preventScroll:true}); },450); };
-  if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
+  if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({text:$('#share').textContent+'\n'+SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
   { const box=$('#nextops'); if(box){ const me=w!==null?w:ai, seen=new Set([F[ai][1],F[bi][1]]), cand=[];
@@ -1730,7 +1730,7 @@ async function openFam(key,cur){ const g=await famGet(key); const dlg=$('#famdlg
   // 選んでいる途中の組み合わせ（はじめは、いま自由対戦に入っている2記事）
   FP=[0,1].map(s=>sel[s]!==null&&sel[s]>=0&&!isChamp(sel[s])?{t:F[sel[s]][1],n:F[sel[s]][0]}:null);
   $('#famx').onclick=()=>dlg.close();
-  if($('#famshare')) $('#famshare').onclick=()=>{ navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)}).catch(()=>{}); };
+  if($('#famshare')) $('#famshare').onclick=()=>{ navigator.share({text:famText(g)+'\n'+famURL(key)}).catch(()=>{}); };
   if($('#famcopy')) $('#famcopy').onclick=async e=>{ try{ await navigator.clipboard.writeText(famURL(key)); e.target.textContent='コピーしました'; }catch(_){ e.target.textContent=famURL(key); } };
   dlg.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ const s=+b.dataset.s, x={t:b.dataset.t,n:b.dataset.n};
     if(FP[1-s]&&FP[1-s].t===x.t) FP[1-s]=FP[s];   // 反対側に入っている記事なら、入れ替える

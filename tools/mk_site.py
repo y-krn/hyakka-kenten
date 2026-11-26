@@ -2900,7 +2900,12 @@ repall("""<button type="button" class="btn" id="back">選び直す</button>""",
 
 repall(""".share output{flex:1;min-width:0;""", """.share output{white-space:pre-line;flex:1;min-width:0;""")   # 共有の文の改行を、画面でもそのまま見せる
 
-# 確認画面の枠と、使わなくなった表示を消す
+# ---- 148. 共有の画面でXなどを選ぶと、本文が落ちてURLだけになる問題を直す（2026-11-26）
+#   iPhoneのXアプリなどは、共有の画面に本文とURLを別々に渡すとURLしか受け取らない。URLを本文の末尾に入れて、本文だけで渡す
+repall("""navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL})""",
+       """navigator.share({text:$('#share').textContent+'\\n'+SHAREURL})""")
+repall("""navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)})""",
+       """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
 left = [w for w in ['DATA.', 'NAMES', 'recompute(', 'renderReview', 'dbRef', 'window.claude', 'isAdmin', "list=\"names\""] if w in s]
