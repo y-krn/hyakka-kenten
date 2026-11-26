@@ -2898,55 +2898,7 @@ repall(""".share output{flex:1;min-width:0;""", """.share output{white-space:pre
 repall("""navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL})""",
        """navigator.share({text:$('#share').textContent+'\\n'+SHAREURL})""")
 repall("""navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)})""",
-       """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# ---- 149. 結果を画像で共有する（2026-11-27）
-#   ブラウザの中で 1200×675 の画像を作る（サーバーは使わない）。2つの記事と結果を大きく載せ、サイト名と注意書きも入れる。名場面は画像に入れず、本文だけに書く（画像にすると冷めるため）
-#   スマホ（画像を渡せる端末）は「画像で共有」で共有の画面へ、それ以外は「画像を保存」。今日の一戦は結果を伏せる共有なので出さない
-#   iPhone は押してから共有の画面を開くまでに時間がかかると断られるので、画像は結果を出した時点で先に作っておく
-repall("""let SH1_DONE=false;""",
-       """// 共有用の画像（1200×675）を作る。o = {a, b, win(0/1/null), line, res, head}
-const CAN_FILE=(()=>{ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'a.png',{type:'image/png'})]})); }catch(_){ return false; } })();
-async function shotCard(o){ const W=1200, H=675, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
-  const DF='"Dela Gothic One","Hiragino Sans",sans-serif', BF='"Zen Kaku Gothic New","Hiragino Sans",sans-serif';
-  try{ await Promise.race([Promise.all([document.fonts.load('64px "Dela Gothic One"',o.a+o.b+o.res+o.head+'VS勝ち'), document.fonts.load('700 34px "Zen Kaku Gothic New"',(o.line||'')+'※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありませんhyakkakenten.com')]), new Promise(r=>setTimeout(r,2500))]); }catch(_){}
-  const rr=(x,y,w,h,r)=>{ g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,r); else g.rect(x,y,w,h); };
-  // 文字を幅に収める（1〜2行。入らなければ字を小さくする）
-  const lines=(t,w)=>{ const L=[]; let cur=''; for(const ch of (t.match(/[A-Za-z0-9.,'&!?:\\-]+ ?|[\\s\\S]/gu)||[])){ if(g.measureText(cur+ch).width>w&&cur.trim()&&!/^[、。」』）！？…ー]/.test(ch)){ L.push(cur.trimEnd()); cur=ch.trimStart(); } else cur+=ch; } if(cur.trim()) L.push(cur.trimEnd()); return L; };   // 英数字の語は途中で切らない
-  const fit=(t,x,cy,w,hmax,font,max,min,col,align)=>{ let sz=max, L; for(;sz>=min;sz-=2){ g.font=font(sz); L=lines(t,w); if(L.length*sz*1.2<=hmax&&L.length<=3) break; } sz=Math.max(sz,min); g.font=font(sz); L=lines(t,w); const lh=sz*1.25, n=Math.min(L.length,3); if(L.length>3) L[2]=L[2].slice(0,-1)+'…';
-    g.fillStyle=col; g.textAlign=align||'left'; g.textBaseline='middle'; for(let k=0;k<n;k++) g.fillText(L[k],x,cy-(n-1)*lh/2+k*lh); g.textAlign='left'; };
-  // 背景（王座戦の共有画像と同じ青と、集中線）
-  const bg=g.createRadialGradient(W/2,H*.46,0,W/2,H*.46,760); bg.addColorStop(0,'#1a3bb8'); bg.addColorStop(.4,'#0e288c'); bg.addColorStop(.85,'#071233'); g.fillStyle=bg; g.fillRect(0,0,W,H);
-  g.save(); g.translate(W/2,H/2-40); g.fillStyle='rgba(242,201,76,.07)'; for(let a=0;a<360;a+=15){ g.beginPath(); g.moveTo(0,0); g.arc(0,0,1500,a*Math.PI/180,(a+3)*Math.PI/180); g.closePath(); g.fill(); } g.restore();
-  try{ const im=await new Promise((ok,ng)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ng; i.src='icon-512.png'; }); g.save(); rr(48,28,56,56,12); g.clip(); g.drawImage(im,48,28,56,56); g.restore(); }catch(_){}
-  g.fillStyle='#ffe58a'; g.font='34px '+DF; g.textBaseline='middle'; g.fillText(o.head,120,58);
-  // 2つの記事
-  const box=(x,col,name,won)=>{ g.save(); if(o.win!==null&&!won) g.globalAlpha=.6; g.fillStyle='rgba(7,18,51,.72)'; rr(x,108,456,170,18); g.fill(); g.strokeStyle='rgba(255,255,255,.14)'; g.lineWidth=2; g.stroke();
-    g.fillStyle=col; rr(x,108,456,10,[18,18,0,0]); g.fill(); fit(name,x+28,198,400,140,s=>s+'px '+DF,64,28,'#f3f1e7'); g.restore();
-    if(won){ g.save(); g.translate(x+400,120); g.rotate(4*Math.PI/180); g.fillStyle='#a67a1c'; rr(-52,-18+5,104,42,8); g.fill(); g.fillStyle='#f2c94c'; rr(-52,-18,104,42,8); g.fill(); g.fillStyle='#1b1500'; g.font='26px '+DF; g.textAlign='center'; g.textBaseline='middle'; g.fillText('勝ち',0,3); g.restore(); } };
-  box(48,'#3a6cf0',o.a,o.win===0); box(W-48-456,'#e0553b',o.b,o.win===1);
-  g.fillStyle='#f2c94c'; g.font='60px '+DF; g.textAlign='center'; g.textBaseline='middle'; g.fillText('VS',W/2,196); g.textAlign='left';
-  // 名場面と結果
-  const ry=o.line?520:330, rh=o.line?96:150;
-  if(o.line){ g.fillStyle='#ffffff'; rr(48,298,W-96,200,18); g.fill(); fit(o.line,W/2,398,W-160,170,s=>'700 '+s+'px '+BF,40,24,'#1b2130','center'); }
-  g.fillStyle='#8a6416'; rr(48,ry+7,W-96,rh,18); g.fill(); const gd=g.createLinearGradient(0,ry,0,ry+rh); gd.addColorStop(0,'#ffe58a'); gd.addColorStop(.6,'#f2c94c'); gd.addColorStop(1,'#d9a93a'); g.fillStyle=gd; rr(48,ry,W-96,rh,18); g.fill();
-  fit(o.res,W/2,ry+rh/2,W-160,rh-16,s=>s+'px '+DF,o.line?46:60,26,'#1b1500','center');
-  g.font='15px '+BF; g.fillStyle='rgba(169,179,214,.9)'; g.textBaseline='alphabetic'; g.fillText('※Wikipediaの記述をもとにした架空の試合です。実在の国・団体・人物の優劣を示すものではありません',52,H-18);
-  g.font='700 19px '+BF; g.fillStyle='#f2c94c'; g.textAlign='right'; g.fillText('hyakkakenten.com',W-52,H-18); g.textAlign='left';
-  return await new Promise(ok=>c.toBlob(ok,'image/png')); }
-let SH1_DONE=false;""")
-repall("""  share=mkShare();
-""",
-       """  share=mkShare();
-  const IMG=TDY?null:shotCard({a:F[ai][0],b:F[bi][0],win:w===null?null:w===ai?0:1,line:'',res:title,head:M?'百科拳典 王座戦':'百科拳典'}).catch(()=>null);   // 共有用の画像は先に作っておく
-""")
-repall("""<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""",
-       """${IMG?`<button type="button" class="btn small" id="shimg">${CAN_FILE?'画像で共有':'画像を保存'}</button>`:''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""")
-repall("""  if($('#mychal')) $('#mychal').onclick=""",
-       """  if($('#shimg')) $('#shimg').onclick=async()=>{ const blob=await IMG; if(!blob) return; const f=new File([blob],'hyakkakenten.png',{type:'image/png'});
-    if(CAN_FILE){ try{ await navigator.share({files:[f],text:$('#share').textContent+'\\n'+SHAREURL}); }catch(_){} }
-    else { const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download='hyakkakenten.png'; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000); } };
-  if($('#mychal')) $('#mychal').onclick=""")
-
-# 確認画面の枠と、使わなくなった表示を消す
+       """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
 left = [w for w in ['DATA.', 'NAMES', 'recompute(', 'renderReview', 'dbRef', 'window.claude', 'isAdmin', "list=\"names\""] if w in s]
