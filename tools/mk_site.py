@@ -2675,7 +2675,12 @@ repall("""      else if(/^体重/.test(d)){""", """      else if(/^(体重|質�
 repall("""const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?""",
        """const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?""")
 
-# 確認画面の枠と、使わなくなった表示を消す
+# ---- 148. 共有の画面でXなどを選ぶと、本文が落ちてURLだけになる問題を直す（2026-11-26）
+#   iPhoneのXアプリなどは、共有の画面に本文とURLを別々に渡すとURLしか受け取らない。URLを本文の末尾に入れて、本文だけで渡す
+repall("""navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL})""",
+       """navigator.share({text:$('#share').textContent+'\\n'+SHAREURL})""")
+repall("""navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)})""",
+       """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
 left = [w for w in ['DATA.', 'NAMES', 'recompute(', 'renderReview', 'dbRef', 'window.claude', 'isAdmin', "list=\"names\""] if w in s]
