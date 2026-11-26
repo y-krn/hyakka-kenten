@@ -2861,7 +2861,7 @@ repall("""const LAND=(()=>{""",
        """// 名場面の候補：実況の行に点を付けて、上位3つ（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形
 function scenes(r){ const L=[]; ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').trim(); if(!s) return; let t=s, sh=s, sc=2;
     if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\\s\\S]*)」$/,'$1')+'」'; sc=4; }
-    else if(l.side<0){ sc=4; if(/【因縁】|倍$/.test(s)) sc=-9; t=sh='「'+s+'」'; }
+    else if(l.side<0){ sc=4; if(/^【|倍$/.test(s)) sc=-9; t=sh='「'+s+'」'; }
     else { if(l.mv&&l.mv[0]==='SUMMON') sc+=2; if(l.mv&&l.mv[8]) sc+=1; const m=s.match(/^.+?の(【[^】]+】)[！。]\\s*([\\s\\S]+)$/); t='「'+s+'」'; sh=m?m[1]+m[2]:t; }
     if(!l.kai&&/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|編集合戦|所要時間|まばら/.test(s)) sc+=4;   // オチのある行（審判員の一言は別に4点）
     const n=[...sh].length; if(n>60) sc-=5; else if(n>50) sc-=1; if(n<14) sc-=3;
