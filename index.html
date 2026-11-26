@@ -1562,7 +1562,14 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
       :w===ai?`【百科拳典 都道府県を応援】${PRF.p}代表・${me}が、${PRF.q}代表・${op}に${PRF.rev?'勝って仇を討った！':'勝った！'}${PRF.n+1>=2?`（${PRF.p} ${PRF.n+1}連勝）`:''}`
       :`【百科拳典 都道府県を応援】${PRF.p}代表・${me}は、${PRF.q}代表・${op}に敗れた…。仇を討つ代表は次の試合で`;
     share+=`\nあなたの県も応援しよう #${PRF.p}を応援`; }
-  share=fitPost(share)+'\n'+DISC;
+  // 名場面の1行を入れる（今日の一戦は予想の文のまま）
+  const SC=TDY?[]:scenes(r); let scI=0; const base=share;
+  const mkShare=()=>{ if(!SC.length) return fitPost(base)+'\n'+DISC; const hd=(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=base.slice(hd.length), vs=hd+F[ai][0]+' vs '+F[bi][0], room=280-24-xlen(DISC)-1;
+    const tl=(base.match(/(第\d+代王者に。|王者は\d+度目の防衛。)$/)||[''])[0], short=(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];
+    for(const ln of [x.t,x.s]) for(const tail of [body,short]){ const t=vs+'\n'+ln+'\n'+tail; if(xlen(t)<=room) return t+'\n'+DISC; }
+    return fitPost(vs+'\n'+x.s+'\n'+short)+'\n'+DISC; };
+  share=mkShare();
+  const sh1=!TDY&&!M&&!current.orig&&LAND==='battle'&&!SH1_DONE; if(sh1) SH1_DONE=true;
   const SHAREURL=TDY?location.origin+'/?today=1'+(TD&&TD.day?'&d='+TD.day:''):PRF?location.origin+'/?pref='+encodeURIComponent(PRF.p):battleURL();
   const seen=new Map(); r.summoned.forEach(t=>seen.set(t[2],t));
   const gloss=[...seen.values()];
@@ -1579,7 +1586,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     ${!TDY&&!M&&!(current.orig&&current.orig.k==='pref')?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>
-    <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
+    <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}${SC.length>1?'<button type="button" class="btn small" id="scnext">場面を替える</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
     <div class="next">${TDY?`
       <button type="button" class="btn big" id="topref">県を応援する</button>
       <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>
@@ -1587,9 +1594,9 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
       ${M.replay?`<div class="sub" style="flex-basis:100%">${esc(dt(M.res.at))}の試合の再生です。${THRONE&&THRONE.champ?'いまの王者は'+esc(THRONE.champ.display)+'。':''}</div>`:''}
       <button type="button" class="btn big" id="thr">${M.replay?'いまの王者に挑む':M.res.result==='win'?'新王者に挑む':'別の記事で挑む'}</button>
       <button type="button" class="btn" id="tofree">自由対戦へ</button>`:current.orig&&current.orig.k==='pref'?prefBtns(w===null?null:w===ai):`
-      ${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
+      ${sh1?`<div class="sub" style="flex-basis:100%">${esc(F[w!==null?w:bi][0])}に、好きな記事で挑もう</div><button type="button" class="btn big" id="mychal">記事を選ぶ</button>`:w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}
       <button type="button" class="btn" id="again">別の組み合わせ</button>
-      <button type="button" class="btn" id="back">選び直す</button>
+      ${sh1?'':'<button type="button" class="btn" id="back">選び直す</button>'}
       ${current.orig&&current.orig.k==='fam'?'<button type="button" class="btn" id="toorig">一門に戻る</button>':current.orig&&current.orig.k==='mine'?'<button type="button" class="btn" id="toorig">代表戦に戻る</button>':''}`}
     </div>
     ${!TDY&&!M&&w!==null&&THRONE&&!isChamp(w)&&!(current.orig&&current.orig.k==='dg')?'<div class="next"><button type="button" class="btn" id="tothr">勝者で王者に挑む</button></div>':''}
@@ -1614,6 +1621,8 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
     <div class="rnote">送られるのは、この報告の内容と、続けて送られるのを防ぐための回線・ブラウザの番号（元に戻せない形に変えて保存）です。見るのは管理者だけです。</div>
   </form>`;
   if(current.orig&&current.orig.k==='pref'){ const P=current.orig.p; let sent=false; ['tw','nshare','copy'].forEach(id=>{ const e=$('#'+id); if(e) e.addEventListener('click',()=>{ if(!sent){ sent=true; prefEv('sh',P); } }); }); }   // 1試合1回
+  if($('#scnext')) $('#scnext').onclick=()=>{ scI=(scI+1)%SC.length; share=mkShare(); $('#share').textContent=share; const tw=$('#tw'); if(tw) tw.href='https://x.com/intent/tweet?text='+encodeURIComponent(share)+'&url='+encodeURIComponent(SHAREURL); };
+  if($('#mychal')) $('#mychal').onclick=()=>{ const tg=w!==null?w:bi, sd=tg===ai?0:1; sel[sd]=tg; sel[1-sd]=null; renderPick(0); renderPick(1); updateFight(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const x=$('#in'+(1-sd)); if(x) x.focus({preventScroll:true}); },450); };
   if($('#nshare')) $('#nshare').onclick=()=>{ navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL}).catch(()=>{}); };
   if($('#copy')) $('#copy').onclick=async e=>{ const t=$('#share').textContent+'\n'+SHAREURL; try{ await navigator.clipboard.writeText(t); e.target.textContent='コピーしました'; }catch(_){ const rg=document.createRange(); rg.selectNodeContents($('#share')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); e.target.textContent='選択しました'; } };
   // 次の相手：試合に出てきた記事のうち、収録していて対戦に出せるものを4つまで
@@ -1984,6 +1993,16 @@ addEventListener('pagehide',()=>flushPlays(true));
 /* 来た元の種類（このタブで最初に開いたときの来た元。対戦数を送るときに使う。タブを閉じると消える） */
 try{ if(!sessionStorage.getItem('hk-src')){ let h=''; try{ h=document.referrer?new URL(document.referrer).hostname.toLowerCase():''; }catch(_){} if(h===location.hostname) h='';
   sessionStorage.setItem('hk-src',!h?'direct':/freegame-mugen\.jp$/.test(h)?'mugen':/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)?'x':/(google|bing|yahoo|duckduckgo)\./.test(h)?'search':'other'); } }catch(_){}
+// 名場面の候補：実況の行に点を付けて、上位3つ（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形
+function scenes(r){ const L=[]; ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').trim(); if(!s) return; let t=s, sh=s, sc=2;
+    if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\s\S]*)」$/,'$1')+'」'; sc=5; }
+    else if(l.side<0){ sc=4; if(/【因縁】|倍$/.test(s)) sc=-9; t=sh='「'+s+'」'; }
+    else { if(l.mv&&l.mv[0]==='SUMMON') sc+=2; if(l.mv&&l.mv[8]) sc+=1; const m=s.match(/^.+?の(【[^】]+】)[！。]\s*([\s\S]+)$/); t='「'+s+'」'; sh=m?m[1]+m[2]:t; }
+    if(/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|議論|編集合戦|所要時間|まばら/.test(s)) sc+=4;
+    const n=[...sh].length; if(n>60) sc-=5; else if(n>45) sc-=1; if(n<14) sc-=3;
+    L.push({t,s:sh,sc,k}); });
+  const seen=new Set(); return L.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||a.k-b.k).filter(x=>!seen.has(x.s)&&seen.add(x.s)).slice(0,3); }
+let SH1_DONE=false;   // 共有リンクから来た最初の試合の入口は1回だけ
 const LAND=(()=>{ try{ const q=new URLSearchParams(location.search); return q.has('pref')?'pref':q.has('today')?'today':q.has('c')?'c':q.has('hall')?'hall':(q.has('a')&&q.has('b'))?'battle':[...q.keys()].filter(k=>!['nostat','v'].includes(k)).length?'other':'top'; }catch(_){ return 'other'; } })();   // 入ってきたときのURLで決める（あとで書き換わる前）
 function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-vday')===day) return;
     const fresh=!localStorage.getItem('hk-cid'); let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}

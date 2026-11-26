@@ -2853,6 +2853,42 @@ repall("""      else if(/^体重/.test(d)){""", """      else if(/^(体重|質�
 repall("""const ibx=t=>{ t=String(t); const k=t.indexOf('：'); return k>0&&k<16?""",
        """const ibx=t=>{ t=String(t); { const m=t.indexOf('：')<0&&t.match(/^(高さ|標高|体重|質量|面積|人口|全長|最大水深)(?=[約0-9０-９])/); if(m) t=m[1]+'：'+t.slice(m[1].length); else if(/^時速[約0-9]/.test(t)) t='速さ：'+t; } const k=t.indexOf('：'); return k>0&&k<16?""")
 
+# ---- 147. 共有の文に「名場面の1行」を入れる。共有リンクから来た人に「好きな記事で挑む」入口を出す（2026-11-26）
+#   名場面：実況の行に点を付け、審判員の一言・召喚の「……が、気まずい」などのオチを優先して上位3つを選ぶ。「場面を替える」で選び直せる
+#   Xの文字数に収まらないときは、技の行を「【技名】中身」に縮め、結果も「◯◯の勝ち。」に縮める。今日の一戦は予想の文のまま
+#   入口：自由対戦の共有リンク（?a=&b=）で来た最初の試合だけ、主のボタンを「記事を選ぶ」にし、勝った記事を残して相手の入力欄を開く
+repall("""const LAND=(()=>{""",
+       """// 名場面の候補：実況の行に点を付けて、上位3つ（同じ点なら早い行）。t は共有にそのまま使う形、s は縮めた形
+function scenes(r){ const L=[]; ((r&&r.log)||[]).forEach((l,k)=>{ const s=String(l.s||'').trim(); if(!s) return; let t=s, sh=s, sc=2;
+    if(l.kai){ t=sh='審判員「'+s.replace(/^解説「([\\s\\S]*)」$/,'$1')+'」'; sc=5; }
+    else if(l.side<0){ sc=4; if(/【因縁】|倍$/.test(s)) sc=-9; t=sh='「'+s+'」'; }
+    else { if(l.mv&&l.mv[0]==='SUMMON') sc+=2; if(l.mv&&l.mv[8]) sc+=1; const m=s.match(/^.+?の(【[^】]+】)[！。]\\s*([\\s\\S]+)$/); t='「'+s+'」'; sh=m?m[1]+m[2]:t; }
+    if(/……が、|気まずい|なかった|以上である|勝手に|気づかなかった|議論|編集合戦|所要時間|まばら/.test(s)) sc+=4;
+    const n=[...sh].length; if(n>60) sc-=5; else if(n>45) sc-=1; if(n<14) sc-=3;
+    L.push({t,s:sh,sc,k}); });
+  const seen=new Set(); return L.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||a.k-b.k).filter(x=>!seen.has(x.s)&&seen.add(x.s)).slice(0,3); }
+let SH1_DONE=false;   // 共有リンクから来た最初の試合の入口は1回だけ
+const LAND=(()=>{""")
+repall("""  share=fitPost(share)+'\\n'+DISC;""",
+       """  // 名場面の1行を入れる（今日の一戦は予想の文のまま）
+  const SC=TDY?[]:scenes(r); let scI=0; const base=share;
+  const mkShare=()=>{ if(!SC.length) return fitPost(base)+'\\n'+DISC; const hd=(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=base.slice(hd.length), vs=hd+F[ai][0]+' vs '+F[bi][0], room=280-24-xlen(DISC)-1;
+    const tl=(base.match(/(第\\d+代王者に。|王者は\\d+度目の防衛。)$/)||[''])[0], short=(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];
+    for(const ln of [x.t,x.s]) for(const tail of [body,short]){ const t=vs+'\\n'+ln+'\\n'+tail; if(xlen(t)<=room) return t+'\\n'+DISC; }
+    return fitPost(vs+'\\n'+x.s+'\\n'+short)+'\\n'+DISC; };
+  share=mkShare();
+  const sh1=!TDY&&!M&&!current.orig&&LAND==='battle'&&!SH1_DONE; if(sh1) SH1_DONE=true;""")
+repall("""<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""",
+       """${SC.length>1?'<button type="button" class="btn small" id="scnext">場面を替える</button>':''}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>""")
+repall("""  if($('#nshare')) $('#nshare').onclick=""",
+       """  if($('#scnext')) $('#scnext').onclick=()=>{ scI=(scI+1)%SC.length; share=mkShare(); $('#share').textContent=share; const tw=$('#tw'); if(tw) tw.href='https://x.com/intent/tweet?text='+encodeURIComponent(share)+'&url='+encodeURIComponent(SHAREURL); };
+  if($('#mychal')) $('#mychal').onclick=()=>{ const tg=w!==null?w:bi, sd=tg===ai?0:1; sel[sd]=tg; sel[1-sd]=null; renderPick(0); renderPick(1); updateFight(); $('#setup').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>{ const x=$('#in'+(1-sd)); if(x) x.focus({preventScroll:true}); },450); };
+  if($('#nshare')) $('#nshare').onclick=""")
+repall("""${w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}""",
+       """${sh1?`<div class="sub" style="flex-basis:100%">${esc(F[w!==null?w:bi][0])}に、好きな記事で挑もう</div><button type="button" class="btn big" id="mychal">記事を選ぶ</button>`:w!==null?`<button type="button" class="btn big" id="cont">${esc(F[w][0])}に次の挑戦者</button>`:''}""")
+repall("""<button type="button" class="btn" id="back">選び直す</button>""",
+       """${sh1?'':'<button type="button" class="btn" id="back">選び直す</button>'}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
