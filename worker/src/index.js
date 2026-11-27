@@ -58,18 +58,6 @@ function cleanName(n) {
   if (NG.some(w => { const x = w.toLowerCase(); return low.includes(x) || kata.includes(x.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60))); })) return { error: 'その名前は使えません。別の名前にしてください。' };
   return { name: n };
 }
-// 書き込みの連打よけ：同じ回線（変換したIP）からの1日（UTC）の回数を、Cloudflare の一時的な置き場（キャッシュ）で数える。データベースには何も書かない
-//   データセンターごとに数えるので厳密ではないが、1つの回線からの連打で無料枠（1日10万行の書き込み）を使い切られるのは防げる
-const DAILY = { visit: 50, plays: 300, prefev: 100 };   // 1つの回線から1日に受け付ける回数（携帯回線などは大勢で共有されるので緩めにする）
-async function overDaily(env, req, kind) {
-  try {
-    const key = new Request('https://hyakkakenten.com/__rl/' + kind + '/' + new Date().toISOString().slice(0, 10) + '/' + await ipHash(env, req));
-    const hit = await caches.default.match(key), n = hit ? (parseInt(await hit.text(), 10) || 0) : 0;
-    if (n >= DAILY[kind]) return true;
-    await caches.default.put(key, new Response(String(n + 1), { headers: { 'Cache-Control': 'public, max-age=86400' } }));
-  } catch (_) {}
-  return false;
-}
 async function ipHash(env, req) {
   const ip = req.headers.get('CF-Connecting-IP') || 'local';
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode((env.IP_SALT || 'dev') + '|' + ip));
@@ -215,7 +203,6 @@ async function plays(env, req) {
   let body; try { body = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
   const n = Math.min(PLAYS_MAX, Math.floor(Number(body.n)));
   if (!(n >= 1)) return json(env, req, { error: 'bad' }, 400);
-  if (await overDaily(env, req, 'plays')) return json(env, req, { ok: false });
   const ih = await ipHash(env, req);
   const cl = /^[a-z0-9]{16,40}$/.test(String(body.client || '')) ? await ipHash(env, { headers: { get: () => 'client:' + body.client } }) : null;
   const t10 = new Date(Date.now() - 600000).toISOString();
@@ -265,7 +252,6 @@ const prefEvStmt = (env, d, p, k, n) => env.DB.prepare('INSERT INTO pref_ev (day
 async function prefEvApi(env, req) {
   let b; try { b = JSON.parse(await req.text()); } catch (_) { return json(env, req, { error: 'bad' }, 400); }
   if (!['in', 'sh'].includes(b.k) || !PREFS.includes(b.p)) return json(env, req, { error: 'bad' }, 400);
-  if (await overDaily(env, req, 'prefev')) return json(env, req, { ok: true });
   try { await prefEvStmt(env, prefDay(), b.p, b.k, 1).run(); } catch (_) {}
   return json(env, req, { ok: true });
 }
@@ -313,7 +299,6 @@ async function visit(env, req) {
   const land = ['top', 'today', 'pref', 'battle', 'c', 'hall', 'other'].includes(body.land) ? body.land : 'other';   // どこから入ったか
   const ret = ['new', 'd1', 'w', 'long'].includes(body.ret) ? body.ret : body.fresh ? 'new' : 'long';   // 初めて／前日も来た／1週間以内／久しぶり
   const dev = body.mob ? 'm' : 'd', src = srcOf(ref);
-  if (await overDaily(env, req, 'visit')) return json(env, req, { ok: true });   // 連打は数えない
   await bumpAll(env, [bump(env, 'visit', ret, dev, src, land, 1), ...(ref ? [bump(env, 'ref', ref, dev, src, '', 1)] : [])]);
   return json(env, req, { ok: true });
 }
