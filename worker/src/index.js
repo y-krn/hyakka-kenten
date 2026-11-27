@@ -458,9 +458,13 @@ async function sitemap(req, env, ctx) {
   const hit = await cache.match(key); if (hit) return hit;
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const urls = [[SITE + '/', null, 'daily', '1.0']];
-  try {   // 王座戦の試合の記録（新しい順）
-    const r = await env.DB.prepare('SELECT id, at FROM challenges ORDER BY id DESC LIMIT 5000').all();
+  try {   // 王座戦の試合の記録のうち、王座が替わった試合（新しい順）。挑戦ぜんぶを並べると似たページばかりになり、検索の巡回が肝心のページに回らないため
+    const r = await env.DB.prepare("SELECT id, at FROM challenges WHERE result = 'win' ORDER BY id DESC LIMIT 2000").all();
     for (const x of r.results) urls.push([SITE + '/?c=' + x.id, String(x.at || '').slice(0, 10), null, '0.5']);
+  } catch (_) {}
+  try {   // 今日の一戦（直近30日。日付ごとのページ）
+    const r = await env.DB.prepare('SELECT day FROM today_og ORDER BY day DESC LIMIT 30').all();
+    for (const x of r.results) if (/^\d{4}-\d\d-\d\d$/.test(x.day)) urls.push([SITE + '/?today=1&d=' + x.day, x.day, null, '0.6']);
   } catch (_) {}
   try {   // 仲間さがしの一門（目立つものの一覧）
     const r = await env.ASSETS.fetch(new Request(new URL('/data/fam/featured.json', req.url)));
@@ -487,7 +491,7 @@ async function page(req, env, u) {
     .on('meta[property="og:description"]', set(card.desc))
     .on('meta[name="description"]', set(card.desc))
     .on('meta[property="og:url"]', set(card.url))
-    .on('link[rel="canonical"]', { element(e) { if (card.url && !u.searchParams.has('today')) e.setAttribute('href', card.url); } })
+    .on('link[rel="canonical"]', { element(e) { if (card.url && (!u.searchParams.has('today') || u.searchParams.has('d'))) e.setAttribute('href', card.url); } })
     .on('meta[property="og:image"]', set(card.image || SITE + '/og.png'))
     .on('meta[name="twitter:card"]', set(card.image ? 'summary_large_image' : 'summary'))
     .transform(res);

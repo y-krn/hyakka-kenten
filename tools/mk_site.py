@@ -2941,6 +2941,9 @@ repall("""  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchsta
     const arm=()=>{ if(document.visibilityState!=='visible'||document.prerendering) return false; setTimeout(sendOpen,4000); return true; };
     if(!arm()){ const f=()=>{ if(arm()) document.removeEventListener('visibilitychange',f); }; document.addEventListener('visibilitychange',f); } } }""")
 
+# ---- 152. 検索に載る道を整える：トップのページの題名に、何のゲームかを入れる（2026-11-28）
+repall("""<title>百科拳典（ひゃっかけんてん）</title>""", """<title>百科拳典（ひゃっかけんてん）｜Wikipediaの記事どうしが事実で戦うブラウザゲーム</title>""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
