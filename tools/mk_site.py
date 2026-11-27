@@ -2920,6 +2920,12 @@ repall("""short=(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI
 repall("""この試合のURL</a>""", """${PRF?'応援のURL':'この試合のURL'}</a>""")
 repall("""'<p class="fsub">まだ試合がありません</p>'""", """`<p class="fsub">${mon?mon+'月の':'今月の'}県対抗が始まりました。最初に勝ち星をあげた県が1位になります。</p>`""")
 
+repall("""    for(const ln of [x.t,x.s]) for(const tail of [body,short]){""",
+       """    const LN=[x.t,x.s], TL=[body,short], ORD=PRF?TL.flatMap(tl=>LN.map(ln=>[ln,tl])):LN.flatMap(ln=>TL.map(tl=>[ln,tl]));   /* 県の応援は、県の名前と #◯◯を応援 を名場面の長さより優先する */
+    for(const [ln,tail] of ORD){""")
+repall("""t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}""",
+       """if(me.w+me.l) t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

@@ -1325,7 +1325,7 @@ function prefFetch(){ if(!API) return null; if(!PBD||Date.now()-PBD.t>60000){ PB
 function prefTail(O,won){ const p=O.p; let t=won===null?`${p}は引き分け。`:won?`${p}の勝ち！`:`${p}、惜しくも敗れた。`;
   try{ const j=PBDJ; if(j&&Array.isArray(j.rows)){ const rows=j.rows.map(x=>({...x})); let me=rows.find(x=>x.p===p); if(!me){ me={p,w:0,l:0,c:0}; rows.push(me); } if(won===true) me.w++; else if(won===false) me.l++;
     const S=rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===p)+1, mon=+String(j.m||'').slice(5,7);
-    t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}
+    if(me.w+me.l) t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}
   return t; }   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
 function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
   if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
@@ -1573,7 +1573,8 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
   const PRT=PRF?prefTail(PRF,w===null?null:w===ai):''; const SC=TDY?[]:scenes(r,ai,bi); let scI=0; const base=share;
   const mkShare=()=>{ if(!SC.length) return fitPost(base)+'\n'+DISC; const hd=PRF?'【百科拳典 '+PRF.p+'を応援】':(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=PRF?PRT+'\n#'+PRF.p+'を応援':base.slice(hd.length), vs=hd+F[ai][0]+' vs '+F[bi][0], room=280-24-xlen(DISC)-1;
     const tl=(base.match(/(第\d+代王者に。|王者は\d+度目の防衛。)$/)||[''])[0], short=PRF?PRT:(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];
-    for(const ln of [x.t,x.s]) for(const tail of [body,short]){ const t=vs+'\n'+ln+'\n'+tail; if(xlen(t)<=room) return t+'\n'+DISC; }
+    const LN=[x.t,x.s], TL=[body,short], ORD=PRF?TL.flatMap(tl=>LN.map(ln=>[ln,tl])):LN.flatMap(ln=>TL.map(tl=>[ln,tl]));   /* 県の応援は、県の名前と #◯◯を応援 を名場面の長さより優先する */
+    for(const [ln,tail] of ORD){ const t=vs+'\n'+ln+'\n'+tail; if(xlen(t)<=room) return t+'\n'+DISC; }
     return fitPost(vs+'\n'+x.s+'\n'+short)+'\n'+DISC; };
   share=mkShare();
   const sh1=!TDY&&!M&&!current.orig&&LAND==='battle'&&!SH1_DONE; if(sh1) SH1_DONE=true;
