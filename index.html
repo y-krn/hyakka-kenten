@@ -1340,7 +1340,7 @@ function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
     const T=S.slice(0,10); if(rk>=10) T.push(S[rk]);
     const mon=+String(j.m||'').slice(5,7);
     el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗<small class="fsub">（勝率順）</small></div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:`<p class="fsub">${mon?mon+'月の':'今月の'}県対抗が始まりました。最初に勝ち星をあげた県が1位になります。</p>`}</div>`; }); }
-async function prefBattle(o){ o=o||{}; prefFetch();   // 共有の文に県の成績を入れるため、試合のあいだに読んでおく const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
+async function prefBattle(o){ o=o||{}; prefFetch(); /* 共有の文に県の成績を入れるため、試合のあいだに読んでおく */ const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
   try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
     for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const fx=new Set((o.f||[]).map(i=>F[i]&&F[i][1])), A0=(R[p]||{})[c]||[], A1=A0.filter(t=>!fx.has(t)), A=A1.length?A1:A0, B=(R[q]||{})[c]||[];   // 仇討ちでは、敗れた代表を候補から先に除く
       if((o.a==null&&!A.length)||(o.b==null&&!B.length)) continue;

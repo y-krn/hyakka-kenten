@@ -2912,7 +2912,7 @@ function prefTail(O,won){ const p=O.p; let t=won===null?`${p}は引き分け。`
   return t; }""")
 repall("""  if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};""",
        """  prefFetch();""")
-repall("""async function prefBattle(o){ o=o||{};""", """async function prefBattle(o){ o=o||{}; prefFetch();   // 共有の文に県の成績を入れるため、試合のあいだに読んでおく""")
+repall("""async function prefBattle(o){ o=o||{};""", """async function prefBattle(o){ o=o||{}; prefFetch(); /* 共有の文に県の成績を入れるため、試合のあいだに読んでおく */""")
 repall("""const SC=TDY?[]:scenes(r,ai,bi);""", """const PRT=PRF?prefTail(PRF,w===null?null:w===ai):''; const SC=TDY?[]:scenes(r,ai,bi);""")
 repall("""const hd=(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=base.slice(hd.length),""",
        """const hd=PRF?'【百科拳典 '+PRF.p+'を応援】':(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=PRF?PRT+'\\n#'+PRF.p+'を応援':base.slice(hd.length),""")
