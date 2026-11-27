@@ -299,6 +299,8 @@ async function visit(env, req) {
   const land = ['top', 'today', 'pref', 'battle', 'c', 'hall', 'other'].includes(body.land) ? body.land : 'other';   // どこから入ったか
   const ret = ['new', 'd1', 'w', 'long'].includes(body.ret) ? body.ret : body.fresh ? 'new' : 'long';   // 初めて／前日も来た／1週間以内／久しぶり
   const dev = body.mob ? 'm' : 'd', src = srcOf(ref);
+  if (/bot|crawl|spider|slurp|headless|lighthouse|python|curl|wget/i.test(req.headers.get('User-Agent') || '')) return json(env, req, { ok: true });   // 名乗りが機械のものは数えない
+  if (body.open) { await bumpAll(env, [bump(env, 'open', '', dev, src, land, 1)]); return json(env, req, { ok: true }); }   // 比べるため（しばらくのあいだ）：開かれた（人の操作はまだ）
   await bumpAll(env, [bump(env, 'visit', ret, dev, src, land, 1), ...(ref ? [bump(env, 'ref', ref, dev, src, '', 1)] : [])]);
   return json(env, req, { ok: true });
 }

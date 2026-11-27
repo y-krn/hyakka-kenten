@@ -2926,6 +2926,21 @@ repall("""    for(const ln of [x.t,x.s]) for(const tail of [body,short]){""",
 repall("""t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}""",
        """if(me.w+me.l) t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}""")
 
+# ---- 151. 機械の来訪を数えない（2026-11-28）
+#   これまでは「スクロール」でも来訪として数えていた。ページが自分で試合の位置へスクロールするので、巡回する機械も数えていた
+#   人の操作（押す・キー・触る・ホイール）があり、画面に出ているときだけ数える。比べるため、しばらくは「開かれた」（画面に4秒出た）も別に数える
+repall("""  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchstart'].forEach(e=>removeEventListener(e,go,true)); sendVisit(); };
+    ['pointerdown','scroll','keydown','touchstart'].forEach(e=>addEventListener(e,go,{capture:true,passive:true})); } }""",
+       """  if(!bot){ const EV=['pointerdown','keydown','touchstart','wheel']; const go=e=>{ if(e&&e.isTrusted===false) return; if(document.visibilityState!=='visible') return; EV.forEach(x=>removeEventListener(x,go,true)); sendVisit(); };
+    EV.forEach(e=>addEventListener(e,go,{capture:true,passive:true}));
+    /* 比べるため（しばらくのあいだ）：画面に4秒出たら「開かれた」として1日1回だけ数える。人の操作がなくても数える */
+    const sendOpen=()=>{ if(!API||NOSTAT||document.visibilityState!=='visible') return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-oday')===day) return;
+      let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
+      const mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+      fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({open:1,ref,mob,land:LAND}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-oday',day); }).catch(()=>{}); }catch(_){} };
+    const arm=()=>{ if(document.visibilityState!=='visible'||document.prerendering) return false; setTimeout(sendOpen,4000); return true; };
+    if(!arm()){ const f=()=>{ if(arm()) document.removeEventListener('visibilitychange',f); }; document.addEventListener('visibilitychange',f); } } }""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
