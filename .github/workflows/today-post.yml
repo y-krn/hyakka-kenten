@@ -1,0 +1,30 @@
+# 今日の一戦の投稿の通知（半自動・無料）
+#  - 毎朝 7時43分ごろ（日本時間）。今日の一戦の投稿文を作り、ntfy でスマホに送る。タップするとXの投稿画面が開く（投稿は本人が押す）
+#  - 共有画像（今日の一戦の共有画像のワークフロー、0時5分と3時5分）ができたあとに動く
+#  必要な設定: Secrets の NTFY_TOPIC
+name: 今日の一戦の投稿の通知
+on:
+  schedule:
+    - cron: '43 22 * * *'   # 22:43（UTC）＝ 日本時間 7:43
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 試すときの日付（YYYY-MM-DD。空なら今日）
+        default: ''
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/og/today_post.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 投稿文を作って通知する
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DAY: ${{ inputs.day }}
+        run: node tools/og/today_post.mjs
