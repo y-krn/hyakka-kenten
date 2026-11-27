@@ -1,0 +1,27 @@
+# 無料枠の見張り（読むだけ）：2時間ごとに Cloudflare の今日の使用量を見て、無料枠の半分を超えていたら ntfy に知らせる
+name: 無料枠の見張り
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      warn:
+        description: 知らせる割合（0.5＝半分。試すときは 0 にすると必ず知らせる）
+        default: '0.5'
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/cwa
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/cwa/usage.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          WARN: ${{ inputs.warn || '0.5' }}
