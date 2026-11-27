@@ -1319,7 +1319,14 @@ function prefDraw(){ const box=$('#pref'); if(!box) return; const o=prefGet(), n
   $('#psel').onchange=e=>{ const x=prefGet(); x.p=e.target.value||undefined; prefSet(x); prefDraw(); };
   $('#pgo').onclick=prefGo; }
 function prefEv(k,p){ try{ if(!API||NOSTAT||!PREFS.includes(p)) return; fetch(API+'/api/pref/ev',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k,p}),keepalive:true}).catch(()=>{}); }catch(_){} }
-let PBD=null, PBIO=null;   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
+let PBD=null, PBIO=null, PBDJ=null;
+function prefFetch(){ if(!API) return null; if(!PBD||Date.now()-PBD.t>60000){ PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)}; PBD.p.then(j=>{ if(j) PBDJ=j; }); } return PBD.p; }
+// 共有の文の最後：県の勝ち負けと、その月の成績・順位（3県以上が試合をしていれば）
+function prefTail(O,won){ const p=O.p; let t=won===null?`${p}は引き分け。`:won?`${p}の勝ち！`:`${p}、惜しくも敗れた。`;
+  try{ const j=PBDJ; if(j&&Array.isArray(j.rows)){ const rows=j.rows.map(x=>({...x})); let me=rows.find(x=>x.p===p); if(!me){ me={p,w:0,l:0,c:0}; rows.push(me); } if(won===true) me.w++; else if(won===false) me.l++;
+    const S=rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===p)+1, mon=+String(j.m||'').slice(5,7);
+    t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}
+  return t; }   // 今月の県対抗（読み込みは1回。1分ごとに読み直す）
 function prefBoardLater(){ const el=$('#pboard'); if(!el) return; if(PBD){ setTimeout(prefBoard,0); return; }   // 一度読んだら、描き直しのたびにすぐ出す
   if(!('IntersectionObserver' in window)){ setTimeout(prefBoard,0); return; }
   if(PBIO) PBIO.disconnect(); PBIO=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ PBIO.disconnect(); PBIO=null; prefBoard(); } },{rootMargin:'200px'}); PBIO.observe(el); }
@@ -1327,13 +1334,13 @@ function prefReps(){ const el=$('#preps'), me=prefGet().p; if(!el||!me) return; 
   prefLoad().then(R=>{ const r=R[me]||{}, el=$('#preps'); if(!el||prefGet().p!==me) return; const nm=t=>t.replace(/\s*\(.*\)$/,'');
     el.innerHTML=`<div class="pbd"><div class="pbh">${esc(me)}の代表</div><dl class="preps">${PCATS.filter(k=>(r[k]||[]).length).map(k=>`<dt>${k}</dt><dd>${r[k].slice(0,3).map(t=>esc(nm(t))).join('、')}</dd>`).join('')}</dl></div>`; }); }
 function prefBoard(){ prefReps(); const el=$('#pboard'); if(!el||!API) return;
-  if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};
+  prefFetch();
   PBD.p.then(j=>{ const el=$('#pboard'); if(!el||!j||!Array.isArray(j.rows)) return; const me=prefGet().p;
     const S=j.rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===me);
     const T=S.slice(0,10); if(rk>=10) T.push(S[rk]);
     const mon=+String(j.m||'').slice(5,7);
-    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗<small class="fsub">（勝率順）</small></div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:'<p class="fsub">まだ試合がありません</p>'}</div>`; }); }
-async function prefBattle(o){ o=o||{}; const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
+    el.innerHTML=`<div class="pbd"><div class="pbh">${mon?mon+'月の':'今月の'}県対抗<small class="fsub">（勝率順）</small></div>${S.length?`<ol>${T.map(x=>{ const i=S.indexOf(x); return `<li class="${x.p===me?'me':''}"><i>${i+1}</i><b>${esc(x.p)}</b><span>${x.w}勝${x.l}敗${x.c?'・応援'+x.c:''}</span></li>`; }).join('')}</ol>`:`<p class="fsub">${mon?mon+'月の':'今月の'}県対抗が始まりました。最初に勝ち星をあげた県が1位になります。</p>`}</div>`; }); }
+async function prefBattle(o){ o=o||{}; prefFetch();   // 共有の文に県の成績を入れるため、試合のあいだに読んでおく const p=prefGet().p; if(!p) return; const btn=$('#pgo'); if(btn) btn.disabled=true;
   try{ const R=await prefLoad(); const pick=L=>L[Math.floor(Math.random()*L.length)];
     for(let k=0;k<20;k++){ const c=o.c||pick(PCATS), q=o.b!=null?o.q:pick(PREFS.filter(x=>x!==p)); const fx=new Set((o.f||[]).map(i=>F[i]&&F[i][1])), A0=(R[p]||{})[c]||[], A1=A0.filter(t=>!fx.has(t)), A=A1.length?A1:A0, B=(R[q]||{})[c]||[];   // 仇討ちでは、敗れた代表を候補から先に除く
       if((o.a==null&&!A.length)||(o.b==null&&!B.length)) continue;
@@ -1563,9 +1570,9 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
       :`【百科拳典 都道府県を応援】${PRF.p}代表・${me}は、${PRF.q}代表・${op}に敗れた…。仇を討つ代表は次の試合で`;
     share+=`\nあなたの県も応援しよう #${PRF.p}を応援`; }
   // 名場面の1行を入れる（今日の一戦は予想の文のまま）
-  const SC=TDY?[]:scenes(r,ai,bi); let scI=0; const base=share;
-  const mkShare=()=>{ if(!SC.length) return fitPost(base)+'\n'+DISC; const hd=(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=base.slice(hd.length), vs=hd+F[ai][0]+' vs '+F[bi][0], room=280-24-xlen(DISC)-1;
-    const tl=(base.match(/(第\d+代王者に。|王者は\d+度目の防衛。)$/)||[''])[0], short=(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];
+  const PRT=PRF?prefTail(PRF,w===null?null:w===ai):''; const SC=TDY?[]:scenes(r,ai,bi); let scI=0; const base=share;
+  const mkShare=()=>{ if(!SC.length) return fitPost(base)+'\n'+DISC; const hd=PRF?'【百科拳典 '+PRF.p+'を応援】':(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=PRF?PRT+'\n#'+PRF.p+'を応援':base.slice(hd.length), vs=hd+F[ai][0]+' vs '+F[bi][0], room=280-24-xlen(DISC)-1;
+    const tl=(base.match(/(第\d+代王者に。|王者は\d+度目の防衛。)$/)||[''])[0], short=PRF?PRT:(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];
     for(const ln of [x.t,x.s]) for(const tail of [body,short]){ const t=vs+'\n'+ln+'\n'+tail; if(xlen(t)<=room) return t+'\n'+DISC; }
     return fitPost(vs+'\n'+x.s+'\n'+short)+'\n'+DISC; };
   share=mkShare();
@@ -1586,7 +1593,7 @@ function showResult(){ try{ if(current) plRec([current.ai,current.bi]).then(nw=>
     <div class="reads"><span>記事を読む</span>${[ai,bi].map(i=>`<a href="https://ja.wikipedia.org/wiki/${encodeURIComponent(F[i][1])}" target="_blank" rel="noopener">${esc(F[i][0])} ↗</a>`).join('')}</div>
     ${!TDY&&!M&&!(current.orig&&current.orig.k==='pref')?'<div class="reads nextops" id="nextops" hidden><span>次の相手</span></div>':''}
     <div class="share"><output id="share">${esc(share)}</output></div>
-    <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}<a class="url" href="${esc(SHAREURL)}">この試合のURL</a></div>
+    <div class="share2"><a class="btn small" id="tw" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=${encodeURIComponent(share)}&url=${encodeURIComponent(SHAREURL)}">Xに投稿</a>${navigator.share?'<button type="button" class="btn small" id="nshare">共有</button>':'<button type="button" class="btn small" id="copy">コピー</button>'}<a class="url" href="${esc(SHAREURL)}">${PRF?'応援のURL':'この試合のURL'}</a></div>
     <div class="next">${TDY?`
       <button type="button" class="btn big" id="topref">県を応援する</button>
       <button type="button" class="btn" id="tofree">自由対戦で遊ぶ</button>

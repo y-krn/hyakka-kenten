@@ -2898,7 +2898,29 @@ repall(""".share output{flex:1;min-width:0;""", """.share output{white-space:pre
 repall("""navigator.share({title:'百科拳典',text:$('#share').textContent,url:SHAREURL})""",
        """navigator.share({text:$('#share').textContent+'\\n'+SHAREURL})""")
 repall("""navigator.share({title:'百科拳典 仲間さがし',text:famText(g),url:famURL(key)})""",
-       """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# 確認画面の枠と、使わなくなった表示を消す
+       """navigator.share({text:famText(g)+'\\n'+famURL(key)})""")# ---- 150. 都道府県の応援：共有の文に県の名前とその月の成績・順位を入れる。月の初めの空の表を呼びかけにする（2026-11-27）
+#   名場面を入れる形（patch 147）にしたとき、文が長いと「◯◯の勝ち。」に縮めていて、どの県を応援したかが消えていた
+#   県の成績は、県対抗の表と同じ読み込み（1分ごと）を使い、この試合の分を足して出す（サーバーにはあとでまとめて届くため）
+repall("""let PBD=null, PBIO=null;""",
+       """let PBD=null, PBIO=null, PBDJ=null;
+function prefFetch(){ if(!API) return null; if(!PBD||Date.now()-PBD.t>60000){ PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)}; PBD.p.then(j=>{ if(j) PBDJ=j; }); } return PBD.p; }
+// 共有の文の最後：県の勝ち負けと、その月の成績・順位（3県以上が試合をしていれば）
+function prefTail(O,won){ const p=O.p; let t=won===null?`${p}は引き分け。`:won?`${p}の勝ち！`:`${p}、惜しくも敗れた。`;
+  try{ const j=PBDJ; if(j&&Array.isArray(j.rows)){ const rows=j.rows.map(x=>({...x})); let me=rows.find(x=>x.p===p); if(!me){ me={p,w:0,l:0,c:0}; rows.push(me); } if(won===true) me.w++; else if(won===false) me.l++;
+    const S=rows.map(x=>({...x,s:(x.w+5)/(x.w+x.l+10)})).sort((a,b)=>b.s-a.s||b.w-a.w), rk=S.findIndex(x=>x.p===p)+1, mon=+String(j.m||'').slice(5,7);
+    t+=`${mon?mon+'月':'今月'}は${me.w}勝${me.l}敗`+(S.length>=3?`（${rk}位）`:'')+'。'; } }catch(_){}
+  return t; }""")
+repall("""  if(!PBD||Date.now()-PBD.t>60000) PBD={t:Date.now(),p:fetch(API+'/api/pref').then(r=>r.ok?r.json():null).catch(()=>null)};""",
+       """  prefFetch();""")
+repall("""async function prefBattle(o){ o=o||{};""", """async function prefBattle(o){ o=o||{}; prefFetch();   // 共有の文に県の成績を入れるため、試合のあいだに読んでおく""")
+repall("""const SC=TDY?[]:scenes(r,ai,bi);""", """const PRT=PRF?prefTail(PRF,w===null?null:w===ai):''; const SC=TDY?[]:scenes(r,ai,bi);""")
+repall("""const hd=(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=base.slice(hd.length),""",
+       """const hd=PRF?'【百科拳典 '+PRF.p+'を応援】':(base.match(/^【[^】]+】/)||['【百科拳典】'])[0], body=PRF?PRT+'\\n#'+PRF.p+'を応援':base.slice(hd.length),""")
+repall("""short=(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];""", """short=PRF?PRT:(w===null?'引き分け。':F[w][0]+'の勝ち。')+tl, x=SC[scI];""")
+repall("""この試合のURL</a>""", """${PRF?'応援のURL':'この試合のURL'}</a>""")
+repall("""'<p class="fsub">まだ試合がありません</p>'""", """`<p class="fsub">${mon?mon+'月の':'今月の'}県対抗が始まりました。最初に勝ち星をあげた県が1位になります。</p>`""")
+
+# 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)
 left = [w for w in ['DATA.', 'NAMES', 'recompute(', 'renderReview', 'dbRef', 'window.claude', 'isAdmin', "list=\"names\""] if w in s]
