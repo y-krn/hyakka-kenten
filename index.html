@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>百科拳典（ひゃっかけんてん）</title>
+<title>百科拳典（ひゃっかけんてん）｜Wikipediaの記事どうしが事実で戦うブラウザゲーム</title>
 <meta name="description" content="Wikipediaの記事が、事実だけで殴り合う。日本語版Wikipediaの約140万記事から2つ選ぶと、WikidataとWikipediaに載っている事実だけで真面目に戦います。">
 <meta property="og:title" content="百科拳典（ひゃっかけんてん）">
 <meta property="og:description" content="Wikipediaの記事が、事実だけで殴り合う。">
@@ -1920,8 +1920,15 @@ function sendVisit(){ if(!API||NOSTAT) return; try{ const day=new Date(Date.now(
     const prev=localStorage.getItem('hk-vday'), dd=prev?Math.round((Date.parse(day)-Date.parse(prev))/864e5):0, ret=fresh?'new':dd===1?'d1':dd>=2&&dd<=7?'w':'long';
     fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({ref,mob,fresh,ret,land:LAND}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-vday',day); }).catch(()=>{}); }catch(_){} }
 { const bot=(()=>{ try{ return !!navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|embedly|python|curl|wget/i.test(navigator.userAgent||''); }catch(_){ return true; } })();
-  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchstart'].forEach(e=>removeEventListener(e,go,true)); sendVisit(); };
-    ['pointerdown','scroll','keydown','touchstart'].forEach(e=>addEventListener(e,go,{capture:true,passive:true})); } }
+  if(!bot){ const EV=['pointerdown','keydown','touchstart','wheel']; const go=e=>{ if(e&&e.isTrusted===false) return; if(document.visibilityState!=='visible') return; EV.forEach(x=>removeEventListener(x,go,true)); sendVisit(); };
+    EV.forEach(e=>addEventListener(e,go,{capture:true,passive:true}));
+    /* 比べるため（しばらくのあいだ）：画面に4秒出たら「開かれた」として1日1回だけ数える。人の操作がなくても数える */
+    const sendOpen=()=>{ if(!API||NOSTAT||document.visibilityState!=='visible') return; try{ const day=new Date(Date.now()+9*3600000).toISOString().slice(0,10); if(localStorage.getItem('hk-oday')===day) return;
+      let ref=''; try{ const h=document.referrer?new URL(document.referrer).hostname:''; if(h&&h!==location.hostname) ref=h.toLowerCase(); }catch(_){}
+      const mob=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(_){ return false; } })();
+      fetch(API+'/api/visit',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({open:1,ref,mob,land:LAND}),keepalive:true}).then(r=>{ if(r.ok) localStorage.setItem('hk-oday',day); }).catch(()=>{}); }catch(_){} };
+    const arm=()=>{ if(document.visibilityState!=='visible'||document.prerendering) return false; setTimeout(sendOpen,4000); return true; };
+    if(!arm()){ const f=()=>{ if(arm()) document.removeEventListener('visibilitychange',f); }; document.addEventListener('visibilitychange',f); } } }
 function clientId(){ try{ let c=localStorage.getItem('hk-cid'); if(!/^[a-z0-9]{16,40}$/.test(c||'')){ const a=new Uint8Array(12); crypto.getRandomValues(a); c=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); localStorage.setItem('hk-cid',c); } return c; }catch(_){ return ''; } }
 function battleURL(){ const base=location.origin+location.pathname; if(!current) return base;
   if(current.mode&&current.mode.res&&current.mode.res.id) return base+'?c='+current.mode.res.id;

@@ -6,7 +6,7 @@ on:
       what:
         description: 何を読むか
         type: choice
-        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ, 日ごとの合計の照合, 来た元の推移]
+        options: [都道府県の応援, 遊び方の内訳, アクセス解析, 今日の記録, 王座戦の記録, 王座の交代, 読み取りの多い問い合わせ, 日ごとの合計の照合, 来た元の推移, 機械の来訪の比べ]
 jobs:
   read:
     runs-on: ubuntu-latest
@@ -71,3 +71,7 @@ jobs:
         if: inputs.what == '来た元の推移'
         run: |
           npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT day, src, SUM(CASE WHEN ev = 'visit' THEN n END) AS v, SUM(CASE WHEN ev = 'visit' AND k = 'new' THEN n END) AS nw, SUM(CASE WHEN ev = 'reach' AND k = '1' THEN n END) AS played FROM daily_stats WHERE day >= date('now', '+9 hours', '-14 days') AND ev IN ('visit', 'reach') GROUP BY day, src ORDER BY day, src" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('CHJSON'+JSON.stringify(JSON.parse(s)[0].results)))"
+      - name: 機械の来訪の比べ（日ごと・来た元ごと・端末ごとに、人の操作があった来訪と、開かれただけの数を並べる）
+        if: inputs.what == '機械の来訪の比べ'
+        run: |
+          npx wrangler d1 execute hyakka-kenten --remote --json --command "SELECT day, src, dev, SUM(CASE WHEN ev = 'visit' THEN n END) AS visit, SUM(CASE WHEN ev = 'open' THEN n END) AS open, SUM(CASE WHEN ev = 'reach' AND k = '1' THEN n END) AS played FROM daily_stats WHERE day >= '2026-11-28' AND ev IN ('visit', 'open', 'reach') GROUP BY day, src, dev ORDER BY day, src, dev" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('CHJSON'+JSON.stringify(JSON.parse(s)[0].results)))"
