@@ -14,6 +14,12 @@ if (typeof d.cleanupAt === 'number' && Date.now() - d.cleanupAt > 3 * 3600e3) {
   if (NTFY) await fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
     topic: NTFY, title: '百科拳典：片付けが止まっています', message: `古い番号・IPを消す1時間ごとの片付けが、${h}時間動いていません。Cloudflare の管理画面で、Worker の定期実行（Cron）を確かめてください。`, tags: ['warning'] }) });
 }
+// 百科ダンジョンのお題が30日先まであるかを見る（ダンジョンのお題をまだ配っていなければ何もしない）
+{ const j = n => new Date(Date.now() + 9 * 3600e3 + n * 864e5).toISOString().slice(0, 10), get = day => fetch(SITE + '/data/dg/' + day.slice(0, 7) + '.json').then(r => r.ok ? r.json() : null).catch(() => null);
+  const now = await get(j(0)), later = await get(j(30));
+  if (now && !(later && later[j(30)])) { console.log('ダンジョンのお題が30日先までありません');
+    if (NTFY) await fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      topic: NTFY, title: '百科拳典：ダンジョンのお題が残り少ない', message: `${j(30)} のお題がまだありません。GitHub の「作り直し：ダンジョンのリンクのつながり」を動かしてください。`, tags: ['warning'] }) }); } }
 if (!d.changes) { console.log('今日は王座の交代がありませんでした。送りません'); process.exit(0); }
 const md = (+d.day.slice(5, 7)) + '月' + (+d.day.slice(8, 10)) + '日';
 const head = d.changes >= 10 ? `王座が${d.changes}回入れ替わる大乱戦。` : d.changes >= 3 ? `王座が${d.changes}回入れ替わる混戦。` : `王座の交代は${d.changes}回。`;

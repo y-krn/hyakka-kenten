@@ -5,7 +5,7 @@
 # つながりは上限なし。収録している記事どうしだけ（転送ページは転送先に読み替える）
 import sys, os, json, gzip, glob, datetime, hashlib
 import numpy as np
-D, OUT = sys.argv[1], sys.argv[2]; DAYS = int(os.environ.get('DAYS', '180'))
+D, OUT = sys.argv[1], sys.argv[2]; DAYS = int(os.environ.get('DAYS', '1100'))
 NB = 4096
 def fnv(t):   # ページ側の fnv と同じ（UTF-16 の単位で数える）
     h = 0x811c9dc5

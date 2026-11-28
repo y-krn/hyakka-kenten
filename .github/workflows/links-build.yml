@@ -1,7 +1,7 @@
 # 百科ダンジョンのリンクのつながりを作る：検索用データ（jawiki_content）から記事ごとのリンク先を取り、収録している記事どうしのつながり（上限なし）と、毎日のお題を作る
 #   できたもの（data/l の1,024個と data/dg の月ごとのお題）は、Git に入れず GitHub の Releases（タグ links-日付）に links.tar として置く。デプロイのときにそこから取り出して配る
 #   記事データを作り直したとき（data/t が変わったとき）は、これも作り直すこと（記事の番号が data/t の並び順のため）
-#   お題は今日から DAYS 日分。足りなくなる前に作り直す
+#   お題は今日から DAYS 日分（既定は約3年）。お題はつながりから決まるので、つながりを作り直すときに一緒に作り直せばよい（夜のまとめ通知で、30日先のお題がなければ知らせる）
 name: 作り直し：ダンジョンのリンクのつながり
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
         default: ''
       days:
         description: お題を作る日数
-        default: '180'
+        default: '1100'
       release:
         description: Releases に置く（試すときは外す）
         type: boolean
@@ -88,7 +88,7 @@ jobs:
       - run: pip install -q numpy
       - name: つながりとお題を作る
         env:
-          DAYS: ${{ inputs.days }}
+          DAYS: ${{ inputs.days || '1100' }}
         run: du -sh all && python3 tools/links_build.py all out && du -sh out/l out/dg && ls out/dg
       - name: まとめる
         run: tar -C out -cf links.tar l dg && ls -la links.tar
