@@ -31,7 +31,7 @@ const img = await card.screenshot({ type: 'jpeg', quality: 88 });
 await browser.close();
 if (process.env.OUT) { (await import('node:fs')).writeFileSync(process.env.OUT, img); console.log('保存', process.env.OUT); }
 if (!process.env.ADMIN_TOKEN) { console.log('ADMIN_TOKEN がないので、預けません'); process.exit(0); }
-const q = new URLSearchParams({ a: M.a.name, b: M.b.name });
+const q = new URLSearchParams({ a: M.a.name, b: M.b.name, ta: M.a.title, tb: M.b.title });   // 記事名も預ける（ページが、一度出した日の組み合わせを替えないため）
 const r = await fetch(SITE + '/api/og/today/' + M.day + '?' + q, { method: 'PUT', headers: { Authorization: 'Bearer ' + process.env.ADMIN_TOKEN, 'Content-Type': 'image/jpeg' }, body: img });
 console.log('預けた', r.status, img.length + 'B', await r.text());
 if (!r.ok) process.exit(1);
