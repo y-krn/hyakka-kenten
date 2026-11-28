@@ -1789,7 +1789,11 @@ function tdDays(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&
 function tdStreak(o){ let n=0; for(let k=0;k<400;k++){ const x=o[jstDay(k)]; if(x&&x.hit) n++; else if(k===0&&!(x&&x.done)) continue; else break; } return n; }
 // 組み合わせ：日付から決める。人気の記事（POPULAR）と、収録記事からランダムに選んだ記事
 let HOLDS=null; function holdsGet(){ return HOLDS||(HOLDS=API?fetch(API+'/api/holds').then(r=>r.ok?r.json():{}).then(o=>Array.isArray(o.titles)?o.titles:[]).catch(()=>[]):Promise.resolve([])); }
-async function todayPair(day){ const nr=await Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>new Set([...a,...h]));
+async function todaySaved(day){ if(!API||day>jstDay()) return null;
+  try{ const j=await fetch(API+'/api/today?d='+day).then(r=>r.ok?r.json():null); if(!j||!j.a||!j.b) return null;
+    const one=async x=>{ const i=await loadTitle(x.title||x.name).catch(()=>-1); return i>=0&&(x.title?F[i][1]===x.title:F[i][0]===x.name)?i:-1; };   /* 記事名がない古い記録は、表示名が同じときだけ使う */
+    const a=await one(j.a), b=await one(j.b); return a>=0&&b>=0&&a!==b?{day,a,b}:null; }catch(_){ return null; } }
+async function todayPair(day){ const sv=await todaySaved(day); if(sv) return sv; const nr=await Promise.all([fetch('data/norand.json?v='+VER).then(r=>r.ok?r.json():[]).catch(()=>[]),holdsGet()]).then(([a,h])=>new Set([...a,...h]));
   for(let k=0;k<30&&!THRONE;k++) await new Promise(r=>setTimeout(r,100));   // 王者は出さないので、王座の情報を少し待つ
   // みんなに同じものを出して𝕏にも流れるので、政治家や、宗教・民族・事件などの題材は避ける
   const NGc=/宗教|民族|人種|性的|犯罪|事件|戦争|紛争|兵器|武器|テロ|災害|病|死刑/;

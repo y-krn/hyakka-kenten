@@ -2777,6 +2777,16 @@ repall("""  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchsta
 # ---- 152. 検索に載る道を整える：トップのページの題名に、何のゲームかを入れる（2026-11-28）
 repall("""<title>百科拳典（ひゃっかけんてん）</title>""", """<title>百科拳典（ひゃっかけんてん）｜Wikipediaの記事どうしが事実で戦うブラウザゲーム</title>""")
 
+# ---- 154. 今日の一戦の組み合わせを、一度出したら変えない（2026-11-28）
+#   組み合わせは人気記事の一覧から計算するので、記事データを作り直すと過去の日（共有済みのリンク）も替わってしまう
+#   共有画像を作ったとき（毎日0時すぎ）にサーバーへ預けた組み合わせ（表 today_og）があれば、それを使う。預けたものがない日（未来・預ける前）だけ計算する
+repall("""async function todayPair(day){ const nr=await Promise.all(""",
+       """async function todaySaved(day){ if(!API||day>jstDay()) return null;
+  try{ const j=await fetch(API+'/api/today?d='+day).then(r=>r.ok?r.json():null); if(!j||!j.a||!j.b) return null;
+    const one=async x=>{ const i=await loadTitle(x.title||x.name).catch(()=>-1); return i>=0&&(x.title?F[i][1]===x.title:F[i][0]===x.name)?i:-1; };   /* 記事名がない古い記録は、表示名が同じときだけ使う */
+    const a=await one(j.a), b=await one(j.b); return a>=0&&b>=0&&a!==b?{day,a,b}:null; }catch(_){ return null; } }
+async function todayPair(day){ const sv=await todaySaved(day); if(sv) return sv; const nr=await Promise.all(""")
+
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
 open(dst, 'w', encoding='utf-8').write(s)

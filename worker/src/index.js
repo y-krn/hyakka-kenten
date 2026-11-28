@@ -303,11 +303,25 @@ async function ogPut(env, req, id) {
 // 今日の一戦の共有画像（表 today_og。日付ごとに1枚。結果は載せない）
 async function todayOgPut(env, req, day) {
   if (!isAdmin(env, req)) return json(env, req, { error: 'forbidden' }, 403);
-  const q = new URL(req.url).searchParams, a = (q.get('a') || '').slice(0, 200), b = (q.get('b') || '').slice(0, 200);
+  const q = new URL(req.url).searchParams, tn = (n, t) => (q.get(n) || '').replace(/\t/g, ' ').slice(0, 200) + (q.get(t) ? '\t' + q.get(t).replace(/\t/g, ' ').slice(0, 200) : '');
+  const a = tn('a', 'ta'), b = tn('b', 'tb');   // 表示名と記事名をタブでつないで預ける（記事名は、ページが同じ組み合わせを出すため）
   const img = new Uint8Array(await req.arrayBuffer());
   if (!a || !b || img.length < 1000 || img.length > 1500000 || img[0] !== 0xff || img[1] !== 0xd8) return json(env, req, { error: 'a・b と JPEG（1.5MBまで）を送ってください' }, 400);
   await env.DB.prepare('INSERT INTO today_og (day, a, b, img, at) VALUES (?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET a = excluded.a, b = excluded.b, img = excluded.img, at = excluded.at').bind(day, a, b, img, now()).run();
   return json(env, req, { ok: true, bytes: img.length });
+}
+const tdName = s => String(s || '').split('\t')[0];   // 預けた組み合わせ（表示名\t記事名）から表示名を取り出す
+// 預けた今日の一戦の組み合わせ（ページが、一度出した日の組み合わせを替えないために使う。今日までの日だけ）
+async function todayGet(env, req, ctx) {
+  const d = new URL(req.url).searchParams.get('d') || '', jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  if (!/^\d{4}-\d\d-\d\d$/.test(d) || d > jst) return json(env, req, {});
+  const key = new Request(SITE + '/api/today?d=' + d);
+  try { const hit = await caches.default.match(key); if (hit) return json(env, req, await hit.json()); } catch (_) {}
+  let x = null; try { x = await env.DB.prepare('SELECT a, b FROM today_og WHERE day = ?').bind(d).first(); } catch (_) {}
+  const side = v => { const [name, title] = String(v).split('\t'); return { name, title: title || null }; };
+  const body = x ? { day: d, a: side(x.a), b: side(x.b) } : {};
+  try { const put = caches.default.put(key, new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=' + (x ? 3600 : 60) } })); if (ctx) ctx.waitUntil(put); } catch (_) {}
+  return json(env, req, body);
 }
 async function todayOgGet(req, env, ctx, day) {
   const v = new URL(req.url).searchParams.get('v') || '';
@@ -376,7 +390,7 @@ async function cardFor(env, u) {
     const jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), d0 = q.get('d'), day = /^\d{4}-\d\d-\d\d$/.test(d0 || '') ? d0 : jst;
     let x = null; try { x = await env.DB.prepare('SELECT a, b, at FROM today_og WHERE day = ?').bind(day).first(); } catch (_) {}
     const md = (+day.slice(5, 7)) + '月' + (+day.slice(8, 10)) + '日';
-    if (x) return { title: `今日の一戦 ${md}：${clip(x.a, 30)} vs ${clip(x.b, 30)} ― 百科拳典`, url: SITE + '/?today=1&d=' + day, image: SITE + '/og/t/' + day + '.jpg?v=' + Date.parse(x.at),
+    if (x) return { title: `今日の一戦 ${md}：${clip(tdName(x.a), 30)} vs ${clip(tdName(x.b), 30)} ― 百科拳典`, url: SITE + '/?today=1&d=' + day, image: SITE + '/og/t/' + day + '.jpg?v=' + Date.parse(x.at),
       desc: '人気の記事に、ランダムに選ばれた記事が挑む。どっちが勝つ？ 予想してから観戦しよう。' };
   }
   const fk = q.get('fam');
@@ -548,6 +562,7 @@ export default {
       if (u.pathname === '/api/throne' && req.method === 'GET') return await throne(env, req, ctx);
       if (u.pathname === '/api/throne/day' && req.method === 'GET') return await throneDay(env, req);
       if (u.pathname === '/api/hall' && req.method === 'GET') return await hall(env, req, ctx);
+      if (u.pathname === '/api/today' && req.method === 'GET') return await todayGet(env, req, ctx);
       if (u.pathname === '/api/challenge' && req.method === 'POST') return await challenge(env, req, ctx);
       if (u.pathname === '/api/og/pending' && req.method === 'GET') return await ogPending(env, req);
       if (u.pathname === '/api/og/ask' && req.method === 'POST') return isAdmin(env, req) ? json(env, req, { status: await askImage(env, { id: 'test' }) }) : json(env, req, { error: 'forbidden' }, 403);

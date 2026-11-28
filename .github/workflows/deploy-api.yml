@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['worker/**', 'index.html', 'data/**', '*.png', '*.ico', '*.webmanifest', 'robots.txt', 'sitemap.xml', '.github/workflows/deploy-api.yml']
+    paths: ['worker/**', 'index.html', 'data/**', 'data.lock', '*.png', '*.ico', '*.webmanifest', 'robots.txt', 'sitemap.xml', '.github/workflows/deploy-api.yml']
 concurrency:
   group: deploy
   cancel-in-progress: false
@@ -36,10 +36,21 @@ jobs:
       - name: 索引
         run: npx wrangler d1 execute hyakka-kenten --remote --command "CREATE INDEX IF NOT EXISTS ch_client ON challenges(client, at)"
       - name: 配るファイルを public/ に集める
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p public
           cp ../index.html ../privacy.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
-          cp -r ../data public/data
+          # 記事データ：data.lock に包みの名前（Releases の data-…）が書いてあれば、その包みを取り出して配る。なければ Git の data/ を配る（移行前）
+          if [ -s ../data.lock ]; then
+            tag=$(head -1 ../data.lock | tr -d '[:space:]')
+            gh release download "$tag" -R ${{ github.repository }} -p data.tar -D /tmp/pk && tar -C public -xf /tmp/pk/data.tar
+            test -f public/data/manifest.json && echo "包み $tag を配る（$(find public/data -type f | wc -l) ファイル）"
+            # 画面が遊ぶときに読む手で直す表は、Git のものを上に重ねる（直したらすぐ届く。索引に関わる unhold.json などは、包みを作り直す）
+            for f in exclude.json fix.json movedex.json playerdex.json fixa pref; do [ -e ../data/$f ] && cp -r ../data/$f public/data/; done
+          else
+            cp -r ../data public/data
+          fi
       - name: デプロイ
         run: npx wrangler deploy
       - name: 秘密の値を設定
