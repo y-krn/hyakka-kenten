@@ -2963,10 +2963,11 @@ const dg2Line=o=>{ const n=dg2Hops(o.path); return o.end==='win'?`${n}リンク�
 function dg2Share(o){ const md=o.day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${o.s} から ${o.goal} へ：${dg2Line(o)}${o.me&&o.end&&o.end!=='quit'&&o.end!=='over'?`（相棒：${o.me}）`:''}\n${o.path.map(p=>DG2E[p.ev]||'🚪').join('')}\n${o.path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
 /* 目的地への道のり：入口から、よく読まれている記事を優先して、リンクを日付で決まる順に4回たどる。入口から直接つながる記事は目的地にしない */
 async function dg2Walk(day,i0){ const s0=F[i0][1]; try{ const c=JSON.parse(localStorage.getItem('hk-dg2w')||'null'); if(c&&c.day===day&&c.s===s0&&Array.isArray(c.w)) return c.w; }catch(_){}
-  let last=null; for(let a=0;a<8;a++){ const w=await dg2Walk1(day,i0,a); if(!w) continue; last=w; const gi=await loadTitle(w[w.length-1]).catch(()=>-1); if(gi<0) continue;
+  let last=null; const W=[]; for(let b=0;b<8&&!W.ok;b+=4){ const ws=await Promise.all([0,1,2,3].map(k=>dg2Walk1(day,i0,b+k).catch(()=>null)));   /* 4本ずつ同時にたどる（待ち時間を抑える） */
+   for(const w of ws){ if(!w) continue; last=w; const gi=await loadTitle(w[w.length-1]).catch(()=>-1); if(gi<0) continue;
     const wins=t=>{ const i=TIX[t]; return i!==undefined&&analyze(i,gi,true).r.w===i; }, cls=t=>(CL[TIX[t]]||[])[1];
     const ok=!wins(s0)&&w.slice(1,-1).some(wins)&&cls(w[w.length-1])!==cls(w[1]);   /* 入口のままでは勝てず、道中のどれかの記事なら勝てる。目的地は、最初の一歩と違う分類（近すぎるお題を避ける） */
-    if(ok){ try{ localStorage.setItem('hk-dg2w',JSON.stringify({day,s:s0,w})); }catch(_){} return w; } }
+    if(ok){ try{ localStorage.setItem('hk-dg2w',JSON.stringify({day,s:s0,w})); }catch(_){} return w; } } }
   return last; }
 async function dg2Walk1(day,i0,a){ const s0=F[i0][1];
   const P=new Set(POPULAR), w=[s0], seen=new Set(w); let cur=s0, first=null;
