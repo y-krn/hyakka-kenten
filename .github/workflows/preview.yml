@@ -29,15 +29,24 @@ jobs:
       - name: D1のIDを設定（プレビュー専用のデータベース）
         run: sed -i "s/REPLACE_WITH_D1_DATABASE_ID/4ad2e00e-41a9-4c25-926e-e068a61c78a3/; s/database_name = \"hyakka-kenten\"/database_name = \"hyakka-kenten-preview\"/" wrangler.toml
       - name: 配るファイルを public/ に集める
-        run: |
-          mkdir -p public
-          cp ../index.html ../privacy.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
-          cp -r ../data public/data
-      - name: 百科ダンジョンのリンクのつながりとお題を、Releases（タグ links-…）のいちばん新しいものから取り出す（Git には入れていない）
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag=$(gh release list -R ${{ github.repository }} --limit 50 --json tagName -q '[.[].tagName|select(startswith("links-"))]|sort|last')
-          if [ -n "$tag" ]; then gh release download "$tag" -R ${{ github.repository }} -p links.tar -D /tmp/lk && tar -C public/data -xf /tmp/lk/links.tar && echo "$tag を配る" && ls public/data/dg; else echo "リンクのつながりはまだない"; fi
+          mkdir -p public
+          cp ../index.html ../privacy.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
+          # 記事データ：data.lock に包みの名前（Releases の data-…）が書いてあれば、その包みを取り出して配る（百科ダンジョンのつながりとお題も入っている）
+          #   なければ Git の data/ と、いちばん新しい links-… を配る（移行前）
+          if [ -s ../data.lock ]; then
+            tag=$(head -1 ../data.lock | tr -d '[:space:]')
+            gh release download "$tag" -R ${{ github.repository }} -p data.tar -D /tmp/pk && tar -C public -xf /tmp/pk/data.tar
+            test -f public/data/manifest.json && echo "包み $tag を配る（$(find public/data -type f | wc -l) ファイル）"
+            # 画面が遊ぶときに読む手で直す表は、Git のものを上に重ねる（直したらすぐ届く。索引に関わる unhold.json などは、包みを作り直す）
+            for f in exclude.json fix.json movedex.json playerdex.json fixa pref; do [ -e ../data/$f ] && cp -r ../data/$f public/data/; done
+          else
+            cp -r ../data public/data
+            tag=$(gh release list -R ${{ github.repository }} --limit 50 --json tagName -q '[.[].tagName|select(startswith("links-"))]|sort|last')
+            if [ -n "$tag" ]; then gh release download "$tag" -R ${{ github.repository }} -p links.tar -D /tmp/lk && tar -C public/data -xf /tmp/lk/links.tar && echo "$tag を配る"; fi
+          fi
+          echo "配るファイル $(find public -type f | wc -l)"
       - name: プレビュー用URLに上げる（本番には出さない）
         run: npx wrangler versions upload --preview-alias preview
