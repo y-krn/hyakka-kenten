@@ -19,7 +19,7 @@ if (typeof d.cleanupAt === 'number' && Date.now() - d.cleanupAt > 3 * 3600e3) {
   const now = await get(j(0)), later = await get(j(30));
   if (now && !(later && later[j(30)])) { console.log('ダンジョンのお題が30日先までありません');
     if (NTFY) await fetch('https://ntfy.sh/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      topic: NTFY, title: '百科拳典：ダンジョンのお題が残り少ない', message: `${j(30)} のお題がまだありません。GitHub の「作り直し：ダンジョンのリンクのつながり」を動かしてください。`, tags: ['warning'] }) }); } }
+      topic: NTFY, title: '百科拳典：ダンジョンのお題が残り少ない', message: `お題の有効期間が30日後（${j(30)}）に切れます。GitHub の「配る記事データを作る（正本から）」を動かして、お題を作り直してください（180日分できます）。`, tags: ['warning'] }) }); } }
 if (!d.changes) { console.log('今日は王座の交代がありませんでした。送りません'); process.exit(0); }
 const md = (+d.day.slice(5, 7)) + '月' + (+d.day.slice(8, 10)) + '日';
 const head = d.changes >= 10 ? `王座が${d.changes}回入れ替わる大乱戦。` : d.changes >= 3 ? `王座が${d.changes}回入れ替わる混戦。` : `王座の交代は${d.changes}回。`;
