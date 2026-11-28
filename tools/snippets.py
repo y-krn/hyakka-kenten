@@ -85,7 +85,7 @@ if sys.argv[1] == 'collect':
     for l in sys.stdin:
         try: o = json.loads(l)
         except Exception: continue
-        t = o.get('title')
+        t = o.get('title') or o.get('t')   # 検索用ダンプは title、正本の本文（src_extract.py）は t
         if t not in T: continue
         sn = {}
         for d, tok, unit in T[t]:

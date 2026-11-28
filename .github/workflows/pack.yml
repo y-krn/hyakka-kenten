@@ -181,6 +181,26 @@ jobs:
               ks = [k for k in set(A[t]) | set(B[t]) if A[t].get(k) != B[t].get(k)]
               print(' 例', t, '違う項目', ks, json.dumps({k: (A[t].get(k), B[t].get(k)) for k in ks}, ensure_ascii=False)[:600])
           PY
+          python3 - <<'PY'
+          # 記事データ以外で中身が違うファイル（仲間・検索の索引・誕生年など）の例：JSON のどこが違うか
+          import gzip, json, os, glob
+          def ld(p):
+              b = open(p, 'rb').read()
+              try: return json.loads(gzip.decompress(b) if p.endswith('.gz') else b)
+              except Exception: return None
+          for d in ('fam', 'g', 'bd', 'meta.json', 'norand.json'):
+              ps = [os.path.relpath(p, 'data') for p in glob.glob('data/' + d + ('/**/*' if '.' not in d else ''), recursive=True) if os.path.isfile(p)]
+              shown = 0
+              for p in sorted(ps):
+                  if not os.path.exists('/tmp/old/' + p) or open('/tmp/old/' + p, 'rb').read() == open('data/' + p, 'rb').read(): continue
+                  A, B = ld('/tmp/old/' + p), ld('data/' + p)
+                  if isinstance(A, dict) and isinstance(B, dict):
+                      ks = [k for k in set(A) | set(B) if A.get(k) != B.get(k)]
+                      print(p, '違うキー', len(ks), json.dumps({k: (A.get(k), B.get(k)) for k in ks[:3]}, ensure_ascii=False)[:500])
+                  else: print(p, '型', type(A).__name__, type(B).__name__, json.dumps(A, ensure_ascii=False)[:200] if A is not None else '', '→', json.dumps(B, ensure_ascii=False)[:200] if B is not None else '')
+                  shown += 1
+                  if shown >= 3: break
+          PY
       - name: 包みにする
         env:
           TAG: ${{ inputs.tag }}
