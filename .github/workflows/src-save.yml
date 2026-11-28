@@ -1,0 +1,65 @@
+# 正本（元データ）を保存する：作り直しの材料（Wikidata の取り直し結果と、検索用ダンプから取り出した記事データ）を、
+#   GitHub の Releases（タグ src-時点）に版付きで置く。Actions の成果物は30日で消えるので、消える前に移す
+#   ここに置いたものから、いつでも同じ記事データを作り直せる（Git には入れない）
+name: 正本を保存する
+on:
+  workflow_dispatch:
+    inputs:
+      raw_run:
+        description: Wikidataを取り終えた実行のID（作り直し：Wikidataを取り直す）
+        required: true
+      cirrus_run:
+        description: 記事本文データを取り出した実行のID（作り直し：記事本文データを取り出す）
+        required: true
+      asof:
+        description: データの時点（YYYY-MM-DD）
+        required: true
+      dump:
+        description: 記事本文データのもとにした検索用ダンプの日付（YYYYMMDD）
+        required: true
+permissions:
+  contents: write
+  actions: read
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: rebuild
+      - name: 成果物を受け取る
+        run: |
+          mkdir -p /tmp/s
+          gh run download "${{ inputs.raw_run }}" -n wikidata-raw -D /tmp/s
+          for k in 1 2 3; do gh run download "${{ inputs.cirrus_run }}" -n cirrus-all -D /tmp/cirrus && break; rm -rf /tmp/cirrus; sleep 20; done
+          tar -cf /tmp/s/cirrus.tar -C /tmp cirrus
+          tar -I 'zstd -T0 -6' -cf /tmp/s/aux.tar.zst rebuild/aux
+          ls -la /tmp/s
+      - name: 目録を作る
+        env:
+          ASOF: ${{ inputs.asof }}
+          DUMP: ${{ inputs.dump }}
+          RAW: ${{ inputs.raw_run }}
+          CIR: ${{ inputs.cirrus_run }}
+        run: |
+          cd /tmp/s && python3 - <<'PY'
+          import json, os, hashlib
+          fs = {}
+          for f in sorted(os.listdir('.')):
+              h = hashlib.sha256()
+              with open(f, 'rb') as fp:
+                  for b in iter(lambda: fp.read(1 << 20), b''): h.update(b)
+              fs[f] = {'bytes': os.path.getsize(f), 'sha256': h.hexdigest()}
+          json.dump({'asof': os.environ['ASOF'], 'dump': os.environ['DUMP'], 'wikidata_run': os.environ['RAW'], 'cirrus_run': os.environ['CIR'],
+                     'commit': os.environ['GITHUB_SHA'], 'files': fs}, open('manifest.json', 'w'), ensure_ascii=False, indent=1)
+          print(open('manifest.json').read())
+          PY
+      - name: Releases に置く
+        run: |
+          tag="src-${{ inputs.asof }}"
+          gh release view "$tag" >/dev/null 2>&1 && { echo "$tag はもうあります"; exit 1; }
+          gh release create "$tag" /tmp/s/* --title "$tag" --notes "百科拳典の正本（元データ）。時点 ${{ inputs.asof }}、検索用ダンプ ${{ inputs.dump }}。作り直しの材料で、Git には入れない。" --latest=false
