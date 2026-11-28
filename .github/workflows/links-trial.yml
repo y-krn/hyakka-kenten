@@ -1,0 +1,85 @@
+# リンクのつながりを試しに取り出す（サイトは変えない）：検索用データ（jawiki_content）から記事ごとのリンク先を取り、収録している記事どうしのつながりの大きさを測る
+#   結果は実行ログ（大きさの見積もり）と成果物「links-trial」（7日）に残る
+name: 試し：リンクのつながりを取り出す
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: ダンプの日付（YYYYMMDD。空なら最新）
+        default: ''
+      limit:
+        description: 試しに動かすときの区画の数（空なら全部）
+        default: ''
+permissions:
+  contents: read
+  actions: read
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.l.outputs.shards }}
+      base: ${{ steps.l.outputs.base }}
+    steps:
+      - id: l
+        env:
+          DATE: ${{ inputs.date }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          UA='hyakka-kenten data rebuild (https://github.com/y-krn)'
+          top=https://dumps.wikimedia.org/other/cirrus_search_index
+          d=${DATE:-$(curl -sS -A "$UA" $top/ | grep -o 'href="[0-9]\{8\}/"' | grep -o '[0-9]\{8\}' | sort | tail -1)}
+          base="$top/$d/index_name=jawiki_content"
+          files=$(curl -sS -A "$UA" "$base/" | grep -o 'jawiki_content-[0-9]*-[0-9]*\.json\.bz2' | sort -u)
+          [ -n "$LIMIT" ] && files=$(echo "$files" | head -n "$LIMIT")
+          echo "日付 $d、区画 $(echo "$files" | wc -l)"
+          echo "base=$base" >> $GITHUB_OUTPUT
+          echo "shards=$(echo "$files" | python3 -c 'import sys,json;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')" >> $GITHUB_OUTPUT
+  extract:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 3
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.list.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - name: 取り出す
+        run: |
+          sudo apt-get install -y -qq lbzip2 >/dev/null
+          n=$(echo "${{ matrix.shard }}" | grep -o '[0-9]*\.json' | grep -o '[0-9]*')
+          mkdir -p out
+          curl -sS --retry 5 -A 'hyakka-kenten data rebuild (https://github.com/y-krn)' "${{ needs.list.outputs.base }}/${{ matrix.shard }}" \
+            | lbzip2 -dc | python3 tools/links_extract.py out/links_$n.tsv out/red_$n.tsv
+          gzip -6 out/*.tsv && ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: links-${{ strategy.job-index }}
+          path: out
+          retention-days: 2
+          compression-level: 0
+  merge:
+    needs: extract
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools
+            data/a
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: links-*
+          merge-multiple: true
+          path: all
+      - run: du -sh all && python3 tools/links_merge.py all out && ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: links-trial
+          path: out
+          retention-days: 7
+          compression-level: 0
