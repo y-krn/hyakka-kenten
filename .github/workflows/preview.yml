@@ -33,5 +33,11 @@ jobs:
           mkdir -p public
           cp ../index.html ../privacy.html ../*.webmanifest ../robots.txt ../sitemap.xml ../*.png ../favicon.ico public/
           cp -r ../data public/data
+      - name: 百科ダンジョンのリンクのつながりとお題を、Releases（タグ links-…）のいちばん新しいものから取り出す（Git には入れていない）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release list -R ${{ github.repository }} --limit 50 --json tagName -q '[.[].tagName|select(startswith("links-"))]|sort|last')
+          if [ -n "$tag" ]; then gh release download "$tag" -R ${{ github.repository }} -p links.tar -D /tmp/lk && tar -C public/data -xf /tmp/lk/links.tar && echo "$tag を配る" && ls public/data/dg; else echo "リンクのつながりはまだない"; fi
       - name: プレビュー用URLに上げる（本番には出さない）
         run: npx wrangler versions upload --preview-alias preview
