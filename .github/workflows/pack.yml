@@ -1,0 +1,205 @@
+# 配る記事データを作る（正本から1本で）：正本（Releases の src-時点）と、Git にある手で直す表から、配るデータ一式を毎回ゼロから作る
+#   手順：mkdb → prep_full（区画ごと）→ rv_global → build_full → 脚注の1文（正本の本文から）→ 召喚相手の差し替え（artist_summon）
+#         → 付随データ（norand・仲間・題名・検索・誕生年）→ 百科ダンジョンのつながりとお題（正本のリンクから）
+#   できたものは、包み（Releases の data-時点-実行ID、data.tar と目録）にする。Git には入れない
+#   比べる：作ったものと、いまの main の data/ を突き合わせ、違うファイルの数と例を出す（切り替えの前の確かめ）
+#   手で直す表（Git）：data/exclude.json・fix.json・unhold.json・movedex.json・playerdex.json・fixa/・pref/ と tools/ の決まり
+name: 配る記事データを作る（正本から）
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 使う正本（例 src-2026-11-19）
+        required: true
+      only:
+        description: 試しに作る区画（例：00003。空なら全部。試しのときは包みを作らない）
+        default: ''
+      release:
+        description: 包みを Releases に置く
+        type: boolean
+        default: false
+permissions:
+  contents: write
+  actions: read
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+jobs:
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      shards: ${{ steps.s.outputs.shards }}
+      asof: ${{ steps.s.outputs.asof }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - name: 正本の Wikidata をSQLiteにまとめる
+        run: |
+          gh release download "${{ inputs.tag }}" -p raw.tar.zst -p manifest.json -D /tmp/dl
+          tar -I zstd -xf /tmp/dl/raw.tar.zst -C /tmp && rm /tmp/dl/raw.tar.zst
+          python3 tools/mkdb.py /tmp/ents.db /tmp/R/ents/*.jsonl | tail -3
+          rm -rf /tmp/R && zstd -T0 -6 --rm /tmp/ents.db -o /tmp/ents.db.zst && ls -la /tmp/ents.db.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ents-db
+          path: /tmp/ents.db.zst
+          retention-days: 3
+          compression-level: 0
+      - id: s
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          echo "asof=$(python3 -c "import json;print(json.load(open('/tmp/dl/manifest.json'))['asof'])")" >> $GITHUB_OUTPUT
+          if [ -n "$ONLY" ]; then echo "shards=$(python3 -c "import json,os;print(json.dumps(os.environ['ONLY'].split(',')))")" >> $GITHUB_OUTPUT
+          else echo "shards=$(python3 -c "import json;print(json.dumps(['%05d'%i for i in range(15)]))")" >> $GITHUB_OUTPUT; fi
+  prep:
+    needs: db
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: ${{ fromJSON(needs.db.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 受け取る
+        run: |
+          mkdir -p /tmp/w/full /tmp/w/all && gh run download "${{ github.run_id }}" -n ents-db -D /tmp/w/full && zstd -d --rm /tmp/w/full/ents.db.zst -o /tmp/w/full/ents.db
+          gh release download "${{ inputs.tag }}" -p cirrus.tar -p aux.tar.zst -D /tmp/dl
+          tar -xf /tmp/dl/cirrus.tar -C /tmp/dl && mv /tmp/dl/cirrus/* /tmp/w/all/ && gunzip /tmp/w/all/*.jsonl.gz
+          tar -I zstd -xf /tmp/dl/aux.tar.zst -C /tmp/w && rm -rf /tmp/dl
+          ls /tmp/w/all | head -3 && ls /tmp/w/rebuild/aux && df -h /tmp | tail -1
+      - name: 能力値と技を作る（区画 ${{ matrix.shard }}）
+        env:
+          GEN: '1'
+          HK_AUX: /tmp/w/rebuild/aux
+          HK_ASOF: ${{ needs.db.outputs.asof }}
+        run: |
+          python3 tools/prep_full.py /tmp/w ${{ matrix.shard }}
+          test -f /tmp/w/full/gen/${{ matrix.shard }}/big_v2.json
+      - name: 固める
+        run: |
+          cd /tmp/w/full/gen && rm -f ${{ matrix.shard }}/ents.jsonl ${{ matrix.shard }}/arts.jsonl
+          tar -I 'zstd -T0 -6' -cf /tmp/gen-${{ matrix.shard }}.tar.zst ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gen-${{ matrix.shard }}
+          path: /tmp/gen-${{ matrix.shard }}.tar.zst
+          retention-days: 3
+          compression-level: 0
+  build:
+    needs: [db, prep]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: 受け取る
+        run: |
+          mkdir -p /tmp/w/full/gen
+          gh run download "${{ github.run_id }}" -n ents-db -D /tmp/w/full && zstd -d --rm /tmp/w/full/ents.db.zst -o /tmp/w/full/ents.db
+          gh run download "${{ github.run_id }}" -p 'gen-*' -D /tmp/dl
+          for f in /tmp/dl/*/gen-*.tar.zst; do tar -I zstd -xf $f -C /tmp/w/full/gen; done
+          rm -rf /tmp/dl && ls /tmp/w/full/gen
+      - name: いまの data/ を、比べる用に取っておく
+        run: |
+          mv data /tmp/old && mkdir data
+          for f in exclude.json fix.json unhold.json movedex.json playerdex.json fixa pref bd; do   # bd は誕生日・出身地の索引（Wikidata に問い合わせて作る分）を引き継ぐ。生まれた年の索引は作り直す
+          [ -e /tmp/old/$f ] && cp -r /tmp/old/$f data/; done
+          ls data
+      - name: 因縁を全体で作る
+        run: python3 tools/rv_global.py /tmp/w
+      - name: 記事データを作る
+        run: python3 tools/build_full.py /tmp/w/full/gen data
+      - name: 脚注に添える本文の1文を探す（正本の本文から。よく読まれている記事の、数字と名前の事実だけ）
+        run: |
+          gh release download "${{ inputs.tag }}" -p 'text-*.jsonl.zst' -D /tmp/tx
+          for f in /tmp/tx/text-*.jsonl.zst; do n=$(basename $f .jsonl.zst); zstd -dc $f | python3 tools/snippets.py collect data /tmp/sn_$n.json /tmp/sntargets.json; rm $f; done
+          python3 tools/snippets.py apply data /tmp/sn_*.json
+      - name: 召喚相手の差し替え（アルバム一覧 → 歌手本人）
+        run: python3 tools/artist_summon.py
+      - name: 付随データを作る
+        run: |
+          python3 tools/norand.py data
+          python3 - <<'PY'
+          # おまかせ用の人気記事から、ランダムに出さない記事（性的な内容など）と扱わない記事を除く
+          import json
+          m = json.load(open('data/meta.json')); ng = set(json.load(open('data/norand.json'))) | set(json.load(open('data/exclude.json')))
+          m['popular'] = [t for t in m['popular'] if t not in ng]
+          json.dump(m, open('data/meta.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+          PY
+          python3 tools/build_fam.py data
+          python3 tools/build_titles.py data
+          python3 tools/build_ngram.py data
+          python3 tools/build_bd.py
+          du -sh data/*
+      - name: 百科ダンジョンのつながりとお題（正本のリンクから）
+        run: |
+          pip install -q numpy
+          mkdir -p /tmp/lk && gh release download "${{ inputs.tag }}" -p 'links-*.tsv.zst' -p 'red-*.tsv.zst' -D /tmp/lk
+          cd /tmp/lk && for f in links-*.tsv.zst; do n=${f#links-}; n=${n%.tsv.zst}; zstd -dc $f | cut -f1,3- | gzip -1 > links_$n.tsv.gz; rm $f; done
+          for f in red-*.tsv.zst; do n=${f#red-}; n=${n%.tsv.zst}; zstd -dc $f | gzip -1 > red_$n.tsv.gz; rm $f; done
+          cd $GITHUB_WORKSPACE && python3 tools/links_build.py /tmp/lk data && du -sh data/l data/dg
+      - name: いまの data/ と比べる
+        run: |
+          python3 - <<'PY'
+          import os, hashlib, collections
+          def walk(r):
+              out = {}
+              for d, _, fs in os.walk(r):
+                  for f in fs:
+                      p = os.path.join(d, f); out[os.path.relpath(p, r)] = hashlib.sha1(open(p, 'rb').read()).hexdigest()
+              return out
+          a, b = walk('/tmp/old'), walk('data')
+          top = lambda p: p.split('/')[0] if '/' in p else p
+          c = collections.defaultdict(lambda: [0, 0, 0, 0])
+          for p in set(a) | set(b):
+              k = c[top(p)]
+              if p not in b: k[1] += 1
+              elif p not in a: k[2] += 1
+              elif a[p] != b[p]: k[3] += 1
+              else: k[0] += 1
+          print('場所\t同じ\tなくなった\t増えた\t違う')
+          for k in sorted(c): print(k, *c[k], sep='\t')
+          PY
+          python3 - <<'PY'
+          # 記事データ（a）の中身で比べる：記事の増減と、中身が違う記事の例
+          import gzip, json, glob, os
+          A, B = {}, {}
+          for f in glob.glob('/tmp/old/a/*.json.gz'): A.update(json.load(gzip.open(f)))
+          for f in glob.glob('data/a/*.json.gz'): B.update(json.load(gzip.open(f)))
+          diff = [t for t in A if t in B and A[t] != B[t]]
+          print('記事 いま', len(A), '作った', len(B), 'なくなった', len(set(A) - set(B)), '増えた', len(set(B) - set(A)), '中身が違う', len(diff))
+          for t in diff[:5]:
+              ks = [k for k in set(A[t]) | set(B[t]) if A[t].get(k) != B[t].get(k)]
+              print(' 例', t, '違う項目', ks, json.dumps({k: (A[t].get(k), B[t].get(k)) for k in ks}, ensure_ascii=False)[:600])
+          PY
+      - name: 包みにする
+        env:
+          TAG: ${{ inputs.tag }}
+          ASOF: ${{ needs.db.outputs.asof }}
+        run: |
+          python3 - <<'PY'
+          import os, json, hashlib, gzip
+          fs = {}
+          for d, _, names in os.walk('data'):
+              for f in names:
+                  p = os.path.join(d, f); fs[os.path.relpath(p, 'data')] = hashlib.sha1(open(p, 'rb').read()).hexdigest()
+          n = sum(len(json.load(gzip.open(f'data/t/{k}.json.gz'))) for k in range(4096))
+          m = {'src': os.environ['TAG'], 'asof': os.environ['ASOF'], 'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'], 'articles': n, 'files': len(fs), 'sha1': fs}
+          json.dump(m, open('data/manifest.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+          print({k: v for k, v in m.items() if k != 'sha1'})
+          PY
+          tar -cf /tmp/data.tar data && ls -la /tmp/data.tar
+      - name: Releases に置く
+        if: ${{ inputs.release && !inputs.only }}
+        run: |
+          tag="data-${{ needs.db.outputs.asof }}-${{ github.run_id }}"
+          gh release create "$tag" /tmp/data.tar data/manifest.json --title "$tag" --notes "百科拳典の配る記事データ一式（正本 ${{ inputs.tag }}、commit ${{ github.sha }}）。デプロイのときに取り出して配る。Git には入れない。" --latest=false
