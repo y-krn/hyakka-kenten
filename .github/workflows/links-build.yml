@@ -1,6 +1,8 @@
-# リンクのつながりを試しに取り出す（サイトは変えない）：検索用データ（jawiki_content）から記事ごとのリンク先を取り、収録している記事どうしのつながりの大きさを測る
-#   結果は実行ログ（大きさの見積もり）と成果物「links-trial」（7日）に残る
-name: 試し：リンクのつながりを取り出す
+# 百科ダンジョンのリンクのつながりを作る：検索用データ（jawiki_content）から記事ごとのリンク先を取り、収録している記事どうしのつながり（上限なし）と、毎日のお題を作る
+#   できたもの（data/l の1,024個と data/dg の月ごとのお題）は、Git に入れず GitHub の Releases（タグ links-日付）に links.tar として置く。デプロイのときにそこから取り出して配る
+#   記事データを作り直したとき（data/t が変わったとき）は、これも作り直すこと（記事の番号が data/t の並び順のため）
+#   お題は今日から DAYS 日分。足りなくなる前に作り直す
+name: 作り直し：ダンジョンのリンクのつながり
 on:
   workflow_dispatch:
     inputs:
@@ -10,8 +12,15 @@ on:
       limit:
         description: 試しに動かすときの区画の数（空なら全部）
         default: ''
+      days:
+        description: お題を作る日数
+        default: '180'
+      release:
+        description: Releases に置く（試すときは外す）
+        type: boolean
+        default: true
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   list:
@@ -61,25 +70,39 @@ jobs:
           path: out
           retention-days: 2
           compression-level: 0
-  merge:
+  build:
     needs: extract
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             tools
-            data/a
+            data
       - uses: actions/download-artifact@v4
         with:
           pattern: links-*
           merge-multiple: true
           path: all
-      - run: du -sh all && python3 tools/links_merge.py all out && ls -la out
+      - run: pip install -q numpy
+      - name: つながりとお題を作る
+        env:
+          DAYS: ${{ inputs.days }}
+        run: du -sh all && python3 tools/links_build.py all out && du -sh out/l out/dg && ls out/dg
+      - name: まとめる
+        run: tar -C out -cf links.tar l dg && ls -la links.tar
+      - name: Releases に置く
+        if: inputs.release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=links-$(date -u +%Y%m%d%H%M)
+          gh release create "$tag" links.tar -R ${{ github.repository }} --title "ダンジョンのリンクのつながり $tag" --notes "百科ダンジョン用（data/l と data/dg）。デプロイのときに取り出して配る。Git には入れない。" --latest=false
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.release }}
         with:
-          name: links-trial
-          path: out
-          retention-days: 7
+          name: links-built
+          path: links.tar
+          retention-days: 3
           compression-level: 0
