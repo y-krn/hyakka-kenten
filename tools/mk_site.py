@@ -2944,41 +2944,80 @@ repall("""  if(!bot){ const go=()=>{ ['pointerdown','scroll','keydown','touchsta
 # ---- 152. 検索に載る道を整える：トップのページの題名に、何のゲームかを入れる（2026-11-28）
 repall("""<title>百科拳典（ひゃっかけんてん）</title>""", """<title>百科拳典（ひゃっかけんてん）｜Wikipediaの記事どうしが事実で戦うブラウザゲーム</title>""")
 
-# ---- 153. 百科ダンジョンを「目的地のあるリンクたどり」にする（試作。2026-11-28）
-#   毎日、入口の記事と目的地の記事をお題にする。目的地は、入口からリンクを日付で決まる順に4回たどった先（同じ日なら誰でも同じ）
-#   扉は今までどおり、いまいる記事のリンク先から3つ。目的地か、目的地への道のりの記事がリンク先にあれば、扉に必ず入れる（どれかは見せない）
-#   目的地の記事に勝てば到着。負けたら終わり、引き返してもよい。記録・共有には目的地と到着した階を入れる
-repall("""const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀'};""",
-       """const DGE={start:'🏁',win:'⚔️',switch:'🔁',draw:'🤝',lose:'💀',goal:'🏆'};
-/* 目的地への道のり：入口から、リンクを日付で決まる順に4回たどる（収録していて対戦に出せる記事だけ）。同じ日・同じ入口なら、この端末で覚えておく */
-async function dgGoal(day,i0){ const s0=F[i0][1]; try{ const c=JSON.parse(localStorage.getItem('hk-dgg')||'null'); if(c&&c.day===day&&c.s===s0&&Array.isArray(c.w)) return c.w; }catch(_){}
-  const w=[s0], seen=new Set(w); let cur=s0;
-  for(let step=0;step<6&&w.length<5;step++){ const L=[...new Set(await dgLinks(cur))].filter(t=>!DG_NG.test(t)&&!seen.has(t));
-    const order=L.map(t=>[t,hash('dg-walk/'+day+'/'+cur+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]); let nx=null;
+# ---- 153. 百科ダンジョンを「目的地へのリンクたどり＋目的地で決戦」にする（試作。2026-11-28）
+#   毎日、入口と目的地をお題にする（同じ日なら誰でも同じ）。目的地は、入口からよく読まれている記事を優先してリンクを4回たどった先
+#   道中は戦わない。いまいる記事のリンク先から扉を6つ出す（目的地か道のりの記事がリンク先にあれば必ず入れる）。目的地にリンクしている扉には 🔭 を付ける
+#   くぐった記事の中から「連れて行く選手」を選べる（乗り換えは何度でも）。目的地に着いたら、連れてきた選手と目的地の記事で1回だけ試合をする
+#   10手で着けなければ終わり。記録は hk-dg2（この端末だけ）
+repall("""async function dgInit0(){ const box=$('#dgbox'); if(!box) return;""",
+       """/* ---- 目的地へのリンクたどり ---- */
+const DG2_MAX=10, DG2_DOORS=6;
+let DG2=null;   // {day, s（入口の記事名）, goal, gi, walk, near:Set（目的地にリンクしている記事）, pos, me, path:[{t,ev}], seen:Set}
+const dg2Rec=()=>{ try{ const o=JSON.parse(localStorage.getItem('hk-dg2')||'{}'); return o.day===jstDay()?o:null; }catch(_){ return null; } };
+const dg2Save=(end)=>{ if(!DG2) return; try{ localStorage.setItem('hk-dg2',JSON.stringify({day:DG2.day,s:DG2.s,goal:DG2.goal,path:DG2.path,me:F[DG2.me][1],end:end||''})); }catch(_){} };
+const dg2Hops=path=>path.filter(p=>p.ev==='step'||p.ev==='goal').length;
+const DG2E={start:'🏁',step:'🚪',goal:'🏆'};
+const dg2Path=path=>path.map((p,k)=>`${k?`<span class="dgn">${k}手</span>`:''}${DG2E[p.ev]||'🚪'}${esc(p.t)}`).join(' → ');
+const dg2Line=o=>{ const n=dg2Hops(o.path); return o.end==='win'?`${n}手で到着、決戦に勝利`:o.end==='lose'?`${n}手で到着、決戦に敗れた`:o.end==='draw'?`${n}手で到着、決戦は引き分け`:o.end==='over'?`${DG2_MAX}手で届かず`:`${n}手で引き返した`; };
+function dg2Share(o){ const md=o.day.slice(5).replace('-','/').replace(/^0/,''); return `百科ダンジョン ${md}\n${o.s} から ${o.goal} へ：${dg2Line(o)}${o.me&&o.end&&o.end!=='quit'&&o.end!=='over'?`（決戦の選手：${o.me}）`:''}\n${o.path.map(p=>DG2E[p.ev]||'🚪').join('')}\n${o.path.map(p=>p.t).join(' → ')}\n${location.origin}/`; }
+/* 目的地への道のり：入口から、よく読まれている記事を優先して、リンクを日付で決まる順に4回たどる。入口から直接つながる記事は目的地にしない */
+async function dg2Walk(day,i0){ const s0=F[i0][1]; try{ const c=JSON.parse(localStorage.getItem('hk-dg2w')||'null'); if(c&&c.day===day&&c.s===s0&&Array.isArray(c.w)) return c.w; }catch(_){}
+  const P=new Set(POPULAR), w=[s0], seen=new Set(w); let cur=s0, first=null;
+  for(let step=0;step<7&&w.length<5;step++){ const L=[...new Set(await dgLinks(cur))].filter(t=>!DG_NG.test(t)&&!seen.has(t)); if(!first) first=new Set(L);
+    const order=L.map(t=>[t,(P.has(t)?0:1e10)+hash('dg-walk/'+day+'/'+cur+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]); let nx=null;
     for(let k=0;k<order.length&&k<24&&!nx;k+=8){ const ids=await Promise.all(order.slice(k,k+8).map(t=>loadTitle(t).catch(()=>-1)));
-      for(const i of ids) if(i>=0&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])&&!seen.has(F[i][1])){ nx=F[i][1]; break; } }
+      for(const i of ids) if(i>=0&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])&&!seen.has(F[i][1])&&!(w.length===4&&first.has(F[i][1]))){ nx=F[i][1]; break; } }
     if(!nx) break; w.push(nx); seen.add(nx); cur=nx; }
-  if(w.length<3) return null; try{ localStorage.setItem('hk-dgg',JSON.stringify({day,s:s0,w})); }catch(_){} return w; }
-const dgGoalName=()=>{ const i=DG&&DG.goal?TIX[DG.goal]:undefined; return i!==undefined?F[i][0]:(DG&&DG.goal)||''; };""")
-repall("""function dgStart(i,practice){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]])}; dgFloor(); }""",
-       """function dgStart(i,practice,walk){ DG={day:jstDay(),practice:!!practice,me:i,pos:i,floor:1,path:[{t:F[i][1],ev:'start'}],seen:new Set([F[i][1]]),walk:walk||null,goal:walk?walk[walk.length-1]:null}; dgFloor(); }""")
-repall("""  let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }""",
-       """  let out=[...W,...X]; for(const i of seen){ if(out.length>=3) break; if(!out.includes(i)) out.push(i); }
-  if(DG.walk){ const Ls=new Set(L); let best=-1; for(let j=DG.walk.length-1;j>=1;j--) if(Ls.has(DG.walk[j])){ best=j; break; }   /* 目的地か、道のりのいちばん先の記事がリンク先にあれば、扉に必ず入れる */
-    if(best>0){ const ri=await loadTitle(DG.walk[best]).catch(()=>-1); if(ri>=0&&!BLOCK.has(ri)&&!out.slice(0,3).includes(ri)){ out=out.slice(0,3); if(out.length<3) out.push(ri); else out[2]=ri; } } }""")
-repall("""  if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);""",
-       """  if(w!==d&&DG.goal&&F[d][1]===DG.goal){ DG.path.push({t:F[d][1],ev:'goal'}); dgEnd(`🏆 目的地の<b>${esc(F[d][0])}</b>に到着！<div class="dgc">${esc(how)}${key}</div>`,d,'goal'); return; }
-  if(w===me){ DG.path.push({t:F[d][1],ev:'win'}); DG.pos=d; dgSave(false);""")
-repall("""const dgLine=(path,end)=>{ const n=path.length-1;""", """const dgLine=(path,end)=>{ const n=path.length-1; if(end==='goal') return n+'階で到着';""")
-repall("""const dgHead=()=>`<div class="dgfl">${DG.floor}階</div>""", """const dgHead=()=>`<div class="dgfl">${DG.floor}階</div>${DG.goal?`<div>目的地：<b>${esc(dgGoalName())}</b>　${TIX[DG.goal]!==undefined?dgClue(TIX[DG.goal]):''}</div>`:''}""")
-repall("""{day:DG.day,deep,path:DG.path,done:!!done,end:end||''}""", """{day:DG.day,deep,path:DG.path,done:!!done,end:end||'',goal:DG.goal||''}""")
-repall("""p.ev==='win'||p.ev==='switch'||p.ev==='draw').length;""", """p.ev==='win'||p.ev==='switch'||p.ev==='draw'||p.ev==='goal').length;""")
-repall("""${path[0].t}から潜って ${dgLine(path,end)}""", """${path[0].t}から${((DG&&DG.goal)||(dgRec()||{}).goal)?((DG&&DG.goal)||(dgRec()||{}).goal)+'を目指して':'潜って'} ${dgLine(path,end)}""")
-repall("""  else { box.innerHTML=`<div class="dgst">今日の入口</div>${t0>=0?`<button type="button" class="btn big dgin" id="dgtoday">🚪 ${esc(F[t0][0])}</button>`:''}<div class="dgst">1日1回</div>`;
-    if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false); }""",
-       """  else { box.innerHTML='<div class="dgst">今日のお題を用意しています…</div>'; const walk=t0>=0?await dgGoal(day,t0).catch(()=>null):null, gi=walk?await loadTitle(walk[walk.length-1]).catch(()=>-1):-1;
-    box.innerHTML=`<div class="dgst">今日のお題</div>${t0>=0?`<div class="dgq">${esc(F[t0][0])} から ${gi>=0?esc(F[gi][0]):'どこまでも'}${gi>=0?' を目指す':''}</div>${gi>=0?`<div class="dgst">目的地：${dgClue(gi)}</div>`:''}<button type="button" class="btn big dgin" id="dgtoday">潜る</button>`:''}<div class="dgst">リンクの扉をたどって目的地へ。扉の先の記事に勝てば進める。1日1回</div>`;
-    if($('#dgtoday')) $('#dgtoday').onclick=()=>dgStart(t0,false,gi>=0?walk:null); }""")
+  if(w.length<4) return null; try{ localStorage.setItem('hk-dg2w',JSON.stringify({day,s:s0,w})); }catch(_){} return w; }
+/* 目的地にリンクしている記事（🔭 の手がかり）。Wikipedia の「リンク元」を2,000件まで読む */
+async function dg2Near(goal){ const out=new Set(); let cont={};
+  for(let k=0;k<4;k++){ const j=await fetch('https://ja.wikipedia.org/w/api.php?'+new URLSearchParams({format:'json',origin:'*',action:'query',list:'backlinks',bltitle:goal,blnamespace:0,bllimit:'max',blfilterredir:'nonredirects',...cont})).then(r=>r.json()).catch(()=>null);
+    if(!j) break; for(const b of ((j.query||{}).backlinks||[])) out.add(b.title); if(!j.continue) break; cont=j.continue; }
+  return out; }
+async function dg2Doors(){ const here=F[DG2.pos][1], L=[...new Set(await dgLinks(here))].filter(t=>!DG_NG.test(t)&&!DG2.seen.has(t)), Ls=new Set(L);
+  const must=[]; if(Ls.has(DG2.goal)) must.push(DG2.goal); else { for(let j=DG2.walk.length-2;j>=1;j--) if(Ls.has(DG2.walk[j])){ must.push(DG2.walk[j]); break; } }
+  const P=new Set(POPULAR), order=L.filter(t=>!must.includes(t)).map(t=>[t,(P.has(t)?0:5e9)+hash('dg2/'+DG2.day+'/'+here+'/'+t)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const out=[]; for(const t of must){ const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)) out.push(i); }
+  for(let k=0;k<order.length&&k<36&&out.length<DG2_DOORS;k+=12){ const ids=await Promise.all(order.slice(k,k+12).map(t=>loadTitle(t).catch(()=>-1)));
+    for(const i of ids){ if(out.length>=DG2_DOORS) break; if(i<0||BLOCK.has(i)||isChamp(i)||NORAND.has(F[i][1])||out.includes(i)) continue; out.push(i); } }
+  return out.sort((a,b)=>hash('dg2-door/'+DG2.day+'/'+F[a][1])-hash('dg2-door/'+DG2.day+'/'+F[b][1])); }
+const dg2Head=()=>`<div class="dgfl">${dg2Hops(DG2.path)}手目</div><div>目的地：<b>${esc(F[DG2.gi][0])}</b>　${dgClue(DG2.gi)}</div><div>いまいる記事：<b>${esc(F[DG2.pos][0])}</b>　${dgClue(DG2.pos)}</div><div>決戦の選手：<b>${esc(F[DG2.me][0])}</b></div><div class="dgpath">${dg2Path(DG2.path)}</div>`;
+function dg2Start(i0,walk,near){ DG2={day:jstDay(),s:F[i0][1],goal:walk[walk.length-1],gi:TIX[walk[walk.length-1]],walk,near,pos:i0,me:i0,path:[{t:F[i0][1],ev:'start'}],seen:new Set([F[i0][1]])}; dg2Save(''); dg2Floor(); }
+async function dg2Floor(){ const box=$('#dgbox'); box.innerHTML=`<div class="dgst">${dg2Head()}</div><div class="dgst">扉を探しています…</div>`;
+  if(dg2Hops(DG2.path)>=DG2_MAX){ dg2End('over'); return; }
+  let doors; try{ doors=await dg2Doors(); }catch(_){ doors=null; } if(!DG2) return;
+  if(!doors){ box.innerHTML=`<div class="dgst">${dg2Head()}</div><div class="dgres">扉を開けませんでした（通信を確かめてください）</div><button type="button" class="btn big dgin" id="dgretry">もう一度</button>`; $('#dgretry').onclick=()=>dg2Floor(); return; }
+  if(!doors.length){ dg2End('quit','🧱 この先に扉がない'); return; }
+  const canTake=DG2.pos!==DG2.me;
+  box.innerHTML=`<div class="dgst">${dg2Head()}</div><div class="dgq">どの扉に進む？</div><div class="dgdoors">${doors.map((d,k)=>`<button type="button" class="btn dgd" data-k="${k}"><span>${F[d][1]===DG2.goal?'🏆':DG2.near.has(F[d][1])?'🔭':'🚪'} <b>${esc(F[d][0])}</b><br>${dgClue(d)}</span></button>`).join('')}</div><div class="dgst">🔭 は、その先から目的地が見える扉</div><div class="trow">${canTake?`<button type="button" class="btn small" id="dgtake">${esc(F[DG2.pos][0])}を決戦に連れて行く</button>`:''}<button type="button" class="btn small" id="dgquit">引き返す</button></div>`;
+  box.querySelectorAll('.dgd').forEach(b=>b.onclick=()=>dg2Go(doors[+b.dataset.k]));
+  if($('#dgtake')) $('#dgtake').onclick=()=>{ DG2.me=DG2.pos; dg2Save(''); dg2Floor(); };
+  $('#dgquit').onclick=()=>dg2End('quit','🏳️ 引き返した'); }
+function dg2Go(d){ DG2.seen.add(F[d][1]);
+  if(F[d][1]===DG2.goal){ DG2.path.push({t:F[d][1],ev:'goal'}); dg2Final(d); return; }
+  DG2.path.push({t:F[d][1],ev:'step'}); DG2.pos=d; dg2Save(''); dg2Floor(); }
+/* 目的地での決戦：連れてきた選手と、目的地の記事で1回だけ */
+function dg2Final(g){ dgPlay(); const me=DG2.me, an=analyze(me,g), r=an.r, w=r.w; const how=r.how||(r.kind==='KO'?r.tick+'カウントでKO':r.kind==='判定'?'判定':r.kind||''); const dm=(an.dec||[]).find(x=>x.who===w&&x.move); const key=dm?`。決め手は【${esc(dm.move)}】`:'';
+  const end=w===me?'win':w===null?'draw':'lose';
+  dg2End(end, end==='win'?`🏆 目的地の<b>${esc(F[g][0])}</b>に到着。決戦で<b>${esc(F[me][0])}</b>が勝った！<div class="dgc">${esc(how)}${key}</div>`:end==='draw'?`🏆 目的地の<b>${esc(F[g][0])}</b>に到着。決戦は引き分け`:`🏆 目的地の<b>${esc(F[g][0])}</b>に到着。決戦で<b>${esc(F[me][0])}</b>が敗れた…<div class="dgc">相手の${esc(how)}${key}</div>`, [me,g]); }
+function dg2End(end,msg,pair){ dg2Save(end); const o=dg2Rec()||{day:DG2.day,s:DG2.s,goal:DG2.goal,path:DG2.path,me:F[DG2.me][1],end}; const share=dg2Share(o), box=$('#dgbox');
+  box.innerHTML=`<div class="dgfl">${esc(dg2Line(o))}</div>${msg?`<div class="dgres${end==='lose'?' lose':''}">${msg}</div>`:end==='over'?`<div class="dgres lose">⌛ ${DG2_MAX}手で目的地に届かなかった</div>`:''}<div class="dgpath">${dg2Path(o.path)}</div><button type="button" class="btn big dgin" id="dgcopy">${dgShareLab()}</button><div class="dgsub">${pair?`<button type="button" class="btn small" id="dgw">決戦を観戦</button>`:''}<button type="button" class="btn small" id="dgagain">閉じる</button></div>`;
+  $('#dgcopy').onclick=()=>dgCopy(share);
+  if($('#dgw')) $('#dgw').onclick=()=>{ MODE=null; ORIG={k:'dg'}; startBattle(pair); };
+  $('#dgagain').onclick=()=>{ DG2=null; dgInit(); }; }
+async function dgInit0(){ const box=$('#dgbox'); if(!box) return; return dg2Init(); }
+async function dg2Init(){ const box=$('#dgbox'); if(!POPULAR.length){ box.textContent='今日のお題を用意できませんでした。'; return; } const day=jstDay();
+  const o=dg2Rec(); if(o&&o.end){ box.innerHTML=`<div class="dgfl">今日は ${esc(dg2Line(o))}</div><div class="dgst">${esc(o.s)} から ${esc(o.goal)} へ</div><div class="dgpath">${dg2Path(o.path)}</div><button type="button" class="btn big dgin" id="dgcopy">${dgShareLab()}</button><div class="dgst">次のお題は明日</div>`; $('#dgcopy').onclick=()=>dgCopy(dg2Share(o)); return; }
+  if(o&&!o.end){ o.end='quit'; try{ localStorage.setItem('hk-dg2',JSON.stringify(o)); }catch(_){} return dg2Init(); }   /* 途中で離れたら、そこまでで引き返した扱い */
+  box.innerHTML='<div class="dgst">今日のお題を用意しています…</div>';
+  let t0=-1; for(let k=0;k<20&&t0<0;k++){ const t=POPULAR[hash('dg-start/'+day+'/'+k)%POPULAR.length]; if(!t) continue; const i=await loadTitle(t).catch(()=>-1); if(i>=0&&!BLOCK.has(i)&&!isChamp(i)&&!NORAND.has(F[i][1])) t0=i; }
+  const walk=t0>=0?await dg2Walk(day,t0).catch(()=>null):null; const gi=walk?await loadTitle(walk[walk.length-1]).catch(()=>-1):-1;
+  if(gi<0){ box.innerHTML='<div class="dgst">今日のお題を用意できませんでした。少しあとで開き直してください。</div>'; return; }
+  box.innerHTML=`<div class="dgst">今日のお題</div><div class="dgq">${esc(F[t0][0])} から ${esc(F[gi][0])} へ</div><div class="dgst">目的地：${dgClue(gi)}</div><button type="button" class="btn big dgin" id="dgtoday">出発する</button><div class="dgst">リンクの扉をたどって、${DG2_MAX}手以内に目的地へ。途中の記事から決戦の選手を選び、目的地の記事と1回だけ戦う。1日1回</div>`;
+  $('#dgtoday').onclick=async()=>{ $('#dgtoday').disabled=true; const near=await dg2Near(walk[walk.length-1]).catch(()=>new Set()); dg2Start(t0,walk,near); }; }
+async function dgInit0_old(){ const box=$('#dgbox'); if(!box) return;""")
+repall("""<span>リンクの扉をくぐって、どこまで潜れるか</span>""", """<span>リンクの扉をたどって、目的地へ</span>""")
+repall("""<small>リンクの扉をくぐって潜る</small>""", """<small>リンクをたどって目的地へ</small>""")
 
 # 確認画面の枠と、使わなくなった表示を消す
 rep('  <section id="review" class="card" hidden></section>\n', '')
