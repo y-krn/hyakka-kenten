@@ -47,7 +47,7 @@ jobs:
             gh release download "$tag" -R ${{ github.repository }} -p data.tar -D /tmp/pk && tar -C public -xf /tmp/pk/data.tar
             test -f public/data/manifest.json && echo "包み $tag を配る（$(find public/data -type f | wc -l) ファイル）"
             # 画面が遊ぶときに読む手で直す表は、Git のものを上に重ねる（直したらすぐ届く。索引に関わる unhold.json などは、包みを作り直す）
-            for f in exclude.json fix.json movedex.json playerdex.json fixa pref; do [ -e ../data/$f ] && cp -r ../data/$f public/data/; done
+            for f in exclude.json fix.json movedex.json playerdex.json fixa pref; do if [ -e ../data/$f ]; then cp -r ../data/$f public/data/; fi; done   # ない表（pref はまだ main にない）は飛ばす
           else
             cp -r ../data public/data
           fi
