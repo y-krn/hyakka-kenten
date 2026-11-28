@@ -1,0 +1,72 @@
+# 正本に、検索用ダンプからの取り出し（リンク・転送ページ・本文）を足す：ダンプは4週間ほどで消えるので、消える前に正本へ移す
+#   作り直し（記事データ・リンクのつながり・脚注の1文）は、正本だけから作れるようにする
+#   出力は区画ごとに links-NNNNN.tsv.zst / red-NNNNN.tsv.zst / text-NNNNN.jsonl.zst として、正本（Releases の src-時点）に足す
+name: 正本にダンプからの取り出しを足す
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 足す先の正本（例 src-2026-11-19）
+        required: true
+      dump:
+        description: 検索用ダンプの日付（YYYYMMDD。正本の記事本文データと同じ日付にする）
+        required: true
+      limit:
+        description: 試しに動かすときの区画の数（空なら全部。試しのときは正本に足さず、成果物に置く）
+        default: ''
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+  UA: 'hyakka-kenten data rebuild (https://github.com/y-krn)'
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.l.outputs.shards }}
+      base: ${{ steps.l.outputs.base }}
+    steps:
+      - id: l
+        env:
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          gh release view "${{ inputs.tag }}" >/dev/null || { echo "正本 ${{ inputs.tag }} がありません"; exit 1; }
+          base="https://dumps.wikimedia.org/other/cirrus_search_index/${{ inputs.dump }}/index_name=jawiki_content"
+          files=$(curl -sS -A "$UA" "$base/" | grep -o 'jawiki_content-[0-9]*-[0-9]*\.json\.bz2' | sort -u)
+          [ -n "$files" ] || { echo "ダンプ ${{ inputs.dump }} が見つかりません"; exit 1; }
+          [ -n "$LIMIT" ] && files=$(echo "$files" | head -n "$LIMIT")
+          echo "区画 $(echo "$files" | wc -l)"
+          echo "base=$base" >> $GITHUB_OUTPUT
+          echo "shards=$(echo "$files" | python3 -c 'import sys,json;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')" >> $GITHUB_OUTPUT
+  extract:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 4
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.list.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - name: 取り出す
+        run: |
+          sudo apt-get install -y -qq lbzip2 zstd >/dev/null
+          n=$(echo "${{ matrix.shard }}" | grep -o '[0-9]*\.json' | grep -o '[0-9]*')
+          mkdir -p out
+          curl -sS --retry 5 -A "$UA" "${{ needs.list.outputs.base }}/${{ matrix.shard }}" \
+            | lbzip2 -dc | python3 tools/src_extract.py out/links-$n.tsv out/red-$n.tsv out/text-$n.jsonl
+          ls -la out && zstd -T0 -12 --rm -q out/* && ls -la out
+      - name: 正本に足す
+        if: ${{ !inputs.limit }}
+        run: gh release upload "${{ inputs.tag }}" out/* --clobber
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.limit }}
+        with:
+          name: src-dump-${{ strategy.job-index }}
+          path: out
+          retention-days: 2
+          compression-level: 0
